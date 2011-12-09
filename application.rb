@@ -1,7 +1,6 @@
 require 'rubygems'
-#gem "opentox-ruby", "~> 3"
-#require 'opentox-ruby'
 require 'fileutils'
+require 'rubyzip'
 
 helpers do
 
@@ -18,16 +17,27 @@ helpers do
     File.join "./investigation", @id.to_s
   end
 
+  def file
+    File.join "./investigation", params[:id], params[:filename]
+  end
+
   def next_id
 	  id = Dir["./investigation/*"].collect{|f| File.basename(f).to_i}.sort.last
     id ? id + 1 : 0
   end
 
   def save
-    # TODO: validate isa-tab
-    # TODO: create and store RDF
+    halt 400 "Please submit data as multipart/form-data" unless request.form_data?
+    halt 400 "Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:format] == 'application/zip' or params[:file][:format] == 'text/tab-separated-values'
+    halt 400 "File #{params[:file][:filename]} exists already for investigation #{@id}. Please change the filename and submit again." if File.exists? params[:file][:filename]
+    halt 400 "Only a single ISA-TAB investigation file allowed. #{Dir["#{dir}/i_*txt"]} exists already." if Dir["#{dir}/i_*txt"]
+    `./java/ISA-validator-1.4/validate.sh #{params[:file][:tempfile]}`
+    # TODO: return 400 if validation fails
     FileUtils.mkdir_p dir
     File.open(File.join(dir,params[:file][:filename]),"w+"){|f| f.puts params[:file][:tempfile].read}
+    # TODO: avoid overwriting existing files, 
+    `unzip #{File.join(dir,params[:file][:filename])}` if params[:file][:format] == 'application/zip' #filename.match(/\.zip$/)
+    # TODO: create and store RDF
     response['Content-Type'] = 'text/uri-list'
     uri 
   end
@@ -35,21 +45,22 @@ helpers do
 end
 
 before do
-  @accept = request.env['HTTP_ACCEPT']
   params[:id] ? @id = params[:id] : @id = next_id 
+  halt 404 unless File.exist? dir
+  @accept = request.env['HTTP_ACCEPT']
   # TODO: A+A
 end
 
 # Query all investigations or get a list of all investigations
 # Requests with a query parameter will perform a SPARQL query on all investigations
-# @param [Header] Accept: one of application/sparql-results+xml, application/sparql-results+json
 # @param query SPARQL query
-# @return [application/sparql-results+xml, application/sparql-results+json] Query result
+# @return [application/sparql-results+json] Query result
 # Requests without a query parameter return a list of all investigations
 # @return [text/uri-list] List of investigations
 get '/' do
   if params[:query]
     # TODO: implement RDF query
+    halt 501 "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
@@ -58,96 +69,62 @@ end
 
 # Create a new investigation from ISA-TAB files
 # @param [Header] Content-type: multipart/form-data
-# @param file Investigation in ISA-TAB format
+# @param file Zipped investigation files in ISA-TAB format
 # @return [text/uri-list] Investigation URI 
 post '/' do
   save
 end
 
-# Get an investigation
-# @param [Header] Accept: one of text/uri-list, application/x-tgz, application/sparql-results+json
-# @return [text/uri-list, application/x-tgz, application/sparql-results+json] Investigation in the requested format
+# Get an investigation representation
+# @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
+# @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
 get '/:id' do
   case @accept
+  when "text/tab-separated-values"
+    send_file Dir["./investigation/#{@id}/i_*txt"].first, :type => @accept
   when "text/uri-list"
     uri_list
-  when "application/x-tgz"
-    # TODO: return all data as tar.gz
+  when "application/zip"
+    # TODO: problems with multiple zip files uploaded
+    send_file Dir["./investigation/#{@id}/*zip"].first
   when "application/sparql-results+json"
     # TODO: return all data in rdf
+    halt 501 "SPARQL query not yet implemented"
+  else
+    halt 400 "Accept header #{@accept} not supported"
   end
 end
 
-# Create a new version of an investigation
-# Will create a new investigation which is linked to the original investigation, the original investigation will remain intact
+# Add studies, assays or data to an investigation
 # @param [Header] Content-type: multipart/form-data
-# @param file Investigation in ISA-TAB format
-# @return [text/uri-list] New investigation URI 
+# @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
+# @return [text/uri-list] New resource URI(s)
 post '/:id' do
-  # TODO
+  save
 end
 
 # Delete an investigation
 delete '/:id' do
   FileUtils.remove_entry_secure dir
-  # TODO: delete RDF data
 end
 
-# Get a list of studies of an investigation
-# @return [text/uri-list] List of study URIs 
-get '/:id/study'  do
-  # TODO
-end
-
-# Add a study to an investigation
-# @param [Header] Content-type: multipart/form-data
-# @param file Study in ISA-TAB format
-# @return [text/uri-list] Study URI 
-post '/:id/study' do
-  # TODO
-end
-
-# Get a study 
-# @param [Header] Accept: one of application/x-tgz, application/sparql-results+json
-# @return [application/x-tgz, application/sparql-results+json] Study files or RDF
-get '/:id/study/:study_id' do
+# Get a study, assay, data representation
+# @param [Header] one of text/tab-separated-values, application/sparql-results+json
+# @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
+get '/:id/:filename'  do
   case @accept
   when "text/tab-separated-values"
-    # TODO
+    send_file file, :type => @accept
   when "application/sparql-results+json"
-    # TODO
+    # TODO: return all data in rdf
+    halt 501 "SPARQL query not yet implemented"
+  else
+    halt 400 "Accept header #{@accept} not supported"
   end
 end
 
-# Add an assay to a study
-# @param [Header] Content-type: multipart/form-data
-# @param file Study in ISA-TAB format
-# @return [text/uri-list] Assay URI 
-post '/:id/study/:study_id' do
-  # TODO
-end
-
-# Get a list of assays of a study
-# @return [text/uri-list] List of assay URIs 
-get '/:id/study/:study_id/assay'  do
-  # TODO
-end
-
-# Get an assay
-# @param [Header] Accept: one of text/tab-separated-values, application/sparql-results+json
-# @return [text/tab-separated-values, application/sparql-results+json] Assay file or RDF
-get '/:id/study/:study_id/assay/:assay_id' do
-  # TODO
-end
-
-# Get a list of data files or links to datasets for an assay
-# @return [text/uri-list] List of file/dataset URIs 
-get '/:id/study/:study_id/assay/:assay_id/file' do
-  # TODO
-end
-
-# Get a data file
-# @return Data file (ISA-TAB, CEL, ...)
-get '/:id/study/:study_id/assay/:assay_id/file/:file_id' do
-  # TODO
+# Delete an individual study, assay or data file
+delete '/:id/:filename'  do
+  File.delete file
+  # TODO revalidate ISA-TAB
 end
