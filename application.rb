@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'fileutils'
-require 'rubyzip'
+#require 'rubyzip'
 
 helpers do
 
@@ -27,10 +27,10 @@ helpers do
   end
 
   def save
-    halt 400 "Please submit data as multipart/form-data" unless request.form_data?
-    halt 400 "Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:format] == 'application/zip' or params[:file][:format] == 'text/tab-separated-values'
-    halt 400 "File #{params[:file][:filename]} exists already for investigation #{@id}. Please change the filename and submit again." if File.exists? params[:file][:filename]
-    halt 400 "Only a single ISA-TAB investigation file allowed. #{Dir["#{dir}/i_*txt"]} exists already." if Dir["#{dir}/i_*txt"]
+    halt 400, "Please submit data as multipart/form-data" unless request.form_data?
+    halt 400, "Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:format] == 'application/zip' or params[:file][:format] == 'text/tab-separated-values'
+    halt 400, "File #{params[:file][:filename]} exists already for investigation #{@id}. Please change the filename and submit again." if File.exists? params[:file][:filename]
+    halt 400, "Only a single ISA-TAB investigation file allowed. #{Dir["#{dir}/i_*txt"]} exists already." if Dir["#{dir}/i_*txt"]
     `./java/ISA-validator-1.4/validate.sh #{params[:file][:tempfile]}`
     # TODO: return 400 if validation fails
     FileUtils.mkdir_p dir
@@ -60,7 +60,7 @@ end
 get '/' do
   if params[:query]
     # TODO: implement RDF query
-    halt 501 "SPARQL query not yet implemented"
+    #halt 501, "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
@@ -89,9 +89,9 @@ get '/:id' do
     send_file Dir["./investigation/#{@id}/*zip"].first
   when "application/sparql-results+json"
     # TODO: return all data in rdf
-    halt 501 "SPARQL query not yet implemented"
+    halt 501, "SPARQL query not yet implemented"
   else
-    halt 400 "Accept header #{@accept} not supported"
+    halt 400, "Accept header #{@accept} not supported"
   end
 end
 
@@ -117,9 +117,9 @@ get '/:id/:filename'  do
     send_file file, :type => @accept
   when "application/sparql-results+json"
     # TODO: return all data in rdf
-    halt 501 "SPARQL query not yet implemented"
+    halt 501, "SPARQL query not yet implemented"
   else
-    halt 400 "Accept header #{@accept} not supported"
+    halt 400, "Accept header #{@accept} not supported"
   end
 end
 
