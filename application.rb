@@ -1,20 +1,20 @@
 require 'rubygems'
 require 'fileutils'
-#require 'rubyzip'
+require 'sinatra/url_for'
 
 helpers do
 
   def uri
-    @id ? url_for("/#{@id}", :full) : "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
+    params[:id] ? url_for("/#{params[:id]}", :full) : "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
   end
 
   def uri_list 
-    @id ? d = "./investigation/#{@id}/*" : d = "./investigation/*"
-    Dir[d].collect{|f| url_for(d.sub(/^\./,'').sub(/\*/,'') + File.basename(f), :full)}.join("\n") + "\n"
+    params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
+    Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''),:full) if f.match(/\.txt$/) }.compact.sort.join("\n") + "\n"
   end
 
   def dir
-    File.join "./investigation", @id.to_s
+    File.join "./investigation", params[:id].to_s
   end
 
   def file
@@ -28,15 +28,25 @@ helpers do
 
   def save
     halt 400, "Please submit data as multipart/form-data" unless request.form_data?
-    halt 400, "Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:format] == 'application/zip' or params[:file][:format] == 'text/tab-separated-values'
-    halt 400, "File #{params[:file][:filename]} exists already for investigation #{@id}. Please change the filename and submit again." if File.exists? params[:file][:filename]
-    halt 400, "Only a single ISA-TAB investigation file allowed. #{Dir["#{dir}/i_*txt"]} exists already." if Dir["#{dir}/i_*txt"]
-    `./java/ISA-validator-1.4/validate.sh #{params[:file][:tempfile]}`
-    # TODO: return 400 if validation fails
-    FileUtils.mkdir_p dir
-    File.open(File.join(dir,params[:file][:filename]),"w+"){|f| f.puts params[:file][:tempfile].read}
-    # TODO: avoid overwriting existing files, 
-    `unzip #{File.join(dir,params[:file][:filename])}` if params[:file][:format] == 'application/zip' #filename.match(/\.zip$/)
+    halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:type]== 'application/zip' or params[:file][:type]== 'text/tab-separated-values'
+    # move existing ISA-TAB files to tmp
+    tmp = File.join dir,"tmp"
+    FileUtils.remove_entry_secure tmp if File.exists? tmp
+    FileUtils.mkdir_p tmp
+    FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
+    # overwrite existing files
+    # TODO: keep original files in versions
+    File.open(File.join(tmp,params[:file][:filename]),"w+"){|f| f.puts params[:file][:tempfile].read}
+    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}` if params[:file][:type] == 'application/zip' #filename.match(/\.zip$/)
+    # validate ISA-TAB
+    validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
+    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
+    result = `validator_call`
+    halt 400, "ISA-TAB validation failed:\n"+result unless result.chomp.empty?
+    # if everything is fine move ISA-TAB files back to original dir
+    FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+    zipfile = File.join dir, "investigation_#{params[:id]}.zip"
+    `zip -j #{zipfile} #{dir}/*.txt`
     # TODO: create and store RDF
     response['Content-Type'] = 'text/uri-list'
     uri 
@@ -45,7 +55,6 @@ helpers do
 end
 
 before do
-  params[:id] ? @id = params[:id] : @id = next_id 
   halt 404 unless File.exist? dir
   @accept = request.env['HTTP_ACCEPT']
   # TODO: A+A
@@ -57,10 +66,10 @@ end
 # @return [application/sparql-results+json] Query result
 # Requests without a query parameter return a list of all investigations
 # @return [text/uri-list] List of investigations
-get '/' do
+get '/?' do
   if params[:query]
     # TODO: implement RDF query
-    #halt 501, "SPARQL query not yet implemented"
+    halt 501, "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
@@ -71,7 +80,8 @@ end
 # @param [Header] Content-type: multipart/form-data
 # @param file Zipped investigation files in ISA-TAB format
 # @return [text/uri-list] Investigation URI 
-post '/' do
+post '/?' do
+  params[:id] = next_id
   save
 end
 
@@ -81,12 +91,11 @@ end
 get '/:id' do
   case @accept
   when "text/tab-separated-values"
-    send_file Dir["./investigation/#{@id}/i_*txt"].first, :type => @accept
+    send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
   when "text/uri-list"
     uri_list
   when "application/zip"
-    # TODO: problems with multiple zip files uploaded
-    send_file Dir["./investigation/#{@id}/*zip"].first
+    send_file File.join dir, "investigation_#{params[:id]}.zip"
   when "application/sparql-results+json"
     # TODO: return all data in rdf
     halt 501, "SPARQL query not yet implemented"

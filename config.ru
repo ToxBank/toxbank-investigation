@@ -1,6 +1,10 @@
 require 'rubygems'
-require 'opentox-ruby'
-require 'config/config_ru'
+require 'rack'
+require 'rack/contrib'
+require 'sinatra'
+require 'application.rb'
+#require 'opentox-ruby'
+#require 'config/config_ru'
 run Sinatra::Application
-set :raise_errors, false
-set :show_exceptions, false
+set :raise_errors, true
+set :show_exceptions, true
