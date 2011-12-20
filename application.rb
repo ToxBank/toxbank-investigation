@@ -55,6 +55,8 @@ helpers do
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
     # TODO: create and store RDF
+    # rdf = `isa2rdf`
+    # `4s-import ToxBank #{rdf}`
     response['Content-Type'] = 'text/uri-list'
     uri 
   end
@@ -76,6 +78,7 @@ end
 get '/?' do
   if params[:query]
     # TODO: implement RDF query
+    #`4s-query ToxBank #{params[:query]}`
     halt 501, "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
