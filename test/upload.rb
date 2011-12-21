@@ -3,7 +3,7 @@ require 'fileutils'
 require 'test/unit'
 require 'uri'
 
-HOST = "http://ot-dev.in-silico.ch/investigation"
+HOST = "http://localhost/investigation"
 
 class UploadTest < Test::Unit::TestCase
 
