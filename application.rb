@@ -1,5 +1,8 @@
 require 'rubygems'
 require 'fileutils'
+require 'rack'
+require 'rack/contrib'
+require 'sinatra'
 require 'sinatra/url_for'
 
 helpers do
@@ -49,8 +52,9 @@ helpers do
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
     # TODO: git commit
-    #`./git-commit.sh`
-    #`cd investigation; git add \`git ls-files --other --exclude-standard\`; git commit -am "submission from #{request.ip}`
+    # newfiles = `cd investigation; git ls-files --others --directory`
+    # `cd investigation; git add #{newfiles}`
+    # `cd investigation; git commit -am "submission from #{request.ip}`
     FileUtils.remove_entry tmp 
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
@@ -148,5 +152,6 @@ end
 delete '/:id/:filename'  do
   File.delete file
   # TODO: git commit
+  # `cd investigation; git commit -am "#{file} deleted from #{request.ip}"`
   # TODO revalidate ISA-TAB
 end
