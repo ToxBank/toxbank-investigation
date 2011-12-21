@@ -16,7 +16,6 @@ wget https://github.com/downloads/ISA-tools/ISAvalidator-ISAconverter-BIImanager
 unzip ISA-validator-1.4.zip
 cd -
 
-
 # get, compile, install "raptor" "rasqal"
 # raptor
 cd tmp
@@ -51,3 +50,8 @@ sudo rm -r tmp
 # start service
 4s-backend-setup ToxBank
 4s-backend ToxBank
+
+cd investigation
+git init
+echo "*/*.zip" > .gitignore
+cd -

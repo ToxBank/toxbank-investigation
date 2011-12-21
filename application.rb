@@ -27,27 +27,36 @@ helpers do
   end
 
   def save
+    # lock tmp dir
+    tmp = File.join dir,"tmp"
+    halt 423, "Importing another submission. Please try again later." if File.exists? tmp
     halt 400, "Please submit data as multipart/form-data" unless request.form_data?
     halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:type]== 'application/zip' or params[:file][:type]== 'text/tab-separated-values'
     # move existing ISA-TAB files to tmp
-    tmp = File.join dir,"tmp"
-    FileUtils.remove_entry_secure tmp if File.exists? tmp
     FileUtils.mkdir_p tmp
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
-    # overwrite existing files
-    # TODO: keep original files in versions
+    # overwrite existing files with new submission
     File.open(File.join(tmp,params[:file][:filename]),"w+"){|f| f.puts params[:file][:tempfile].read}
     `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}` if params[:file][:type] == 'application/zip' #filename.match(/\.zip$/)
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
     result = `validator_call`
-    halt 400, "ISA-TAB validation failed:\n"+result unless result.chomp.empty?
+    unless result.chomp.empty?
+      FileUtils.remove_entry tmp 
+      halt 400, "ISA-TAB validation failed:\n"+result
+    end
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+    # TODO: git commit
+    #`./git-commit.sh`
+    #`cd investigation; git add \`git ls-files --other --exclude-standard\`; git commit -am "submission from #{request.ip}`
+    FileUtils.remove_entry tmp 
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
     # TODO: create and store RDF
+    # rdf = `isa2rdf`
+    # `4s-import ToxBank #{rdf}`
     response['Content-Type'] = 'text/uri-list'
     uri 
   end
@@ -69,6 +78,7 @@ end
 get '/?' do
   if params[:query]
     # TODO: implement RDF query
+    #`4s-query ToxBank #{params[:query]}`
     halt 501, "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
@@ -114,7 +124,9 @@ end
 
 # Delete an investigation
 delete '/:id' do
-  FileUtils.remove_entry_secure dir
+  FileUtils.remove_entry dir
+  # TODO: git commit
+  #`cd investigation; git commit -am "#{dir} deleted from #{request.ip}"`
 end
 
 # Get a study, assay, data representation
@@ -135,5 +147,6 @@ end
 # Delete an individual study, assay or data file
 delete '/:id/:filename'  do
   File.delete file
+  # TODO: git commit
   # TODO revalidate ISA-TAB
 end

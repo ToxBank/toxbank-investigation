@@ -8,7 +8,7 @@ HOST = "http://localhost/investigation"
 class UploadTest < Test::Unit::TestCase
 
   def setup
-    @uri = `curl -X POST -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`
+    @uri = `curl -X POST -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
     @tmpdir = "./tmp"
     FileUtils.mkdir_p @tmpdir
     @isatab_files = [
