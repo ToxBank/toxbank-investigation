@@ -54,4 +54,7 @@ sudo rm -r tmp
 cd investigation
 git init
 echo "*/*.zip" > .gitignore
+echo "*/tmp" >> .gitignore
+git add .gitignore
+git commit -am ".gitignore added"
 cd -

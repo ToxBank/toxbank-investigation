@@ -4,6 +4,7 @@ require 'rack'
 require 'rack/contrib'
 require 'sinatra'
 require 'sinatra/url_for'
+require 'grit'
 
 helpers do
 
@@ -40,7 +41,7 @@ helpers do
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
     # overwrite existing files with new submission
     File.open(File.join(tmp,params[:file][:filename]),"w+"){|f| f.puts params[:file][:tempfile].read}
-    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}` if params[:file][:type] == 'application/zip' #filename.match(/\.zip$/)
+    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}` if params[:file][:type] == 'application/zip'
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
@@ -51,13 +52,15 @@ helpers do
     end
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
-    # TODO: git commit
-    # newfiles = `cd investigation; git ls-files --others --directory`
-    # `cd investigation; git add #{newfiles}`
-    # `cd investigation; git commit -am "submission from #{request.ip}`
-    FileUtils.remove_entry tmp 
+    # git commit
+    newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
+    `cd investigation; git add #{newfiles}`
+    params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
+    `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+    # create new zipfile
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
+    FileUtils.remove_entry tmp  # unlocks tmp
     # TODO: create and store RDF
     # rdf = `isa2rdf`
     # `4s-import ToxBank #{rdf}`
@@ -129,8 +132,11 @@ end
 # Delete an investigation
 delete '/:id' do
   FileUtils.remove_entry dir
-  # TODO: git commit
-  #`cd investigation; git commit -am "#{dir} deleted from #{request.ip}"`
+  # git commit
+  `cd investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+  # TODO: updata RDF
+  response['Content-Type'] = 'text/plain'
+  "investigation #{params[:id]} deleted"
 end
 
 # Get a study, assay, data representation
@@ -150,8 +156,32 @@ end
 
 # Delete an individual study, assay or data file
 delete '/:id/:filename'  do
-  File.delete file
-  # TODO: git commit
-  # `cd investigation; git commit -am "#{file} deleted from #{request.ip}"`
-  # TODO revalidate ISA-TAB
+  # revalidate ISA-TAB
+  # lock tmp dir
+  tmp = File.join dir,"tmp"
+  halt 423, "Working on another submission. Please try again later." if File.exists? tmp
+  # move existing ISA-TAB files to tmp
+  FileUtils.mkdir_p tmp
+  FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
+  File.delete File.join(tmp,params[:filename])
+  # validate ISA-TAB
+  validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
+  validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
+  result = `validator_call`
+  unless result.chomp.empty?
+    FileUtils.remove_entry tmp 
+    halt 400, "ISA-TAB validation failed:\n"+result
+  end
+  # if everything is fine move ISA-TAB files back to original dir
+  FileUtils.rm Dir[File.join(dir,"*.txt")]
+  FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+  # git commit
+  `cd investigation; git commit -am "#{params[:filename]} deleted by #{request.ip}"`
+  # create new zipfile
+  zipfile = File.join dir, "investigation_#{params[:id]}.zip"
+  `zip -j #{zipfile} #{dir}/*.txt`
+  FileUtils.remove_entry tmp 
+  # TODO: updata RDF
+  response['Content-Type'] = 'text/plain'
+  "#{params[:filename]} deleted from investigation #{params[:id]}"
 end
