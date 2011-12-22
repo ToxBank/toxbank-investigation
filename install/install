@@ -1,0 +1,86 @@
+#!/bin/sh
+# Main ToxBank-investigation install script
+# Author: Christoph Helma, Andreas Maunz, Denis Gebele.
+
+if [ "$(id -u)" = "0" ]; then
+  echo "This script must not be run as root" 1>&2
+  exit 1
+fi
+
+LOG="/tmp/`basename $0`-log.txt"
+. "./utils.sh"
+echo
+echo "ToxBank-investigation installation."
+echo "You may need to give root password for some privileged actions right now and later:"
+echo
+cmd="sudo echo -n \"\"" && run_cmd "$cmd" "Acquire privileges"
+
+echo "Cleaning up /tmp files."
+sudo rm -rf /tmp/ruby* /tmp/passenger* 
+
+. "./base-install.sh"
+. "./ruby.sh"
+
+if [ "$install" != "gem" ]
+then
+  . "./nginx.sh"
+  . "./investigation-services.sh"
+fi
+
+cd $TB_HOME
+mkdir -p investigation
+mkdir -p java
+mkdir -p public
+mkdir -p tmp
+
+cd java
+wget https://github.com/downloads/ISA-tools/ISAvalidator-ISAconverter-BIImanager/ISA-validator-1.4.zip
+unzip ISA-validator-1.4.zip
+cd -
+
+# get, compile, install "raptor" "rasqal"
+# raptor
+cd tmp
+wget http://download.librdf.org/source/raptor2-2.0.4.tar.gz
+tar xvzf raptor2-2.0.4.tar.gz
+cd raptor2-2.0.4
+./configure
+make
+sudo make install
+cd -
+
+# rasqal
+wget http://download.librdf.org/source/rasqal-0.9.27.tar.gz
+tar xvzf rasqal-0.9.27.tar.gz
+cd rasqal-0.9.27
+./configure
+make
+sudo make install
+cd -
+
+# 4store
+wget http://4store.org/download/4store-v1.1.4.tar.gz
+tar xvzf 4store-v1.1.4.tar.gz
+cd 4store-v1.1.4
+./configure --with-storage-path=$TB_PREFIX/4store
+make
+sudo make install
+sudo /sbin/ldconfig
+cd $TB_HOME
+sudo rm -r tmp
+
+# start 4s service
+4s-backend-setup ToxBank
+4s-backend ToxBank
+
+cd investigation
+git init
+echo "*/*.zip" > .gitignore
+cd -
+
+echo
+echo "Installation finished and system configured."
+echo "Destination: '$TB_PREFIX'" 
+echo "Nginx: '$NGINX_DEST'"
+echo "IMPORTANT: Include the file '$TB_UI_CONF' in your shell or system startup to have the system automatically configured."
+echo
