@@ -24,10 +24,10 @@ tbstart() {
 }
 
 # Display log
-alias otless='less $HOME/.toxbank/log/production.log'
+alias tbless='less $HOME/.toxbank/log/production.log'
 
 # Tail log
-alias ottail='tail -f $HOME/.toxbank/log/production.log'
+alias tbtail='tail -f $HOME/.toxbank/log/production.log'
 
 # Reload the server
 tbreload() {
