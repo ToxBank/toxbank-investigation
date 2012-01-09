@@ -1,0 +1,23 @@
+require 'rubygems'
+
+HOST = "http://localhost/"
+
+task ARGV[0] do
+  puts "Environment: #{ENV["RACK_ENV"]}"
+  ARGV[0] = ARGV[0].gsub(/\.rb$/,"")
+  puts "Test: "+ARGV[0]+".rb"
+  require "./"+ARGV[0]+".rb"
+end
+
+task :setup do
+  # setup code  
+end
+
+task :teardown do
+  # teardown code
+end
+
+[:all, :upload, :xls2txt ].each do |t|
+  task :teardown => t
+  task t => :setup
+end
