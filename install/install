@@ -43,7 +43,7 @@ cd -
 cd tmp
 wget http://download.librdf.org/source/raptor2-2.0.4.tar.gz
 tar xvzf raptor2-2.0.4.tar.gz
-cd raptor2-2.0.4
+cd raptor2-2.0.4 >>$LOG 2>&1
 ./configure
 make
 sudo make install
@@ -53,7 +53,7 @@ cd -
 wget http://download.librdf.org/source/rasqal-0.9.27.tar.gz
 tar xvzf rasqal-0.9.27.tar.gz
 cd rasqal-0.9.27
-./configure
+./configure >>$LOG 2>&1
 make
 sudo make install
 cd -
@@ -62,8 +62,8 @@ cd -
 wget http://4store.org/download/4store-v1.1.4.tar.gz
 tar xvzf 4store-v1.1.4.tar.gz
 cd 4store-v1.1.4
-./configure --with-storage-path=$TB_PREFIX/4store
-make
+./configure --with-storage-path=$TB_PREFIX/4store >>$LOG 2>&1
+make >>$LOG 2>&1
 sudo make install
 sudo /sbin/ldconfig
 cd $TB_HOME
