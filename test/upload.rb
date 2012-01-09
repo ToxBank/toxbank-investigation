@@ -3,7 +3,7 @@ require 'fileutils'
 require 'test/unit'
 require 'uri'
 
-HOST = "http://localhost/investigation"
+HOST = "http://localhost/"
 
 class UploadTest < Test::Unit::TestCase
 
