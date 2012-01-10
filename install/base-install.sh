@@ -26,7 +26,7 @@ fi
 touch $OT_UI_CONF
 
 # Pkgs
-packs="build-essential curl git-core hostname libpcre3-dev libxml2 libxml2-dev libtool libglib2.0-dev libreadline-dev ncurses-dev unzip wget zip"
+packs="build-essential curl git-core hostname libcurl4-openssl-dev libpcre3-dev libxml2-dev libtool libglib2.0-dev libreadline-dev libssl-dev ncurses-dev unzip wget zip"
 
 echo
 echo "Base Packages:"
