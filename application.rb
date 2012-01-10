@@ -110,6 +110,7 @@ get '/:id' do
   when "text/tab-separated-values"
     send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
   when "text/uri-list"
+    response['Content-Type'] = 'text/uri-list'
     uri_list
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
