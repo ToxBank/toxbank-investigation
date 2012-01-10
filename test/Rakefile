@@ -1,4 +1,5 @@
 require 'rubygems'
+require 'rest-client'
 
 HOST = "http://localhost/"
 
