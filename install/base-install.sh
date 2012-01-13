@@ -33,7 +33,7 @@ echo "Base Packages:"
 
 pack_arr=""
 for p in $packs; do
-  if $DPKG -s "$p" >/dev/null 2>&1; then
+  if $DPKG -S "$p" >/dev/null 2>&1; then
      printf "%50s%30s\n" "'$p'" "Y"
   else
      printf "%50s%30s\n" "'$p'" "N"
