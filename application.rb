@@ -5,6 +5,8 @@ require 'rack/contrib'
 require 'sinatra'
 require 'sinatra/url_for'
 require 'grit'
+require 'yaml'
+require 'lib/toxbank-ruby'
 
 helpers do
 
@@ -65,6 +67,7 @@ helpers do
     # rdf = `isa2rdf`
     # `4s-import ToxBank #{rdf}`
     response['Content-Type'] = 'text/uri-list'
+    OpenTox::Authorization.check_policy(uri, @subjectid)
     uri 
   end
 
