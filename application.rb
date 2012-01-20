@@ -35,6 +35,7 @@ helpers do
     tmp = File.join dir,"tmp"
     halt 423, "Importing another submission. Please try again later." if File.exists? tmp
     halt 400, "Please submit data as multipart/form-data" unless request.form_data?
+    puts params.inspect
     halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless params[:file][:type]== 'application/zip' or params[:file][:type]== 'text/tab-separated-values'
     # move existing ISA-TAB files to tmp
     FileUtils.mkdir_p tmp
@@ -45,9 +46,10 @@ helpers do
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
-    result = `validator_call`
-    unless result.chomp.empty?
+    result = `#{validator_call} 2>&1`
+    if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
       FileUtils.remove_entry tmp 
+      FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
     end
     # if everything is fine move ISA-TAB files back to original dir
@@ -106,6 +108,7 @@ end
 # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
 # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
 get '/:id' do
+  halt 404 unless File.exist? dir # not called in before filter???
   case @accept
   when "text/tab-separated-values"
     send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept

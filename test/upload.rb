@@ -1,13 +1,15 @@
 require 'rubygems'
 require 'fileutils'
 require 'test/unit'
+require 'rest-client'
 require 'uri'
 
+#HOST="http://localhost:4567"
 
 class UploadTest < Test::Unit::TestCase
 
   def setup
-    @uri = `curl -X POST -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
+    #@uri = `curl -X POST -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
     @tmpdir = "./tmp"
     FileUtils.mkdir_p @tmpdir
     @isatab_files = [
@@ -21,34 +23,43 @@ class UploadTest < Test::Unit::TestCase
       "acetaminophen-plate3-data.txt",
       "ic50.txt",
     ]
+    @test_files = {"data/isa_TB_ACCUTOX.zip" => 400}
   end
 
   def teardown
-    puts `curl -X DELETE #{@uri}`
     FileUtils.remove_entry_secure @tmpdir
   end
 
-  def test_zip_upload
-    res = `curl -H "Accept:text/uri-list" #{@uri}`
-    assert_match /#{HOST}/, @uri
-    assert_match /i_Investigation.txt/, res
-    study = `curl -H Accept:text/tab-separated-values #{@uri}/s_TB-ACCUTOX-acetaminophen.txt`
-    assert_match /BALB\/3T3/, study
+  def test_invalid_zip_upload
+    response = `curl -X POST -i -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
+    assert_match /400 Bad Request/, response
   end
 
-  def test_get_single_files
-    `curl -H "Accept:text/uri-list" #{@uri}`.split("\n").each do |uri|
-      file = `curl -H Accept:text/tab-separated-values #{uri}`
-    end
-  end
+  def test_valid_zip_upload
 
-  def test_get_zip_file
-    `curl -H "Accept:application/zip" #{@uri} > #{@tmpdir}/tmp.zip`
+    # upload
+    response = `curl -X POST -i -F file="@data/BII-I-1.zip;type=application/zip" #{HOST}`.chomp
+    assert_match /200/, response
+    uri = response.split("\n").last
+
+    # get zip file
+    `curl -H "Accept:application/zip" #{uri} > #{@tmpdir}/tmp.zip`
     `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
-    @isatab_files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
+    ["a_metabolome.txt", "a_microarray.txt", "a_proteome.txt", "a_transcriptome.txt", "i_Investigation.txt", "s_BII-S-1.txt", "s_BII-S-2.txt"].each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
 
+    # get isatab files
+    `curl -H "Accept:text/uri-list" #{uri}`.split("\n").each do |u|
+      puts u
+      response = `curl -i -H Accept:text/tab-separated-values #{u}`
+      assert_match /200/, response
+    end
+
+    # delete
+    response = `curl -i -X DELETE #{uri}`
+    assert_match /200/, response
+    response = `curl -i -H "Accept:text/uri-list" #{uri}`
+    assert_match /404/, response
   end
-
 
 =begin
   def test_tab_upload
