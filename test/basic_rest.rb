@@ -13,7 +13,7 @@ class BasicTest < Test::Unit::TestCase
   end
 
   # check if default response header is text/uri-list 
-  def test_02_get_investigation_type
+  def test_02_get_investigations_type
     response = RestClient.get HOST
     assert_equal "text/uri-list", response.headers[:content_type]
   end
@@ -74,6 +74,12 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
   def test_06_get_investigation_sparql
     result = RestClient.get @@uri.to_s, :Accept => "application/sparql-results+json" 
     assert_equal "application/sparql-results+json", result.headers[:content_type]    
+  end
+
+  # check if uri is in uri-list 
+  def test_98_get_investigation
+    response = RestClient.get HOST
+    assert response.index(@@uri.to_s).class.instance_of?(Fixnum), "URI: #{@@uri} is not in uri-list"
   end
 
   # delete investigation/{id}
