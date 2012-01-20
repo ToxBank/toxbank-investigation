@@ -46,7 +46,7 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
   # create an investigation by uploading a zip file
   def test_02_post_investigation
     @@uri = ""
-    result = `curl -X POST #{HOST} -H "Content-Type: multipart/form-data" -F "file=@data/isa_TB_ACCUTOX.zip;type=application/zip"`
+    result = `curl -X POST #{HOST} -H "Content-Type: multipart/form-data" -F "file=@data/BII-I-1.zip;type=application/zip"`
     puts result
     @@uri = URI(result)
     assert @@uri.host == URI(HOST).host
