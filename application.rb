@@ -5,6 +5,8 @@ require 'rack/contrib'
 require 'sinatra'
 require 'sinatra/url_for'
 require 'grit'
+require 'spreadsheet'
+require 'roo'
 
 helpers do
 
@@ -47,7 +49,7 @@ helpers do
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
     result = `#{validator_call} 2>&1`
-    if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
+    unless result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
@@ -70,6 +72,49 @@ helpers do
     uri 
   end
 
+  def convert_xls
+    # convert xls to ISA-TAB
+    tmp = File.join dir, "tmp"
+    FileUtils.mkdir_p tmp
+    File.open(File.join(tmp, params[:file][:filename]), "w+"){|f| f.puts params[:file][:tempfile].read}
+    # use Excelx.new instead of Excel.new if your file is a .xlsx
+    xls = Excel.new(File.join(tmp, params[:file][:filename]))
+    xls.sheets.each_with_index do |sh, idx|
+      name = sh.to_s
+      xls.default_sheet = xls.sheets[idx]
+      1.upto(xls.last_row) do |ro|
+        1.upto(xls.last_column) do |co|
+          File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+        end
+        File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\n"}
+      end
+    end   
+    # validate ISA-TAB
+    validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
+    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
+    result = `#{validator_call} 2>&1`
+    unless result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
+      FileUtils.remove_entry tmp 
+      FileUtils.remove_entry dir
+      halt 400, "ISA-TAB validation failed:\n"+result
+    end
+    # if everything is fine move ISA-TAB files back to original dir
+    FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+    # git commit
+    newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
+    `cd investigation; git add #{newfiles}`
+    params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
+    `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+    # create new zipfile
+    zipfile = File.join dir, "investigation_#{params[:id]}.zip"
+    `zip -j #{zipfile} #{dir}/*.txt`
+    FileUtils.remove_entry tmp  # unlocks tmp
+    # TODO: create and store RDF
+    # rdf = `isa2rdf`
+    # `4s-import ToxBank #{rdf}`
+    response['Content-Type'] = 'text/uri-list'
+    uri
+  end
 end
 
 before do
@@ -101,7 +146,12 @@ end
 # @return [text/uri-list] Investigation URI 
 post '/?' do
   params[:id] = next_id
-  save
+  case params[:file][:type]
+  when "application/vnd.ms-excel"
+    convert_xls
+  else
+    save
+  end
 end
 
 # Get an investigation representation
