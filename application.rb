@@ -84,9 +84,12 @@ helpers do
       xls.default_sheet = xls.sheets[idx]
       1.upto(xls.last_row) do |ro|
         1.upto(xls.last_column) do |co|
-          File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+          unless (co == xls.last_column)
+            File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+          else
+            File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+          end
         end
-        File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\n"}
       end
     end   
     # validate ISA-TAB
