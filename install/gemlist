@@ -1,2 +1,2 @@
 # After configure your ruby path (install/README) install this gems
-gem install rack-contrib sinatra emk-sinatra-url-for grit rest-client spreadsheet --no-ri --no-rdoc
+gem install rack-contrib sinatra emk-sinatra-url-for grit rest-client roo spreadsheet --no-ri --no-rdoc
