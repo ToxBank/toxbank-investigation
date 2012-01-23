@@ -50,26 +50,27 @@ helpers do
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
     result = `#{validator_call} 2>&1`
     unless result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
+      # if everything is fine move ISA-TAB files back to original dir
+      FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+      # git commit
+      newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
+      `cd investigation; git add #{newfiles}`
+      params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
+      `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+      # create new zipfile
+      zipfile = File.join dir, "investigation_#{params[:id]}.zip"
+      `zip -j #{zipfile} #{dir}/*.txt`
+      FileUtils.remove_entry tmp  # unlocks tmp
+      # TODO: create and store RDF
+      # rdf = `isa2rdf`
+      # `4s-import ToxBank #{rdf}`
+      response['Content-Type'] = 'text/uri-list'
+      uri
+    else
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
     end
-    # if everything is fine move ISA-TAB files back to original dir
-    FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
-    # git commit
-    newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
-    `cd investigation; git add #{newfiles}`
-    params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
-    `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
-    # create new zipfile
-    zipfile = File.join dir, "investigation_#{params[:id]}.zip"
-    `zip -j #{zipfile} #{dir}/*.txt`
-    FileUtils.remove_entry tmp  # unlocks tmp
-    # TODO: create and store RDF
-    # rdf = `isa2rdf`
-    # `4s-import ToxBank #{rdf}`
-    response['Content-Type'] = 'text/uri-list'
-    uri 
   end
 
   def convert_xls
@@ -97,26 +98,27 @@ helpers do
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
     result = `#{validator_call} 2>&1`
     unless result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
+      # if everything is fine move ISA-TAB files back to original dir
+      FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+      # git commit
+      newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
+      `cd investigation; git add #{newfiles}`
+      params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
+      `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+      # create new zipfile
+      zipfile = File.join dir, "investigation_#{params[:id]}.zip"
+      `zip -j #{zipfile} #{dir}/*.txt`
+      FileUtils.remove_entry tmp  # unlocks tmp
+      # TODO: create and store RDF
+      # rdf = `isa2rdf`
+      # `4s-import ToxBank #{rdf}`
+      response['Content-Type'] = 'text/uri-list'
+      uri
+    else
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
     end
-    # if everything is fine move ISA-TAB files back to original dir
-    FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
-    # git commit
-    newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
-    `cd investigation; git add #{newfiles}`
-    params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
-    `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
-    # create new zipfile
-    zipfile = File.join dir, "investigation_#{params[:id]}.zip"
-    `zip -j #{zipfile} #{dir}/*.txt`
-    FileUtils.remove_entry tmp  # unlocks tmp
-    # TODO: create and store RDF
-    # rdf = `isa2rdf`
-    # `4s-import ToxBank #{rdf}`
-    response['Content-Type'] = 'text/uri-list'
-    uri
   end
 end
 
