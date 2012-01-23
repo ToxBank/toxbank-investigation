@@ -79,7 +79,7 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
   # check if uri is in uri-list 
   def test_98_get_investigation
     response = RestClient.get HOST
-    assert response.index(@@uri.to_s).class.instance_of?(Fixnum), "URI: #{@@uri} is not in uri-list"
+    assert response.index(@@uri.to_s) != nil, "URI: #{@@uri} is not in uri-list"
   end
 
   # delete investigation/{id}
