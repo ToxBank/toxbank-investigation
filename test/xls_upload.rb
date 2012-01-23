@@ -7,19 +7,16 @@ require 'uri'
 class UploadTest < Test::Unit::TestCase
 
   def setup
-    #@uri = `curl -X POST -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
     @tmpdir = "./tmp"
     FileUtils.mkdir_p @tmpdir
     @isatab_files = [
       "i_Investigation.txt",
-      "s_TB-ACCUTOX-acetaminophen.txt",
-      "a_TB-ACCUTOX-plate1.txt",
-      "a_TB-ACCUTOX-plate2.txt",
-      "a_TB-ACCUTOX-plate3.txt",
-      "acetaminophen-plate1-data.txt",
-      "acetaminophen-plate2-data.txt",
-      "acetaminophen-plate3-data.txt",
-      "ic50.txt",
+      "s_BII-S-1.txt",
+      "s_BII-S-2.txt",
+      "a_metabolome.txt",
+      "a_microarray.txt",
+      "a_proteome.txt",
+      "a_transcriptome.txt",
     ]
     #@test_files = {"data/isa_TB_ACCUTOX.zip" => 400}
   end
@@ -28,13 +25,19 @@ class UploadTest < Test::Unit::TestCase
     FileUtils.remove_entry_secure @tmpdir
   end
 
-  def test_zip_upload
-  
+  def test_01_invalid_xls_upload 
     # upload
     response = `curl -X POST -i -F file="@data/isa_TB_ACCUTOX.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
     assert_match /400/, response
     uri = response.split("\n").last
-=begin    
+  end
+  
+  def test_02_valid_xls_upload
+    # upload
+    response = `curl -X POST -i -F file="@data/isa_TB_BII.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
+    assert_match /200/, response
+    uri = response.split("\n").last
+    
     # get zip file
     `curl -H "Accept:application/zip" #{uri} > #{@tmpdir}/tmp.zip`
     `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
@@ -52,6 +55,6 @@ class UploadTest < Test::Unit::TestCase
     assert_match /200/, response
     response = `curl -i -H "Accept:text/uri-list" #{uri}`
     assert_match /404/, response
-=end
   end
+  
 end
