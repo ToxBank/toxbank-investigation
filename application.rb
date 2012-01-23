@@ -16,8 +16,8 @@ helpers do
 
   def uri_list 
     params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-    Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''),:full) if f.match(/\.txt$/) }.compact.sort.join("\n") + "\n"
-  end
+    Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''),:full) if f.match(/\.txt$/) || f.match(/\d$/) }.compact.sort.join("\n") + "\n"
+  end 
 
   def dir
     File.join "./investigation", params[:id].to_s

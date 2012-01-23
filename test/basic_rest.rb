@@ -13,7 +13,7 @@ class BasicTest < Test::Unit::TestCase
     assert_equal 200, response.code
   end
 
-  # check if default response header is text/uri-list 
+  # check if default response header is text/uri-list
   def test_02_get_investigations_type
     response = RestClient.get HOST, { :subjectid => @@subjectid }
     assert_equal "text/uri-list", response.headers[:content_type]
@@ -23,9 +23,9 @@ class BasicTest < Test::Unit::TestCase
   def test_03_get_investigations_query
     response = nil
     Net::HTTP.get_response(URI(File.join(HOST, "?query=bla&subjectid=#{CGI.escape(@@subjectid)}"))) {|http|
-      response = http    
+      response = http
     }
-    # error response code 501 because it is not implemented jet. 
+    # error response code 501 because it is not implemented jet.
     assert_equal 501, response.code.to_i
   end
 
@@ -57,31 +57,31 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
   # get investigation/{id} as text/uri-list
   def test_03_get_investigation_uri_list
     result = RestClient.get @@uri.to_s, {:Accept => "text/uri-list", :subjectid => @@subjectid}
-    assert_equal "text/uri-list", result.headers[:content_type]    
+    assert_equal "text/uri-list", result.headers[:content_type]
   end
 
   # get investigation/{id} as application/zip
   def test_04_get_investigation_zip
     result = RestClient.get @@uri.to_s, {:Accept => "application/zip", :subjectid => @@subjectid}
-    assert_equal "application/zip", result.headers[:content_type]    
+    assert_equal "application/zip", result.headers[:content_type]
   end
 
   # get investigation/{id} as text/tab-separated-values
   def test_05_get_investigation_tab
     result = RestClient.get @@uri.to_s, {:Accept => "text/tab-separated-values", :subjectid => @@subjectid}
-    assert_equal "text/tab-separated-values;charset=utf-8", result.headers[:content_type]    
+    assert_equal "text/tab-separated-values;charset=utf-8", result.headers[:content_type]
   end
 
   # get investigation/{id} as application/sparql-results+json
   def test_06_get_investigation_sparql
     result = RestClient.get @@uri.to_s, {:Accept => "application/sparql-results+json", :subjectid => @@subjectid}
-    assert_equal "application/sparql-results+json", result.headers[:content_type]    
+    assert_equal "application/sparql-results+json", result.headers[:content_type]
   end
 
-  # check if uri is in uri-list 
+  # check if uri is in uri-list
   def test_98_get_investigation
     response = RestClient.get HOST, :subjectid => @@subjectid
-    assert response.index(@@uri.to_s).class.instance_of?(Fixnum), "URI: #{@@uri} is not in uri-list"
+    assert response.index(@@uri.to_s) != nil, "URI: #{@@uri} is not in uri-list"
   end
 
   # delete investigation/{id}
