@@ -69,7 +69,7 @@ helpers do
     # rdf = `isa2rdf`
     # `4s-import ToxBank #{rdf}`
     response['Content-Type'] = 'text/uri-list'
-    OpenTox::Authorization.check_policy(uri, @subjectid)
+    #if default policy is wanted OpenTox::Authorization.check_policy(uri, @subjectid)
     uri 
   end
 
