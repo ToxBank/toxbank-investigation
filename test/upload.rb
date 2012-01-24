@@ -38,27 +38,37 @@ class UploadTest < Test::Unit::TestCase
   def test_valid_zip_upload
 
     # upload
-    response = `curl -X POST -i -F file="@data/BII-I-1.zip;type=application/zip" #{HOST}`.chomp
-    assert_match /200/, response
-    uri = response.split("\n").last
-
-    # get zip file
-    `curl -H "Accept:application/zip" #{uri} > #{@tmpdir}/tmp.zip`
-    `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
-    ["a_metabolome.txt", "a_microarray.txt", "a_proteome.txt", "a_transcriptome.txt", "i_Investigation.txt", "s_BII-S-1.txt", "s_BII-S-2.txt"].each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
-
-    # get isatab files
-    `curl -H "Accept:text/uri-list" #{uri}`.split("\n").each do |u|
-      puts u
-      response = `curl -i -H Accept:text/tab-separated-values #{u}`
+    #["BII-I-1.zip","TB-Accutox.zip"].each do |f|
+    ["BII-I-1.zip"].each do |f|
+      response = `curl -X POST -i -F file="@data/#{f};type=application/zip" #{HOST}`.chomp
       assert_match /200/, response
-    end
+      uri = response.split("\n").last
 
-    # delete
-    response = `curl -i -X DELETE #{uri}`
-    assert_match /200/, response
-    response = `curl -i -H "Accept:text/uri-list" #{uri}`
-    assert_match /404/, response
+      # get zip file
+      `curl -H "Accept:application/zip" #{uri} > #{@tmpdir}/tmp.zip`
+      `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
+      files = `unzip -l data/#{f}|grep txt|cut -c 31- | sed 's/^.*\///'`.split("\n")
+      files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
+
+      # get isatab files
+      `curl -H "Accept:text/uri-list" #{uri}`.split("\n").each do |u|
+        response = `curl -i -H Accept:text/tab-separated-values #{u}`
+        # fix UTF-8 encoding
+        if String.method_defined?(:encode) # ruby 1.9
+          assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
+        else
+          require 'iconv'
+          ic = Iconv.new('UTF-8', 'UTF-8//IGNORE')
+          assert_match /HTTP\/1.1 200 OK/, ic.iconv(response.to_s)
+        end
+      end
+
+      # delete
+      response = `curl -i -X DELETE #{uri}`
+      assert_match /200/, response
+      response = `curl -i -H "Accept:text/uri-list" #{uri}`
+      assert_match /404/, response
+    end
   end
 
 =begin
