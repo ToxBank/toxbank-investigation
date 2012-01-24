@@ -47,7 +47,7 @@ class UploadTest < Test::Unit::TestCase
       # get zip file
       `curl -H "Accept:application/zip" #{uri} > #{@tmpdir}/tmp.zip`
       `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
-      files = `unzip -l data/#{f}|grep txt|cut -c 31- | sed 's/^.*\///'`.split("\n")
+      files = `unzip -l data/#{f}|grep txt|cut -c 31- | sed 's#^.*/##'`.split("\n")
       files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
 
       # get isatab files
