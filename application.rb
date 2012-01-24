@@ -14,7 +14,7 @@ helpers do
 
   def uri_list 
     params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-    Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''),:full) if f.match(/\.txt$/) }.compact.sort.join("\n") + "\n"
+    Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''),:full) if f.match(/\.txt$/) or f.match(/\d$/) }.compact.sort.join("\n") + "\n"
   end
 
   def dir
@@ -42,14 +42,16 @@ helpers do
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
     # overwrite existing files with new submission
     File.open(File.join(tmp,params[:file][:filename]),"w+"){|f| f.puts params[:file][:tempfile].read}
-    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}` if params[:file][:type] == 'application/zip'
+    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}; mv #{tmp}/*/*.txt #{tmp}/` if params[:file][:type] == 'application/zip'
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
     validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
+    puts validator_call
     result = `#{validator_call} 2>&1`
     if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
-      FileUtils.remove_entry tmp 
-      FileUtils.remove_entry dir
+      puts result
+      #FileUtils.remove_entry tmp 
+      #FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
     end
     # if everything is fine move ISA-TAB files back to original dir
@@ -64,8 +66,10 @@ helpers do
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
     # TODO: create and store RDF
+    #rdf = `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN` # warnings go to stdout
+    #File.open(File.join(dir,"rdf"),"w+"){|f| f.puts rdf}
     # rdf = `isa2rdf`
-    # `4s-import ToxBank #{rdf}`
+    #`4s-import ToxBank #{rdf}`
     response['Content-Type'] = 'text/uri-list'
     uri 
   end
@@ -75,6 +79,7 @@ end
 before do
   halt 404 unless File.exist? dir
   @accept = request.env['HTTP_ACCEPT']
+  response['Content-Type'] = @accept
   # TODO: A+A
 end
 
@@ -86,8 +91,9 @@ end
 # @return [text/uri-list] List of investigations
 get '/?' do
   if params[:query]
+    response['Content-type'] = "application/sparql-results+json"
     # TODO: implement RDF query
-    #`4s-query ToxBank #{params[:query]}`
+    #`4s-query ToxBank -f json -d "#{params[:query]}"`
     halt 501, "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
@@ -113,7 +119,6 @@ get '/:id' do
   when "text/tab-separated-values"
     send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
   when "text/uri-list"
-    response['Content-Type'] = 'text/uri-list'
     uri_list
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
