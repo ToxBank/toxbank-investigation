@@ -66,11 +66,11 @@ helpers do
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
-    # TODO: create and store RDF
+    # create and store RDF
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
     puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
     puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    #FileUtils.rm "#{dir}/tmp.n3"
+    FileUtils.rm "#{dir}/tmp.n3"
     response['Content-Type'] = 'text/uri-list'
     uri
   end
@@ -116,9 +116,11 @@ helpers do
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
-    # TODO: create and store RDF
-    # rdf = `isa2rdf`
-    # `4s-import ToxBank #{rdf}`
+    # create and store RDF
+    #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
+    puts `4s-import -v ToxBank #{dir}/tmp.n3`
+    FileUtils.rm "#{dir}/tmp.n3"
     response['Content-Type'] = 'text/uri-list'
     uri
   end
@@ -178,7 +180,7 @@ get '/:id' do
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
   when "application/sparql-results+json"
-    # TODO: return all data in rdf
+    # TODO: return all data in rdf string
     halt 501, "SPARQL query not yet implemented"
   else
     halt 400, "Accept header #{@accept} not supported"
