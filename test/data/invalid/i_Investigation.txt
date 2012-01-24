@@ -1,0 +1,156 @@
+ONTOLOGY SOURCE REFERENCE				
+Term Source Name	OBI	CHEBI	UO	
+Term Source File		http://bioportal.bioontology.org/ontologies/46336	http://www.ebi.ac.uk/ontology-lookup/browse.do?ontName=UO	
+Term Source Version				
+Term Source Description	Ontology for Biomedical Investigations	Chemical entities of biological interest	Unit Ontology	
+INVESTIGATION			
+Investigation Identifier	TB-Accutox	
+Investigation Title	Investigation	
+Investigation Description		
+Investigation Submission Date		
+Investigation Public Release Date		
+Comment [Last Opened With Configuration]	isaconfig-default	
+Comment [Created With Configuration]	isaconfig-default	
+Comment [Last opened with configuration]	isaconfig-default	
+INVESTIGATION PUBLICATIONS	
+Investigation PubMed ID
+Investigation Publication DOI
+Investigation Publication Author List
+Investigation Publication Title
+Investigation Publication Status
+Investigation Publication Status Term Accession Number
+Investigation Publication Status Term Source REF
+INVESTIGATION CONTACTS
+Investigation Person Last Name
+Investigation Person First Name
+Investigation Person Mid Initials
+Investigation Person Email
+Investigation Person Phone
+Investigation Person Fax
+Investigation Person Address
+Investigation Person Affiliation
+Investigation Person Roles
+Investigation Person Roles Term Accession Number
+Investigation Person Roles Term Source REF
+	
+STUDY		
+Study Identifier	TB-ACCUTOX-acetaminophen	
+Study Title	Acetaminophen dose response study	
+Study Submission Date	40855.0	
+Study Public Release Date	40857.0	
+Study Description	Acetaminophen dose response study	
+Study File Name	s_TB-ACCUTOX-acetaminophen.txt	
+STUDY DESIGN DESCRIPTORS		
+Study Design Type	dose response design
+Study Design Type Term Accession Number	obo:OBI_0001418
+Study Design Type Term Source REF	OBI
+STUDY PUBLICATIONS
+Study PubMed ID	123456.0
+Study Publication DOI
+Study Publication Author List	Grados OB
+Study Publication Title	The laboratory in programs for enteric infection control
+Study Publication Status	Published
+Study Publication Status Term Accession Number
+Study Publication Status Term Source REF					
+STUDY FACTORS					
+Study Factor Name	compound	dose	cell_line	repeat	replicate
+Study Factor Type	compound	dose	cell_line	repeat	replicate
+Study Factor Type Term Accession Number					
+Study Factor Type Term Source REF					
+STUDY ASSAYS					
+Study Assay Measurement Type	Cell viability	Cell viability	Cell viability	
+Study Assay Measurement Type Term Accession Number	90.0	90.0	90.0	
+Study Assay Measurement Type Term Source REF	BAO	BAO	BAO	
+Study Assay Technology Type	Neutral Red Uptake Cytotoxicity Test	Neutral Red Uptake Cytotoxicity Test	Neutral Red Uptake Cytotoxicity Test	
+Study Assay Technology Type Term Accession Number				
+Study Assay Technology Type Term Source REF				
+Study Assay Technology Platform				
+Study Assay File Name	a_TB-ACCUTOX-Plate1.txt	a_TB-ACCUTOX-Plate2.txt	a_TB-ACCUTOX-Plate3.txt	
+STUDY PROTOCOLS				
+Study Protocol Name	Prepare concentrations	Neutral Red Uptake (NRU) Cytotoxicity Test	Hill function analysis	NRU
+Study Protocol Type	Prepare concentrations	Neutral Red Uptake (NRU) Cytotoxicity Test	dose response curve	NRU
+Study Protocol Type Term Accession Number				
+Study Protocol Type Term Source REF				
+Study Protocol Description				
+Study Protocol URI				
+Study Protocol Version				
+Study Protocol Parameters Name				
+Study Protocol Parameters Name Term Accession Number				
+Study Protocol Parameters Name Term Source REF				
+Study Protocol Components Name				
+Study Protocol Components Type				
+Study Protocol Components Type Term Accession Number				
+Study Protocol Components Type Term Source REF			
+STUDY CONTACTS
+Study Person Last Name
+Study Person First Name
+Study Person Mid Initials
+Study Person Email
+Study Person Phone
+Study Person Fax
+Study Person Address
+Study Person Affiliation
+Study Person Roles
+Study Person Roles Term Accession Number
+Study Person Roles Term Source REF
+	
+STUDY		
+Study Identifier	TB-ACCUTOX-rotenone	
+Study Title	Rotenone dose response study	
+Study Submission Date	40856.0	
+Study Public Release Date	40858.0	
+Study Description	NRU	
+Study File Name	s_TB-ACCUTOX-Rotenone.txt	
+STUDY DESIGN DESCRIPTORS	
+Study Design Type	dose response design
+Study Design Type Term Accession Number	obo:OBI_0001418
+Study Design Type Term Source REF	OBI
+STUDY PUBLICATIONS
+Study PubMed ID
+Study Publication DOI
+Study Publication Author List
+Study Publication Title
+Study Publication Status
+Study Publication Status Term Accession Number
+Study Publication Status Term Source REF				
+STUDY FACTORS					
+Study Factor Name	compound	dose	cell_line	repeat	
+Study Factor Type	compound	dose	cell_line	repeat	
+Study Factor Type Term Accession Number					
+Study Factor Type Term Source REF					
+STUDY ASSAYS					
+Study Assay Measurement Type	Cell viability	Cell viability	Cell viability		
+Study Assay Measurement Type Term Accession Number	90.0	90.0	90.0		
+Study Assay Measurement Type Term Source REF	BAO	BAO	BAO		
+Study Assay Technology Type	Neutral Red Uptake Cytotoxicity Test	Neutral Red Uptake Cytotoxicity Test	Neutral Red Uptake Cytotoxicity Test		
+Study Assay Technology Type Term Accession Number					
+Study Assay Technology Type Term Source REF					
+Study Assay Technology Platform					
+Study Assay File Name	a_TB-ACCUTOX-rotenone-Plate1.txt	a_TB-ACCUTOX-rotenone-Plate3.txt	a_TB-ACCUTOX-rotenone-Plate2.txt		
+STUDY PROTOCOLS					
+Study Protocol Name	Prepare concentrations	Neutral Red Uptake (NRU) Cytotoxicity Test	Hill function analysis		
+Study Protocol Type	Prepare concentrations	Neutral Red Uptake (NRU) Cytotoxicity Test	dose response curve		
+Study Protocol Type Term Accession Number					
+Study Protocol Type Term Source REF					
+Study Protocol Description					
+Study Protocol URI					
+Study Protocol Version					
+Study Protocol Parameters Name					
+Study Protocol Parameters Name Term Accession Number					
+Study Protocol Parameters Name Term Source REF					
+Study Protocol Components Name					
+Study Protocol Components Type					
+Study Protocol Components Type Term Accession Number					
+Study Protocol Components Type Term Source REF					
+STUDY CONTACTS				
+Study Person Last Name
+Study Person First Name
+Study Person Mid Initials
+Study Person Email
+Study Person Phone
+Study Person Fax
+Study Person Address
+Study Person Affiliation
+Study Person Roles
+Study Person Roles Term Accession Number
+Study Person Roles Term Source REF
