@@ -49,7 +49,6 @@ class UploadTest < Test::Unit::TestCase
       `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
       files = `unzip -l data/#{f}|grep txt|cut -c 31- | sed 's/^.*\///'`.split("\n")
       files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
-      #["a_metabolome.txt", "a_microarray.txt", "a_proteome.txt", "a_transcriptome.txt", "i_Investigation.txt", "s_BII-S-1.txt", "s_BII-S-2.txt"].each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
 
       # get isatab files
       `curl -H "Accept:text/uri-list" #{uri}`.split("\n").each do |u|

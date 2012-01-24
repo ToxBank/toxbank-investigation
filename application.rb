@@ -65,10 +65,10 @@ helpers do
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
     # TODO: create and store RDF
-    #rdf = `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN` # warnings go to stdout
-    #File.open(File.join(dir,"rdf"),"w+"){|f| f.puts rdf}
-    # rdf = `isa2rdf`
-    #`4s-import ToxBank #{rdf}`
+    #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
+    puts `4s-import -v ToxBank #{dir}/tmp.n3`
+    #FileUtils.rm "#{dir}/tmp.n3"
     response['Content-Type'] = 'text/uri-list'
     uri 
   end
