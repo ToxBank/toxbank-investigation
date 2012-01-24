@@ -49,9 +49,8 @@ helpers do
     puts validator_call
     result = `#{validator_call} 2>&1`
     if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
-      puts result
-      #FileUtils.remove_entry tmp 
-      #FileUtils.remove_entry dir
+      FileUtils.remove_entry tmp 
+      FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
     end
     # if everything is fine move ISA-TAB files back to original dir
