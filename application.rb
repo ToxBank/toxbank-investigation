@@ -18,11 +18,11 @@ helpers do
   end
 
   def dir
-    File.join "./investigation", params[:id].to_s
+    File.join File.dirname(File.expand_path __FILE__), "investigation", params[:id].to_s
   end
 
   def file
-    File.join "./investigation", params[:id], params[:filename]
+    File.join dir, params[:filename]
   end
 
   def next_id
@@ -45,10 +45,11 @@ helpers do
     `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}; mv #{tmp}/*/*.txt #{tmp}/` if params[:file][:type] == 'application/zip'
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
-    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
+    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join File.dirname(File.expand_path __FILE__), "config"}"
     puts validator_call
     result = `#{validator_call} 2>&1`
     if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
+      puts result
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
       halt 400, "ISA-TAB validation failed:\n"+result
@@ -68,7 +69,7 @@ helpers do
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
     puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
     puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    #FileUtils.rm "#{dir}/tmp.n3"
+    FileUtils.rm "#{dir}/tmp.n3"
     response['Content-Type'] = 'text/uri-list'
     uri 
   end
