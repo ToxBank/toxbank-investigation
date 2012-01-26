@@ -118,9 +118,13 @@ helpers do
     FileUtils.remove_entry tmp  # unlocks tmp
     # create and store RDF
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    FileUtils.rm "#{dir}/tmp.n3"
+    #puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/#{params[:id]}.n3` # warnings go to stdout
+    #puts `4s-import -v ToxBank #{dir}/tmp.n3`
+    #puts `4s-import -v ToxBank #{dir}/#{params[:id]}.n3`
+    puts `4s-import -v ToxBank --model http://localhost/#{params[:id]} #{dir}/#{params[:id]}.n3`
+    #FileUtils.rm "#{dir}/tmp.n3"
+    FileUtils.rm "#{dir}/#{params[:id]}.n3"
     response['Content-Type'] = 'text/uri-list'
     uri
   end
@@ -143,8 +147,8 @@ get '/?' do
   if params[:query]
     response['Content-type'] = "application/sparql-results+json"
     # TODO: implement RDF query
-    #`4s-query ToxBank -f json -d "#{params[:query]}"`
-    halt 501, "SPARQL query not yet implemented"
+    puts `4s-query ToxBank -f json -d "#{params[:query]}"`
+    #halt 501, "SPARQL query not yet implemented"
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
