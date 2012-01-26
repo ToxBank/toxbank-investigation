@@ -6,7 +6,7 @@ require 'sinatra'
 require 'sinatra/url_for'
 require 'grit'
 require 'spreadsheet'
-require 'roo'
+#require 'roo'
 
 helpers do
 
@@ -47,7 +47,8 @@ helpers do
     `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}; mv #{tmp}/*/*.txt #{tmp}/` if params[:file][:type] == 'application/zip'
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
-    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join File.dirname(File.expand_path __FILE__), "config"}"
+    #validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join File.dirname(File.expand_path __FILE__), "config"}"
+    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4/config/default-config"}"
     puts validator_call
     result = `#{validator_call} 2>&1`
     if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
@@ -60,16 +61,17 @@ helpers do
     FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
     # git commit
     newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
-    `cd investigation; git add #{newfiles}`
+    `cd investigation && git add #{newfiles}`
     params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
-    `cd investigation; git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+    `cd investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
     # create new zipfile
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
     # create and store RDF
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
+    puts dir
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{dir} -o #{dir}/tmp.n3` # warnings go to stdout
     puts `4s-import -v ToxBank #{dir}/tmp.n3`
     FileUtils.rm "#{dir}/tmp.n3"
     response['Content-Type'] = 'text/uri-list'
