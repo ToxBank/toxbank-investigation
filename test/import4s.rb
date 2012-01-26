@@ -6,7 +6,7 @@ require 'uri'
 class ImportTest < Test::Unit::TestCase
 
   def setup
-    @file = File.join('~/toxbank-investigation/test/data/file88.rdf')
+    @file = File.join('~/toxbank-investigation/test/data/BII-I-1.rdf')
     @tmpdir = "./tmp"
     FileUtils.mkdir_p @tmpdir
     @cmd = `4s-import -v ToxBank #{@file}`

@@ -1,0 +1,97 @@
+Assay Name	Raw Data
+C1b-plate1-A3
+C1b-plate1-H3
+C1-plate1-B3	0.302
+C1-plate1-C3	0.0698
+C1-plate1-D3	0.002
+C1-plate1-E3	0.2292
+C1-plate1-F3	0.2376
+C1-plate1-G3	0.002
+C2b-plate1-A4
+C2b-plate1-H4
+C2-plate1-B4	0.002
+C2-plate1-C4	0.3492
+C2-plate1-D4	0.1234
+C2-plate1-E4	0.002
+C2-plate1-F4	0.002
+C2-plate1-G4	0.4035
+C3b-plate1-A5
+C3b-plate1-H5
+C3-plate1-B5	0.181
+C3-plate1-C5	0.4159
+C3-plate1-D5	0.2169
+C3-plate1-E5	0.8162
+C3-plate1-F5	0.1076
+C3-plate1-G5	0.1684
+C4b-plate1-A6
+C4b-plate1-H6
+C4-plate1-B6	0.3375
+C4-plate1-C6	0.4777
+C4-plate1-D6	0.2368
+C4-plate1-E6	0.0068
+C4-plate1-F6	0.6385
+C4-plate1-G6	0.3455
+C5b-plate1-A7
+C5b-plate1-H7
+C5-plate1-B7	0.4945
+C5-plate1-C7	0.6902
+C5-plate1-D7	0.595
+C5-plate1-E7	0.652
+C5-plate1-F7	0.5731
+C5-plate1-G7	0.7689
+C6b-plate1-A8
+C6b-plate1-H8
+C6-plate1-B8	0.5205
+C6-plate1-C8	0.8747
+C6-plate1-D8	0.9921
+C6-plate1-E8	0.8674
+C6-plate1-F8	0.8532
+C6-plate1-G8	0.6774
+C7b-plate1-A9
+C7b-plate1-H9
+C7-plate1-B9	0.6449
+C7-plate1-C9	0.7431
+C7-plate1-D9	0.7394
+C7-plate1-E9	1.1784
+C7-plate1-F9	0.8453
+C7-plate1-G9	0.9668
+C8b-plate1-A10
+C8b-plate1-H10
+C8-plate1-B10	1.0398
+C8-plate1-C10	1.1555
+C8-plate1-D10	0.8968
+C8-plate1-E10	1.0857
+C8-plate1-F10	0.7828
+C8-plate1-G10	1.0513
+VC1-plate1-B2	1.0484
+VC1-plate1-C2	0.9794
+VC1-plate1-D2	0.9199
+VC1-plate1-E2	0.8889
+VC1-plate1-F2	0.8616
+VC1-plate1-G2	1.1255
+VC2-plate1-B11
+VC2-plate1-C11
+VC2-plate1-D11
+VC2-plate1-E11
+VC2-plate1-F11
+VC2-plate1-G11
+VCb-plate1-A1
+VCb-plate1-A11
+VCb-plate1-A12
+VCb-plate1-A2
+VCb-plate1-B1
+VCb-plate1-B12
+VCb-plate1-C1
+VCb-plate1-C12
+VCb-plate1-D1
+VCb-plate1-D12
+VCb-plate1-E1
+VCb-plate1-E12
+VCb-plate1-F1
+VCb-plate1-F12
+VCb-plate1-G1
+VCb-plate1-G12
+VCb-plate1-H1
+VCb-plate1-H11
+VCb-plate1-H12
+VCb-plate1-H2

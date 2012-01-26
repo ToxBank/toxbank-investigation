@@ -1,0 +1,97 @@
+Sample Name	Characteristics[well]	Factor Value[replicate]	Protocol REF	Assay Name	Raw Data File	Protocol REF	Dose Response Name	Derived Data File
+VCb-plate3	A1	vcb1	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-A1	acetaminophen-plate3-data.txt		none	
+VCb-plate3	A2	vcb2	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-A2	acetaminophen-plate3-data.txt		none	
+C1b-plate3	A3	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C1b-plate3-A3	acetaminophen-plate3-data.txt	Hill function analysis 	acetaminophen-plate3-ic50	ic50.txt
+C2b-plate3	A4	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C2b-plate3-A4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3b-plate3	A5	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C3b-plate3-A5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4b-plate3	A6	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C4b-plate3-A6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5b-plate3	A7	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C5b-plate3-A7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6b-plate3	A8	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C6b-plate3-A8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7b-plate3	A9	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C7b-plate3-A9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8b-plate3	A10	b1	Neutral Red Uptake (NRU) Cytotoxicity Test	C8b-plate3-A10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VCb-plate3	A11	vcb3	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-A11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	A12	vcb4	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-A12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	B1	vcb5	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-B1	acetaminophen-plate3-data.txt		none	
+VC1-plate3	B2	vc1_1	Neutral Red Uptake (NRU) Cytotoxicity Test	VC1-plate3-B2	acetaminophen-plate3-data.txt		none	
+C1-plate3	B3	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C1-plate3-B3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2-plate3	B4	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C2-plate3-B4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3-plate3	B5	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C3-plate3-B5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4-plate3	B6	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C4-plate3-B6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5-plate3	B7	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C5-plate3-B7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6-plate3	B8	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C6-plate3-B8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7-plate3	B9	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C7-plate3-B9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8-plate3	B10	r1	Neutral Red Uptake (NRU) Cytotoxicity Test	C8-plate3-B10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VC2-plate3	B11	vc2_1	Neutral Red Uptake (NRU) Cytotoxicity Test	VC2-plate3-B11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	B12	vcb6	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-B12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	C1	vcb7	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-C1	acetaminophen-plate3-data.txt		none	
+VC1-plate3	C2	vc1_2	Neutral Red Uptake (NRU) Cytotoxicity Test	VC1-plate3-C2	acetaminophen-plate3-data.txt		none	
+C1-plate3	C3	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C1-plate3-C3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2-plate3	C4	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C2-plate3-C4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3-plate3	C5	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C3-plate3-C5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4-plate3	C6	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C4-plate3-C6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5-plate3	C7	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C5-plate3-C7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6-plate3	C8	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C6-plate3-C8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7-plate3	C9	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C7-plate3-C9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8-plate3	C10	r2	Neutral Red Uptake (NRU) Cytotoxicity Test	C8-plate3-C10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VC2-plate3	C11	vc2_2	Neutral Red Uptake (NRU) Cytotoxicity Test	VC2-plate3-C11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	C12	vcb8	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-C12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	D1	vcb9	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-D1	acetaminophen-plate3-data.txt		none	
+VC1-plate3	D2	vc1_3	Neutral Red Uptake (NRU) Cytotoxicity Test	VC1-plate3-D2	acetaminophen-plate3-data.txt		none	
+C1-plate3	D3	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C1-plate3-D3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2-plate3	D4	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C2-plate3-D4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3-plate3	D5	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C3-plate3-D5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4-plate3	D6	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C4-plate3-D6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5-plate3	D7	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C5-plate3-D7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6-plate3	D8	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C6-plate3-D8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7-plate3	D9	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C7-plate3-D9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8-plate3	D10	r3	Neutral Red Uptake (NRU) Cytotoxicity Test	C8-plate3-D10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VC2-plate3	D11	vc2_3	Neutral Red Uptake (NRU) Cytotoxicity Test	VC2-plate3-D11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	D12	vcb10	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-D12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	E1	vcb11	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-E1	acetaminophen-plate3-data.txt		none	
+VC1-plate3	E2	vc1_4	Neutral Red Uptake (NRU) Cytotoxicity Test	VC1-plate3-E2	acetaminophen-plate3-data.txt		none	
+C1-plate3	E3	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C1-plate3-E3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2-plate3	E4	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C2-plate3-E4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3-plate3	E5	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C3-plate3-E5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4-plate3	E6	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C4-plate3-E6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5-plate3	E7	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C5-plate3-E7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6-plate3	E8	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C6-plate3-E8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7-plate3	E9	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C7-plate3-E9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8-plate3	E10	r4	Neutral Red Uptake (NRU) Cytotoxicity Test	C8-plate3-E10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VC2-plate3	E11	vc2_4	Neutral Red Uptake (NRU) Cytotoxicity Test	VC2-plate3-E11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	E12	vcb12	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-E12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	F1	vcb13	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-F1	acetaminophen-plate3-data.txt		none	
+VC1-plate3	F2	vc1_5	Neutral Red Uptake (NRU) Cytotoxicity Test	VC1-plate3-F2	acetaminophen-plate3-data.txt		none	
+C1-plate3	F3	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C1-plate3-F3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2-plate3	F4	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C2-plate3-F4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3-plate3	F5	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C3-plate3-F5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4-plate3	F6	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C4-plate3-F6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5-plate3	F7	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C5-plate3-F7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6-plate3	F8	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C6-plate3-F8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7-plate3	F9	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C7-plate3-F9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8-plate3	F10	r5	Neutral Red Uptake (NRU) Cytotoxicity Test	C8-plate3-F10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VC2-plate3	F11	vc2_5	Neutral Red Uptake (NRU) Cytotoxicity Test	VC2-plate3-F11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	F12	vcb14	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-F12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	G1	vcb15	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-G1	acetaminophen-plate3-data.txt		none	
+VC1-plate3	G2	vc1_6	Neutral Red Uptake (NRU) Cytotoxicity Test	VC1-plate3-G2	acetaminophen-plate3-data.txt		none	
+C1-plate3	G3	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C1-plate3-G3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2-plate3	G4	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C2-plate3-G4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3-plate3	G5	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C3-plate3-G5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4-plate3	G6	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C4-plate3-G6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5-plate3	G7	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C5-plate3-G7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6-plate3	G8	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C6-plate3-G8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7-plate3	G9	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C7-plate3-G9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8-plate3	G10	r6	Neutral Red Uptake (NRU) Cytotoxicity Test	C8-plate3-G10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VC2-plate3	G11	vc2_6	Neutral Red Uptake (NRU) Cytotoxicity Test	VC2-plate3-G11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	G12	vcb16	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-G12	acetaminophen-plate3-data.txt		none	
+VCb-plate3	H1	vcb17	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-H1	acetaminophen-plate3-data.txt		none	
+VCb-plate3	H2	vcb18	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-H2	acetaminophen-plate3-data.txt		none	
+C1b-plate3	H3	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C1b-plate3-H3	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C2b-plate3	H4	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C2b-plate3-H4	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C3b-plate3	H5	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C3b-plate3-H5	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C4b-plate3	H6	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C4b-plate3-H6	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C5b-plate3	H7	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C5b-plate3-H7	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C6b-plate3	H8	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C6b-plate3-H8	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C7b-plate3	H9	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C7b-plate3-H9	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+C8b-plate3	H10	b2	Neutral Red Uptake (NRU) Cytotoxicity Test	C8b-plate3-H10	acetaminophen-plate3-data.txt	Hill function analysis	acetaminophen-plate3-ic50	ic50.txt
+VCb-plate3	H11	vcb19	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-H11	acetaminophen-plate3-data.txt		none	
+VCb-plate3	H12	vcb20	Neutral Red Uptake (NRU) Cytotoxicity Test	VCb-plate3-H12	acetaminophen-plate3-data.txt		none	

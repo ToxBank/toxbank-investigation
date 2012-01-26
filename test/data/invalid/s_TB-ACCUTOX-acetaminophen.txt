@@ -1,0 +1,58 @@
+Source Name	Factor[batch number]	Factor Value[compound]	Term Source REF	Term Accession Number	Factor Value[dose]	Unit	Term Source REF	Term Accession Number	Factor Value[cell_line]	Term Source REF	Term Accession Number	Factor Value[repeat]	Protocol REF	Sample Name
+cell culture	KKKK123	Vehicle			0.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	VC1-plate1
+cell culture		Solvent			0.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	VC2-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	2.5	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C1-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	5.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C2-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	12.5	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C3-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	25.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C4-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	50.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C5-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	100.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C6-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	200.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C7-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	250.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	1.0	Prepare test concentrations	C8-plate1
+cell culture		Vehicle			0.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	VCb-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	2.5	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C1b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	5.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C2b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	12.5	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C3b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	25.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C4b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	50.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C5b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	100.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C6b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	200.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C7b-plate1
+cell culture		paracetamol	CHEBI	CHEBI:46195	250.0	mg/L	UO	273.0	blank			1.0	Prepare test concentrations	C8b-plate1
+cell culture		Vehicle			0.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	VC1-plate2
+cell culture		Solvent			0.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	VC2-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	2.5	mg/l	UO	273.0	BTO	BTO	218.0	2.0	Prepare test concentrations	C1-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	5.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C2-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	12.5	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C3-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	25.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C4-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	50.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C5-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	100.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C6-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	200.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C7-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	250.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	2.0	Prepare test concentrations	C8-plate2
+cell culture		Vehicle			0.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	VCb-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	2.5	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C1b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	5.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C2b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	12.5	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C3b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	25.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C4b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	50.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C5b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	100.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C6b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	200.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C7b-plate2
+cell culture		paracetamol	CHEBI	CHEBI:46195	250.0	mg/L	UO	273.0	blank			2.0	Prepare test concentrations	C8b-plate2
+cell culture		Vehicle			0.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	VC1-plate3
+cell culture		Solvent			0.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	VC2-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	2.5	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C1-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	5.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C2-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	12.5	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C3-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	25.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C4-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	50.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C5-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	100.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C6-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	200.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C7-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	250.0	mg/L	UO	273.0	BALB/3T3 cell	BTO	218.0	3.0	Prepare test concentrations	C8-plate3
+cell culture		Vehicle			0.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	VCb-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	2.5	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C1b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	5.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C2b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	12.5	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C3b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	25.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C4b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	50.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C5b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	100.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C6b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	200.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C7b-plate3
+cell culture		paracetamol	CHEBI	CHEBI:46195	250.0	mg/L	UO	273.0	blank			3.0	Prepare test concentrations	C8b-plate3
