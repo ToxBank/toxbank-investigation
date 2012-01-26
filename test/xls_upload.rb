@@ -27,14 +27,14 @@ class UploadTest < Test::Unit::TestCase
 
   def test_01_invalid_xls_upload 
     # upload
-    response = `curl -X POST -i -F file="@data/isa_TB_ACCUTOX.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
+    response = `curl -X POST -i -F file="@data/invalid/isa_TB_ACCUTOX.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
     assert_match /400/, response
     uri = response.split("\n").last
   end
   
   def test_02_valid_xls_upload
     # upload
-    response = `curl -X POST -i -F file="@data/isa_TB_BII.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
+    response = `curl -X POST -i -F file="@data/valid/isa_TB_BII.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
     assert_match /200/, response
     uri = response.split("\n").last
     

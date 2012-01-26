@@ -23,7 +23,7 @@ class UploadTest < Test::Unit::TestCase
       "acetaminophen-plate3-data.txt",
       "ic50.txt",
     ]
-    @test_files = {"data/isa_TB_ACCUTOX.zip" => 400}
+    #@test_files = {"data/isa_TB_ACCUTOX.zip" => 400}
   end
 
   def teardown
@@ -31,7 +31,7 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def test_invalid_zip_upload
-    response = `curl -X POST -i -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
+    response = `curl -X POST -i -F file="@data/invalid/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
     assert_match /400 Bad Request/, response
   end
 
@@ -40,7 +40,7 @@ class UploadTest < Test::Unit::TestCase
     # upload
     #["BII-I-1.zip","TB-Accutox.zip"].each do |f|
     ["BII-I-1.zip"].each do |f|
-      response = `curl -X POST -i -F file="@data/#{f};type=application/zip" #{HOST}`.chomp
+      response = `curl -X POST -i -F file="@data/valid/#{f};type=application/zip" #{HOST}`.chomp
       assert_match /200/, response
       uri = response.split("\n").last
 
@@ -58,7 +58,7 @@ class UploadTest < Test::Unit::TestCase
           assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
         else
           require 'iconv'
-          ic = Iconv.new('UTF-8', 'UTF-8//IGNORE')
+          ic = Iconv.new('UTF-8//IGNORE', 'UTF-8')
           assert_match /HTTP\/1.1 200 OK/, ic.iconv(response.to_s)
         end
       end
