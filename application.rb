@@ -7,6 +7,7 @@ require 'sinatra/url_for'
 require 'grit'
 require 'spreadsheet'
 require 'roo'
+#require File.join(File.dirname(__FILE__),'query.rb')
 
 helpers do
 
@@ -128,6 +129,7 @@ helpers do
     response['Content-Type'] = 'text/uri-list'
     uri
   end
+  
 end
 
 before do
@@ -144,11 +146,16 @@ end
 # Requests without a query parameter return a list of all investigations
 # @return [text/uri-list] List of investigations
 get '/?' do
-  if params[:query]
+  if params[:query]    
+    #puts "::: #{params[:query].collect} :::"
     response['Content-type'] = "application/sparql-results+json"
-    # TODO: implement RDF query
-    puts `4s-query ToxBank -f json -d "#{params[:query]}"`
-    #halt 501, "SPARQL query not yet implemented"
+    #@search = params[:query].collect
+    # set base uri and prefixes for query
+    @base ='http://onto.toxbank.net/isa/TEST/'
+    @prefix ='PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>'
+    # query in 4store
+    `4s-query ToxBank -f json -d -b '#{@base}''#{@prefix} SELECT * WHERE {?x a isa:#{params[:query].collect}}'`    
+    #response['Content-type'] = "application/sparql-results+json"
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
