@@ -16,6 +16,7 @@ class QueryTest < Test::Unit::TestCase
   end
 
   def teardown
+    #FileUtils.remove_entry_secure @tmpdir
   end
   
 

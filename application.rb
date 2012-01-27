@@ -151,11 +151,11 @@ get '/?' do
     response['Content-type'] = "application/sparql-results+json"
     #@search = params[:query].collect
     # set base uri and prefixes for query
-    @base ='http://onto.toxbank.net/isa/TEST/'
-    @prefix ='PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>'
+    #@base ='http://onto.toxbank.net/isa/TEST/'
+    #@prefix ='PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>'
     # query in 4store
-    `4s-query ToxBank -f json -d -b '#{@base}''#{@prefix} SELECT * WHERE {?x a isa:#{params[:query].collect}}'`    
-    #response['Content-type'] = "application/sparql-results+json"
+    @result = `4s-query ToxBank -f json -b 'http://onto.toxbank.net/isa/TEST/' 'PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/> SELECT * WHERE {?x a isa:Study}'`
+
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
