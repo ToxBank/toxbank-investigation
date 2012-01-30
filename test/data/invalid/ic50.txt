@@ -1,0 +1,20 @@
+Dose Response Name	IC50
+acetaminophen-plate1-ic50	3.14159
+acetaminophen-plate2-ic50	3.1416
+acetaminophen-plate3-ic50	3.14
+rotenone-plate1-ic50	5.14159
+rotenone-plate2-ic50	6.1416
+rotenone-plate3-ic50	7.14
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -16,6 +16,7 @@ tbupdate() {
 
 # Start the server
 tbstart() {
+  tbconfig
   tbkill
   sudo bash -c "source $HOME/.toxbank-ui.sh; nohup nginx -c $HOME/toxbank-investigation/services/nginx/conf/nginx.conf >/dev/null 2>&1 &"
   sleep 2

@@ -7,6 +7,8 @@ require 'sinatra/url_for'
 require 'grit'
 require 'yaml'
 require 'lib/toxbank-ruby'
+require 'spreadsheet'
+#require 'roo'
 
 helpers do
 
@@ -20,11 +22,11 @@ helpers do
   end
 
   def dir
-    File.join "./investigation", params[:id].to_s
+    File.join File.dirname(File.expand_path __FILE__), "investigation", params[:id].to_s
   end
 
   def file
-    File.join "./investigation", params[:id], params[:filename]
+    File.join dir, params[:filename]
   end
 
   def next_id
@@ -47,8 +49,61 @@ helpers do
     `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}; mv #{tmp}/*/*.txt #{tmp}/` if params[:file][:type] == 'application/zip'
     # validate ISA-TAB
     validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
-    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
+    #validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join File.dirname(File.expand_path __FILE__), "config"}"
+    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4/config/default-config"}"
     puts validator_call
+    result = `#{validator_call} 2>&1`
+    if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
+      puts result
+      FileUtils.remove_entry tmp 
+      FileUtils.remove_entry dir
+      halt 400, "ISA-TAB validation failed:\n"+result
+    end
+    # if everything is fine move ISA-TAB files back to original dir
+    FileUtils.cp Dir[File.join(tmp,"*.txt")], dir
+    # git commit
+    newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
+    `cd investigation && git add #{newfiles}`
+    params[:file][:type] == 'application/zip' ? action = "created" : action = "modified"
+    `cd investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+    # create new zipfile
+    zipfile = File.join dir, "investigation_#{params[:id]}.zip"
+    `zip -j #{zipfile} #{dir}/*.txt`
+    FileUtils.remove_entry tmp  # unlocks tmp
+    # create and store RDF
+    #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
+    puts dir
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{dir} -o #{dir}/tmp.n3` # warnings go to stdout
+    puts `4s-import -v ToxBank #{dir}/tmp.n3`
+    FileUtils.rm "#{dir}/tmp.n3"
+    response['Content-Type'] = 'text/uri-list'
+    uri
+  end
+
+  def convert_xls
+    # convert xls to ISA-TAB
+    tmp = File.join dir, "tmp"
+    FileUtils.mkdir_p tmp
+    File.open(File.join(tmp, params[:file][:filename]), "w+"){|f| f.puts params[:file][:tempfile].read}
+    # use Excelx.new instead of Excel.new if your file is a .xlsx
+    xls = Excel.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xls$/)
+    #xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
+    xls.sheets.each_with_index do |sh, idx|
+      name = sh.to_s
+      xls.default_sheet = xls.sheets[idx]
+      1.upto(xls.last_row) do |ro|
+        1.upto(xls.last_column) do |co|
+          unless (co == xls.last_column)
+            File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+          else
+            File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+          end
+        end
+      end
+    end   
+    # validate ISA-TAB
+    validator = File.join(File.dirname(File.expand_path __FILE__), "java/ISA-validator-1.4")
+    validator_call = "java -Xms256m -Xmx1024m -XX:PermSize=64m -XX:MaxPermSize=128m -cp #{File.join validator, "isatools_deps.jar"} org.isatools.isatab.manager.SimpleManager validate #{File.expand_path tmp} #{File.join validator, "config/default-config"}"
     result = `#{validator_call} 2>&1`
     if result.split("\n").last.match(/ERROR/) # isavalidator exit code is 0 even if validation fails
       FileUtils.remove_entry tmp 
@@ -66,16 +121,15 @@ helpers do
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
-    # TODO: create and store RDF
+    # create and store RDF
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
     puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
     puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    #FileUtils.rm "#{dir}/tmp.n3"
+    FileUtils.rm "#{dir}/tmp.n3"
     response['Content-Type'] = 'text/uri-list'
     #if default policy is wanted OpenTox::Authorization.check_policy(uri, @subjectid)
     uri 
   end
-
 end
 
 before do
@@ -109,7 +163,14 @@ end
 # @return [text/uri-list] Investigation URI 
 post '/?' do
   params[:id] = next_id
-  save
+  case params[:file][:type]
+  when "application/vnd.ms-excel"
+    convert_xls
+  #when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    #convert_xls
+  else
+    save
+  end
 end
 
 # Get an investigation representation
@@ -125,7 +186,7 @@ get '/:id' do
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
   when "application/sparql-results+json"
-    # TODO: return all data in rdf
+    # TODO: return all data in rdf string
     halt 501, "SPARQL query not yet implemented"
   else
     halt 400, "Accept header #{@accept} not supported"

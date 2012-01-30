@@ -1,0 +1,97 @@
+                	Raw Data
+C1b-plate1-A3
+C1b-plate1-H3
+C1-plate1-B3	0.3
+C1-plate1-C3	0.0678
+C1-plate1-D3	0.0
+C1-plate1-E3	0.2272
+C1-plate1-F3	0.2356
+C1-plate1-G3	0.0
+C2b-plate1-A4
+C2b-plate1-H4
+C2-plate1-B4	0.0
+C2-plate1-C4	0.3472
+C2-plate1-D4	0.1214
+C2-plate1-E4	0.0
+C2-plate1-F4	0.0
+C2-plate1-G4	0.4015
+C3b-plate1-A5
+C3b-plate1-H5
+C3-plate1-B5	0.179
+C3-plate1-C5	0.4139
+C3-plate1-D5	0.2149
+C3-plate1-E5	0.8142
+C3-plate1-F5	0.1056
+C3-plate1-G5	0.1664
+C4b-plate1-A6
+C4b-plate1-H6
+C4-plate1-B6	0.3355
+C4-plate1-C6	0.4757
+C4-plate1-D6	0.2348
+C4-plate1-E6	0.0048
+C4-plate1-F6	0.6365
+C4-plate1-G6	0.3435
+C5b-plate1-A7
+C5b-plate1-H7
+C5-plate1-B7	0.4925
+C5-plate1-C7	0.6882
+C5-plate1-D7	0.593
+C5-plate1-E7	0.65
+C5-plate1-F7	0.5711
+C5-plate1-G7	0.7669
+C6b-plate1-A8
+C6b-plate1-H8
+C6-plate1-B8	0.5185
+C6-plate1-C8	0.8727
+C6-plate1-D8	0.9901
+C6-plate1-E8	0.8654
+C6-plate1-F8	0.8512
+C6-plate1-G8	0.6754
+C7b-plate1-A9
+C7b-plate1-H9
+C7-plate1-B9	0.6429
+C7-plate1-C9	0.7411
+C7-plate1-D9	0.7374
+C7-plate1-E9	1.1764
+C7-plate1-F9	0.8433
+C7-plate1-G9	0.9648
+C8b-plate1-A10
+C8b-plate1-H10
+C8-plate1-B10	1.0378
+C8-plate1-C10	1.1535
+C8-plate1-D10	0.8948
+C8-plate1-E10	1.0837
+C8-plate1-F10	0.7808
+C8-plate1-G10	1.0493
+VC1-plate1-B2	1.0464
+VC1-plate1-C2	0.9774
+VC1-plate1-D2	0.9179
+VC1-plate1-E2	0.8869
+VC1-plate1-F2	0.8596
+VC1-plate1-G2	1.1235
+VC2-plate1-B11
+VC2-plate1-C11
+VC2-plate1-D11
+VC2-plate1-E11
+VC2-plate1-F11
+VC2-plate1-G11
+VCb-plate1-A1
+VCb-plate1-A11
+VCb-plate1-A12
+VCb-plate1-A2
+VCb-plate1-B1
+VCb-plate1-B12
+VCb-plate1-C1
+VCb-plate1-C12
+VCb-plate1-D1
+VCb-plate1-D12
+VCb-plate1-E1
+VCb-plate1-E12
+VCb-plate1-F1
+VCb-plate1-F12
+VCb-plate1-G1
+VCb-plate1-G12
+VCb-plate1-H1
+VCb-plate1-H11
+VCb-plate1-H12
+VCb-plate1-H2

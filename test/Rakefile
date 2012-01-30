@@ -21,7 +21,7 @@ task :teardown do
   # teardown code
 end
 
-[:all, :upload, :xls2txt, :import4s, :basic_rest].each do |t|
+[:all, :upload, :xls2txt, :import4s, :basic_rest, :xls_upload].each do |t|
   task :teardown => t
   task t => :setup
 end
