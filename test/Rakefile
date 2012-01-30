@@ -1,5 +1,15 @@
 require 'rubygems'
 require 'rest-client'
+require 'fileutils'
+require 'rack'
+require 'rack/contrib'
+require 'sinatra'
+require 'sinatra/url_for'
+require 'grit'
+require 'yaml'
+['otlogger', 'environment', 'authorization', 'policy', 'helper'].each do |lib|
+	require '../lib/' + lib
+end
 
 HOST = "http://localhost/"
 AA_SERVER = "https://opensso.in-silico.ch"
@@ -15,6 +25,8 @@ end
 
 task :setup do
   # setup code
+  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
+  @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
 end
 
 task :teardown do

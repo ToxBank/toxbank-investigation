@@ -8,7 +8,6 @@ class BasicTest < Test::Unit::TestCase
 
   # check response from service
   def test_01_get_investigations_200
-    @@subjectid = login
     response = RestClient.get HOST,:subjectid => @@subjectid
     assert_equal 200, response.code
   end
@@ -35,7 +34,6 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
 
   # check post to investigation service with wrong content type
   def test_01_post_investigation_400
-    @@subjectid = login
     uri = URI(File.join(HOST, 'investigation'))
     req = Net::HTTP::Post.new("#{uri.path}?subjectid=#{CGI.escape(@@subjectid)}")
     req.content_type = "text/dummy"
@@ -92,11 +90,4 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
 
 end
 
-def login
-   resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
-   begin
-     return resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
-   rescue
-     return nil
-   end
-end
+
