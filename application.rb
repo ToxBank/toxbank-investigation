@@ -7,7 +7,9 @@ require 'sinatra/url_for'
 require 'grit'
 require 'spreadsheet'
 require 'roo'
-#require File.join(File.dirname(__FILE__),'query.rb')
+require 'uri'
+require 'rest-client'
+
 
 helpers do
 
@@ -146,16 +148,15 @@ end
 # Requests without a query parameter return a list of all investigations
 # @return [text/uri-list] List of investigations
 get '/?' do
-  if params[:query]    
-    #puts "::: #{params[:query].collect} :::"
+  if params[:query]
     response['Content-type'] = "application/sparql-results+json"
-    #@search = params[:query].collect
     # set base uri and prefixes for query
-    #@base ='http://onto.toxbank.net/isa/TEST/'
-    #@prefix ='PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>'
-    # query in 4store
-    @result = `4s-query ToxBank -f json -b 'http://onto.toxbank.net/isa/TEST/' 'PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/> SELECT * WHERE {?x a isa:Study}'`
-
+    @base ="http://onto.toxbank.net/isa/TEST/"
+    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    # sparql in 4store
+    params.each{|k, v| @query = CGI.unescape(v)}
+    # use it like: http://localhost/?query=SELECT * WHERE {?x a isa:Study} in your browser
+    @result = `4s-query ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
