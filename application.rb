@@ -8,7 +8,7 @@ require 'grit'
 require 'yaml'
 require 'lib/toxbank-ruby'
 require 'spreadsheet'
-#require 'roo'
+require 'roo'
 
 helpers do
 
