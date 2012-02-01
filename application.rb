@@ -70,9 +70,9 @@ helpers do
     FileUtils.remove_entry tmp  # unlocks tmp
     # create and store RDF
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    FileUtils.rm "#{dir}/tmp.n3"
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/#{params[:id]}.n3` # warnings go to stdout
+    puts `4s-import -v ToxBank --model #{uri} #{dir}/#{params[:id]}.n3`
+    FileUtils.rm "#{dir}/#{params[:id]}.n3"
     response['Content-Type'] = 'text/uri-list'
     uri
   end
@@ -92,8 +92,10 @@ helpers do
         1.upto(xls.last_column) do |co|
           unless (co == xls.last_column)
             File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+            #File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\"#{xls.cell(ro, co)}\"\t"}
           else
             File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+            #File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\"#{xls.cell(ro, co)}\"\n"}
           end
         end
       end
@@ -122,15 +124,29 @@ helpers do
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
     #puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
     puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/#{params[:id]}.n3` # warnings go to stdout
-    #puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    #puts `4s-import -v ToxBank #{dir}/#{params[:id]}.n3`
-    puts `4s-import -v ToxBank --model http://localhost/#{params[:id]} #{dir}/#{params[:id]}.n3`
+    # import into $store
+    puts `4s-import -v ToxBank --model #{uri} #{dir}/#{params[:id]}.n3`
     #FileUtils.rm "#{dir}/tmp.n3"
     FileUtils.rm "#{dir}/#{params[:id]}.n3"
     response['Content-Type'] = 'text/uri-list'
     uri
   end
   
+  def query
+    @base ="http://onto.toxbank.net/isa/TEST/"
+    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    params.each{|k, v| @query = CGI.unescape(v)}
+    # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
+    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
+    @result.chomp    
+  end
+  
+  def query_all
+    @base ="http://onto.toxbank.net/isa/TEST/"
+    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?x ?p ?o}'`
+    @result.chomp    
+  end
 end
 
 before do
@@ -142,22 +158,19 @@ end
 
 # Query all investigations or get a list of all investigations
 # Requests with a query parameter will perform a SPARQL query on all investigations
-# @param query SPARQL query
 # @return [application/sparql-results+json] Query result
-# Requests without a query parameter return a list of all investigations
 # @return [text/uri-list] List of investigations
 get '/?' do
-  if params[:query]
+  if params[:query] # "/?query=SELECT * WHERE {?s ?p ?o}"
+  # @param query SPARQL query
     response['Content-type'] = "application/sparql-results+json"
-    # set base uri and prefixes for query
-    @base ="http://onto.toxbank.net/isa/TEST/"
-    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
-    # sparql in 4store
-    params.each{|k, v| @query = CGI.unescape(v)}
-    # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
-    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
-    @result.chomp
+    query
+  elsif params[:query_all] # "/?query="
+  # Requests without a query string return a list of all sparql results (?s ?p ?o)
+    response['Content-type'] = "application/sparql-results+json"
+    query_all
   else
+  # Requests without a query parameter return a list of all investigations
     response['Content-Type'] = 'text/uri-list'
     uri_list
   end
@@ -175,6 +188,8 @@ post '/?' do
     convert_xls
   #when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     #convert_xls
+  #when "application/zip"
+    #save
   else
     save
   end
@@ -193,13 +208,13 @@ get '/:id' do
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
   when "application/sparql-results+json"
-    # TODO: return all data in rdf string
-    #
-    halt 501, "SPARQL query not yet implemented"
+    query_all
+    # TODO return all data from [:id] investigation 
   else
     halt 400, "Accept header #{@accept} not supported"
   end
 end
+
 
 # Add studies, assays or data to an investigation
 # @param [Header] Content-type: multipart/form-data
