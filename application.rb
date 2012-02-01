@@ -6,7 +6,7 @@ require 'sinatra'
 require 'sinatra/url_for'
 require 'grit'
 require 'spreadsheet'
-#require 'roo'
+require 'roo'
 
 helpers do
 
