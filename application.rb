@@ -7,6 +7,8 @@ require 'sinatra/url_for'
 require 'grit'
 require 'spreadsheet'
 require 'roo'
+require 'uri'
+
 
 helpers do
 
@@ -121,12 +123,17 @@ helpers do
     FileUtils.remove_entry tmp  # unlocks tmp
     # create and store RDF
     #`cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} 2>/dev/null | grep -v WARN > ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
-    puts `4s-import -v ToxBank #{dir}/tmp.n3`
-    FileUtils.rm "#{dir}/tmp.n3"
+    #puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/tmp.n3` # warnings go to stdout
+    puts `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d ../#{dir} -o ../#{dir}/#{params[:id]}.n3` # warnings go to stdout
+    #puts `4s-import -v ToxBank #{dir}/tmp.n3`
+    #puts `4s-import -v ToxBank #{dir}/#{params[:id]}.n3`
+    puts `4s-import -v ToxBank --model http://localhost/#{params[:id]} #{dir}/#{params[:id]}.n3`
+    #FileUtils.rm "#{dir}/tmp.n3"
+    FileUtils.rm "#{dir}/#{params[:id]}.n3"
     response['Content-Type'] = 'text/uri-list'
     uri
   end
+  
 end
 
 before do
@@ -145,9 +152,14 @@ end
 get '/?' do
   if params[:query]
     response['Content-type'] = "application/sparql-results+json"
-    # TODO: implement RDF query
-    #`4s-query ToxBank -f json -d "#{params[:query]}"`
-    halt 501, "SPARQL query not yet implemented"
+    # set base uri and prefixes for query
+    @base ="http://onto.toxbank.net/isa/TEST/"
+    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    # sparql in 4store
+    params.each{|k, v| @query = CGI.unescape(v)}
+    # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
+    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
+    @result.chomp
   else
     response['Content-Type'] = 'text/uri-list'
     uri_list
@@ -159,6 +171,7 @@ end
 # @param file Zipped investigation files in ISA-TAB format
 # @return [text/uri-list] Investigation URI 
 post '/?' do
+  # TODO check free disc space + Limit 4store to 10% free disc space
   params[:id] = next_id
   case params[:file][:type]
   when "application/vnd.ms-excel"
@@ -184,6 +197,7 @@ get '/:id' do
     send_file File.join dir, "investigation_#{params[:id]}.zip"
   when "application/sparql-results+json"
     # TODO: return all data in rdf string
+    #
     halt 501, "SPARQL query not yet implemented"
   else
     halt 400, "Accept header #{@accept} not supported"
@@ -204,6 +218,7 @@ delete '/:id' do
   # git commit
   `cd investigation; git commit -am "#{dir} deleted by #{request.ip}"`
   # TODO: updata RDF
+  `4s-delete-model ToxBank #{uri}`
   response['Content-Type'] = 'text/plain'
   "investigation #{params[:id]} deleted"
 end
