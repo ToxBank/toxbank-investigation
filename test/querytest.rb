@@ -9,7 +9,7 @@ class QueryTest < Test::Unit::TestCase
 
   def setup
     # check 4store size first
-    #puts info = `4s-size ToxBank`
+    puts info = `4s-size ToxBank`
     # upload xls file
     response = `curl -X POST -i -F file="@data/valid/isa_TB_BII.xls;type=application/vnd.ms-excel" #{HOST}`.chomp
     assert_match /200/, response
@@ -24,17 +24,19 @@ class QueryTest < Test::Unit::TestCase
     # list investigations
     response = `curl "http://localhost/"`.chomp 
     uri = response.split("\n").first
-    assert_match /0$/, uri
+    #assert_match /0$/, uri
     
     # list all studies
     res = `curl -i -H "Accept:application/sparql-results+json" #{uri.chop}?query=Study`.chomp
     assert_match /HTTP\/1.1 200 OK/, res
     
     # check data imported to 4store
-    #puts info = `4s-size ToxBank`
+    puts info = `4s-size ToxBank`
     
     # delete Model in 4store
-    puts del = `4s-delete-model ToxBank #{uri}`    
+    puts del = `4s-delete-model ToxBank #{uri}`
+    puts "#{uri}"
+    puts info = `4s-size ToxBank`    
     # delete Investigation
     response = `curl -i -X DELETE #{uri}`
     assert_match /200/, response
