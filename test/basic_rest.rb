@@ -24,8 +24,7 @@ class BasicTest < Test::Unit::TestCase
     Net::HTTP.get_response(URI(File.join(HOST, "?query=bla&subjectid=#{CGI.escape(@@subjectid)}"))) {|http|
       response = http
     }
-    # error response code 501 because it is not implemented jet.
-    assert_equal 501, response.code.to_i
+    assert_equal 200, response.code.to_i
   end
 
 end

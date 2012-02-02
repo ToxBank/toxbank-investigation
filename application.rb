@@ -9,6 +9,8 @@ require 'yaml'
 require 'lib/toxbank-ruby'
 require 'spreadsheet'
 require 'roo'
+require 'uri'
+
 
 helpers do
 
@@ -72,8 +74,10 @@ helpers do
         1.upto(xls.last_column) do |co|
           unless (co == xls.last_column)
             File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+            #File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\"#{xls.cell(ro, co)}\"\t"}
           else
             File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+            #File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\"#{xls.cell(ro, co)}\"\n"}
           end
         end
       end
@@ -100,12 +104,26 @@ helpers do
     FileUtils.remove_entry tmp  # unlocks tmp
     # store RDF
     # TODO: remove RDF of existing investigations
-    puts `4s-import -v ToxBank #{File.join dir,n3}`
-    #FileUtils.rm "#{File.join dir,n3}"
+    puts `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
     response['Content-Type'] = 'text/uri-list'
     uri
   end
 
+  def query
+    @base ="http://onto.toxbank.net/isa/TEST/"
+    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    params.each{|k, v| @query = CGI.unescape(v)}
+    # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
+    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
+    @result.chomp    
+  end
+  
+  def query_all
+    @base ="http://onto.toxbank.net/isa/TEST/"
+    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?x ?p ?o}'`
+    @result.chomp    
+  end
 end
 
 before do
@@ -117,17 +135,19 @@ end
 
 # Query all investigations or get a list of all investigations
 # Requests with a query parameter will perform a SPARQL query on all investigations
-# @param query SPARQL query
 # @return [application/sparql-results+json] Query result
-# Requests without a query parameter return a list of all investigations
 # @return [text/uri-list] List of investigations
 get '/?' do
-  if params[:query]
+  if params[:query] # "/?query=SELECT * WHERE {?s ?p ?o}"
+  # @param query SPARQL query
     response['Content-type'] = "application/sparql-results+json"
-    # TODO: implement RDF query
-    #`4s-query ToxBank -f json -d "#{params[:query]}"`
-    halt 501, "SPARQL query not yet implemented"
+    query
+  elsif params[:query_all] # "/?query="
+  # Requests without a query string return a list of all sparql results (?s ?p ?o)
+    response['Content-type'] = "application/sparql-results+json"
+    query_all
   else
+  # Requests without a query parameter return a list of all investigations
     response['Content-Type'] = 'text/uri-list'
     uri_list
   end
@@ -138,6 +158,7 @@ end
 # @param file Zipped investigation files in ISA-TAB format
 # @return [text/uri-list] Investigation URI 
 post '/?' do
+  # TODO check free disc space + Limit 4store to 10% free disc space
   params[:id] = next_id
   prepare_upload
   case params[:file][:type]
@@ -168,12 +189,13 @@ get '/:id' do
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
   when "application/sparql-results+json"
-    # TODO: return all data in rdf string
-    halt 501, "SPARQL query not yet implemented"
+    query_all
+    # TODO return all data from [:id] investigation 
   else
     halt 400, "Accept header #{@accept} not supported"
   end
 end
+
 
 # Add studies, assays or data to an investigation
 # @param [Header] Content-type: multipart/form-data
@@ -190,6 +212,7 @@ delete '/:id' do
   # git commit
   `cd investigation; git commit -am "#{dir} deleted by #{request.ip}"`
   # TODO: updata RDF
+  `4s-delete-model ToxBank #{uri}`
   response['Content-Type'] = 'text/plain'
   "investigation #{params[:id]} deleted"
 end
