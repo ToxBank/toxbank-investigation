@@ -47,7 +47,6 @@ helpers do
     halt 423, "Importing another submission. Please try again later." if File.exists? tmp
     halt 400, "Please submit data as multipart/form-data" unless request.form_data?
     # move existing ISA-TAB files to tmp
-    LOGGER.debug tmp
     FileUtils.mkdir_p tmp
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
     File.open(File.join(tmp, params[:file][:filename]), "w+"){|f| f.puts params[:file][:tempfile].read}
@@ -55,7 +54,11 @@ helpers do
 
   def extract_zip
     # overwrite existing files with new submission
-    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}; mv #{tmp}/*/*.txt #{tmp}/` if params[:file][:type] == 'application/zip'
+    `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}`
+    Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
+      `mv #{d}/* #{tmp}`
+      `rmdir #{d}`
+    end
   end
 
   def extract_xls

@@ -93,7 +93,6 @@ end
 
 before do
   get_subjectid()
-  #git status
   get_extension()
   unless !AA_SERVER or login_requests or CONFIG[:authorization][:free_request].include?(env['REQUEST_METHOD'])
     protected!(@subjectid)

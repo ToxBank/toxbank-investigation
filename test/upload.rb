@@ -38,9 +38,7 @@ class UploadTest < Test::Unit::TestCase
   def test_valid_zip_upload
 
     # upload
-    #["BII-I-1.zip"].each do |f|
-    #["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
-    ["isa-tab-renamed.zip"].each do |f|
+    ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       response = `curl -X POST -i -F file="@data/valid/#{f};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       assert_match /200/, response
       uri = response.split("\n").last
