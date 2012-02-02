@@ -34,8 +34,8 @@ mkdir -p public
 mkdir -p tmp
 
 cd java
-wget https://github.com/downloads/ISA-tools/ISAvalidator-ISAconverter-BIImanager/ISA-validator-1.4.zip
-unzip ISA-validator-1.4.zip
+#wget https://github.com/downloads/ISA-tools/ISAvalidator-ISAconverter-BIImanager/ISA-validator-1.4.zip
+#unzip ISA-validator-1.4.zip
 wget https://github.com/downloads/ToxBank/isa2rdf/isa2rdf-0.0.1-SNAPSHOT.jar
 cd -
 

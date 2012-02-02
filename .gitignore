@@ -1,9 +1,8 @@
 tmp/*
 public/*
 investigation/*
-java/*
 target/*
 services/*
-<<<<<<< HEAD
-*~
+java/isa2rdf-0.0.1-SNAPSHOT.jar
+java/logs
 oo_*/*
