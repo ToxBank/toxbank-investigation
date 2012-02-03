@@ -121,7 +121,7 @@ helpers do
   def query_all
     @base ="http://onto.toxbank.net/isa/TEST/"
     @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
-    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?x ?p ?o}'`
+    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?s ?p ?o}'`
     @result.chomp    
   end
 end
