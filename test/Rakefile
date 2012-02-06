@@ -1,7 +1,20 @@
 require 'rubygems'
 require 'rest-client'
+require 'fileutils'
+require 'rack'
+require 'rack/contrib'
+require 'sinatra'
+require 'sinatra/url_for'
+require 'grit'
+require 'yaml'
+['otlogger', 'environment', 'authorization', 'policy', 'helper'].each do |lib|
+	require '../lib/' + lib
+end
 
 HOST = "http://localhost/"
+AA_SERVER = "https://opensso.in-silico.ch"
+TEST_USER = "guest"
+TEST_PW = "guest"
 
 task ARGV[0] do
   puts "Environment: #{ENV["RACK_ENV"]}"
@@ -11,14 +24,16 @@ task ARGV[0] do
 end
 
 task :setup do
-  # setup code  
+  # setup code
+  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
+  @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
 end
 
 task :teardown do
   # teardown code
 end
 
-[:all, :upload, :xls2txt, :import4s, :xls_upload].each do |t|
+[:all, :upload, :import4s, :basic_rest, :xls_upload, :querytest].each do |t|
   task :teardown => t
   task t => :setup
 end
