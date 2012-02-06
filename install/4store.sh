@@ -36,11 +36,11 @@ make >>$LOG 2>&1
 sudo make install
 sudo /sbin/ldconfig
 if ! [ -f "$DATAB_CONF" ]; then
-  echo "if echo \"\$PATH\" | grep -v \"$DATAB_DEST\">/dev/null 2>&1; then export PATH=\"$DATAB_DEST/bin:\$PATH\"; fi" >> "$RUBY_CONF"
+  echo "if echo \"\$PATH\" | grep -v \"$DATAB_DEST\">/dev/null 2>&1; then export PATH=\"$DATAB_DEST/bin:\$PATH\"; fi" >> "$DATAB_CONF"
 
   echo "4store configuration has been stored in '$DATAB_CONF'."
   if ! grep "$DATAB_CONF" $TB_UI_CONF >/dev/null 2>&1 ; then
-    echo ". \"$DATA_CONF\"" >> $TB_UI_CONF
+    echo ". \"$DATAB_CONF\"" >> $TB_UI_CONF
   fi
 fi
 . "$DATAB_CONF"
