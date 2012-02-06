@@ -28,10 +28,12 @@ OHM_PORT="6379" # set to port (no colon)
 ### Nothing to gain from changes below this line.
 RUBY_CONF="$TB_PREFIX/.sh_ruby_tb"
 NGINX_CONF="$TB_PREFIX/.sh_nginx_tb"
+DATAB_CONF="$TB_PREFIX/.sh_4store_tb"
 
 RUBY_VER="ruby-enterprise-$RUBY_NUM_VER"
 
 RUBY_DEST="$TB_PREFIX/$RUBY_VER"
 NGINX_DEST="$TB_PREFIX/nginx"
+DATAB_DEST="$TB_PREFIX/4store"
 
 TB_UI_CONF="$HOME/.toxbank-ui.sh"

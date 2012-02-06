@@ -35,12 +35,17 @@ cd 4store-v1.1.4
 make >>$LOG 2>&1
 sudo make install
 sudo /sbin/ldconfig
-export LD_LIBRARY_PATH="/$TB_PREFIX/4store/lib"
-export PATH="$PATH:/$TB_PREFIX/4store/bin"
+if ! [ -f "$DATAB_CONF" ]; then
+  echo "if echo \"\$PATH\" | grep -v \"$DATAB_DEST\">/dev/null 2>&1; then export PATH=\"$DATAB_DEST/bin:\$PATH\"; fi" >> "$RUBY_CONF"
+
+  echo "4store configuration has been stored in '$DATAB_CONF'."
+  if ! grep "$DATAB_CONF" $TB_UI_CONF >/dev/null 2>&1 ; then
+    echo ". \"$DATA_CONF\"" >> $TB_UI_CONF
+  fi
+fi
+. "$DATAB_CONF"
 cd "$DIR"
 sudo rm -r tmp
 
 # build database ToxBank
 4s-backend-setup ToxBank
-# start 4s service
-# 4s-backend ToxBank
