@@ -105,8 +105,8 @@ mkdir -p "$HOME/.toxbank/config" >>$LOG 2>&1
 mkdir -p "$HOME/.toxbank/log" >>$LOG 2>&1
 mkdir -p "$HOME/.toxbank/tmp" >>$LOG 2>&1
 
-$GIT checkout production.yaml      >>$LOG 2>&1
-$GIT checkout aa-$TB_INSTALL.yaml  >>$LOG 2>&1
+git checkout production.yaml      >>$LOG 2>&1
+git checkout aa-$TB_INSTALL.yaml  >>$LOG 2>&1
 
 cmd="sed -e \"s,SERVERNAME,$servername,;s,ESCAPEDSERVER,$escapedserver,;s,LOGGER,$logger,;s,AA,$aa,;s,WWW_DEST,$WWW_DEST,;s,NGINX_PORT,$NGINX_PORT,;s,OHM_PORT,$OHM_PORT,\" production.yaml > $HOME/.toxbank/config/production.yaml" && run_cmd "$cmd" "Config 1"
 cmd="sed -e \"s,SERVERNAME,$servername,;s,ESCAPEDSERVER,$escapedserver,;s,LOGGER,$logger,;s,AA,$aa,;s,WWW_DEST,$WWW_DEST,;s,NGINX_PORT,$NGINX_PORT,;s,OHM_PORT,$OHM_PORT,\" aa-$TB_INSTALL.yaml >> $HOME/.toxbank/config/production.yaml" && run_cmd "$cmd" "Config 2"
