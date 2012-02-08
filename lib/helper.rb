@@ -1,3 +1,5 @@
+#AA_SERVER = "https://opensso.in-silico.ch"
+
 helpers do
 
   # Authentification

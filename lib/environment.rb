@@ -36,6 +36,7 @@ TRUE_REGEXP = /^(true|active|1|1.0|tox|activating|carcinogen|mutagenic)$/i
 FALSE_REGEXP = /^(false|inactive|0|0.0|low tox|deactivating|non-carcinogen|non-mutagenic)$/i
 
 # OWL Namespaces
+=begin
 class OwlNamespace
 
   attr_accessor :uri
@@ -56,17 +57,18 @@ class OwlNamespace
   end
 
 end
+=end
 
 AA_SERVER = CONFIG[:authorization] ? (CONFIG[:authorization][:server] ? CONFIG[:authorization][:server] : nil) : nil
 CONFIG[:authorization][:authenticate_request] = [""] unless CONFIG[:authorization][:authenticate_request]
 CONFIG[:authorization][:authorize_request] =  [""] unless CONFIG[:authorization][:authorize_request]
 CONFIG[:authorization][:free_request] =  [""] unless CONFIG[:authorization][:free_request]
 
-RDF = OwlNamespace.new 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-OWL = OwlNamespace.new 'http://www.w3.org/2002/07/owl#'
-DC =  OwlNamespace.new 'http://purl.org/dc/elements/1.1/'
-OT =  OwlNamespace.new 'http://www.opentox.org/api/1.1#'
-OTA =  OwlNamespace.new 'http://www.opentox.org/algorithmTypes.owl#'
-XSD = OwlNamespace.new 'http://www.w3.org/2001/XMLSchema#'
+#RDF = OwlNamespace.new 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+#OWL = OwlNamespace.new 'http://www.w3.org/2002/07/owl#'
+#DC =  OwlNamespace.new 'http://purl.org/dc/elements/1.1/'
+#OT =  OwlNamespace.new 'http://www.opentox.org/api/1.1#'
+#OTA =  OwlNamespace.new 'http://www.opentox.org/algorithmTypes.owl#'
+#XSD = OwlNamespace.new 'http://www.w3.org/2001/XMLSchema#'
 
 

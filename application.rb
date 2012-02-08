@@ -6,10 +6,11 @@ require 'sinatra'
 require 'sinatra/url_for'
 require 'grit'
 require 'yaml'
-require 'lib/toxbank-ruby'
 require 'spreadsheet'
 require 'roo'
 require 'uri'
+require 'opentox-client'
+require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
 
 helpers do

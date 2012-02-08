@@ -3,8 +3,7 @@ require 'fileutils'
 require 'test/unit'
 require 'rest-client'
 require 'uri'
-
-#HOST="http://localhost:4567"
+require 'opentox-client'
 
 class UploadTest < Test::Unit::TestCase
 
@@ -24,6 +23,8 @@ class UploadTest < Test::Unit::TestCase
       "ic50.txt",
     ]
     #@test_files = {"data/isa_TB_ACCUTOX.zip" => 400}
+  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
+  @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
   end
 
   def teardown
