@@ -33,7 +33,7 @@ task :teardown do
   # teardown code
 end
 
-[:all, :upload, :import4s, :basic_rest, :xls_upload, :querytest].each do |t|
+[:all, :upload, :import4s, :basic_rest, :xls_upload, :querytest, :authorization].each do |t|
   task :teardown => t
   task t => :setup
 end
