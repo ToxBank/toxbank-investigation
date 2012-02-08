@@ -9,7 +9,7 @@ class QueryTest < Test::Unit::TestCase
 
   def setup
     info = `4s-size ToxBank`
-    response = `curl -X POST -i -F file="@data/valid/BII-I-1.zip;type=application/zip" #{HOST}`.chomp
+    response = `curl -X POST -i -F file="@data/valid/BII-I-1.zip;type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
     assert_match /200/, response
   end
 
@@ -19,11 +19,11 @@ class QueryTest < Test::Unit::TestCase
 
   def test_01_get_list_of_investigations    
 
-    response = `curl "http://localhost/"`.chomp 
+    response = `curl "http://localhost/?subjectid=#{CGI.escape(@@subjectid)}"`.chomp 
     uri = response.split("\n").last
     
     # query for all in all investigations
-    res = `curl -i -H "Accept:application/sparql-results+json" #{HOST}?query_all=`
+    res = `curl -i -H "Accept:application/sparql-results+json" -H "subjectid:#{@@subjectid}" #{HOST}?query_all=`
     assert_match /200/, res
     assert_match /head/, res
     assert_match /results/, res
@@ -32,9 +32,9 @@ class QueryTest < Test::Unit::TestCase
     # delete Model in 4store
     del = `4s-delete-model ToxBank #{uri}`  
     # delete Investigation
-    response = `curl -i -X DELETE #{uri}`
+    response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
     puts assert_match /200/, response
-    response = `curl -i -H "Accept:text/uri-list" #{uri}`
+    response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
     puts assert_match /404/, response
     
   end
