@@ -12,6 +12,7 @@ require 'uri'
 require 'opentox-client'
 require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
+TASK_SERVICE = "http://webservices.in-silico.ch/task"
 
 helpers do
 
@@ -75,10 +76,8 @@ helpers do
         1.upto(xls.last_column) do |co|
           unless (co == xls.last_column)
             File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-            #File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\"#{xls.cell(ro, co)}\"\t"}
           else
             File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
-            #File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "\"#{xls.cell(ro, co)}\"\n"}
           end
         end
       end
@@ -106,8 +105,6 @@ helpers do
     # store RDF
     # TODO: remove RDF of existing investigations
     puts `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
-    response['Content-Type'] = 'text/uri-list'
-    uri
   end
 
   def query
@@ -161,20 +158,31 @@ end
 post '/?' do
   # TODO check free disc space + Limit 4store to 10% free disc space
   params[:id] = next_id
-  prepare_upload
-  case params[:file][:type]
-  when "application/vnd.ms-excel"
-    extract_xls
-  when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    extract_xls
-  when 'application/zip'
-    extract_zip
-  when  'text/tab-separated-values' # do nothing, file is already in tmp
-  else
-    mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
-    halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+  task = OpenTox::Task.create TASK_SERVICE, :description => " #{params[:file][:filename]}: Uploding, validationg and converting to RDF"
+  pid = Spork.spork do
+    begin
+      prepare_upload
+      case params[:file][:type]
+      when "application/vnd.ms-excel"
+        extract_xls
+      when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        extract_xls
+      when 'application/zip'
+        extract_zip
+      when  'text/tab-separated-values' # do nothing, file is already in tmp
+      else
+        mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
+        halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+      end
+      isa2rdf
+      task.completed uri
+    rescue => error
+      task.error error
+    end
   end
-  isa2rdf
+  response['Content-Type'] = 'text/uri-list'
+  halt 503,task.uri+"\n" if task.status == "Cancelled"
+  halt 202,task.uri+"\n"
 end
 
 # Get an investigation representation
