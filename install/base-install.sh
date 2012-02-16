@@ -26,7 +26,7 @@ fi
 touch $TB_UI_CONF
 
 # Pkgs
-packs="build-essential curl git-core hostname libcurl4-openssl-dev libpcre3-dev libxml2-dev libtool libglib2.0-dev libreadline-dev libssl-dev libxslt-dev ncurses-dev sun-java6-jdk unzip wget zip"
+packs="build-essential curl git-core hostname libcurl4-openssl-dev libgmp3-dev libpcre3-dev libxml2-dev libtool libglib2.0-dev libreadline-dev libssl-dev libxslt-dev ncurses-dev openjdk-6-jdk unzip wget zip"
 
 echo
 echo "Base Packages:"

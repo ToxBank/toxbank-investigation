@@ -20,6 +20,7 @@ echo "Cleaning up /tmp files."
 sudo rm -rf /tmp/ruby* /tmp/passenger* 
 
 . "./base-install.sh"
+. "./4store.sh"
 . "./ruby.sh"
 
 if [ "$install" != "gem" ]
@@ -32,48 +33,12 @@ cd $TB_HOME
 mkdir -p investigation
 mkdir -p java
 mkdir -p public
-mkdir -p tmp
 
 cd java
 #wget https://github.com/downloads/ISA-tools/ISAvalidator-ISAconverter-BIImanager/ISA-validator-1.4.zip
 #unzip ISA-validator-1.4.zip
 wget https://github.com/downloads/ToxBank/isa2rdf/isa2rdf-0.0.1-SNAPSHOT.jar
 cd -
-
-# get, compile, install "raptor" "rasqal"
-# raptor
-cd tmp
-wget http://download.librdf.org/source/raptor2-2.0.4.tar.gz
-tar xvzf raptor2-2.0.4.tar.gz
-cd raptor2-2.0.4 >>$LOG 2>&1
-./configure
-make
-sudo make install
-cd -
-
-# rasqal
-wget http://download.librdf.org/source/rasqal-0.9.27.tar.gz
-tar xvzf rasqal-0.9.27.tar.gz
-cd rasqal-0.9.27
-./configure >>$LOG 2>&1
-make
-sudo make install
-cd -
-
-# 4store
-wget http://4store.org/download/4store-v1.1.4.tar.gz
-tar xvzf 4store-v1.1.4.tar.gz
-cd 4store-v1.1.4
-./configure --with-storage-path=$TB_PREFIX/4store >>$LOG 2>&1
-make >>$LOG 2>&1
-sudo make install
-sudo /sbin/ldconfig
-cd $TB_HOME
-sudo rm -r tmp
-
-# start 4s service
-4s-backend-setup ToxBank
-4s-backend ToxBank
 
 cd investigation
 git init
