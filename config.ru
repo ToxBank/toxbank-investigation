@@ -2,7 +2,7 @@
 #require 'rack'
 #require 'rack/contrib'
 #require 'sinatra'
-require 'application.rb'
+require './application.rb'
 #require 'opentox-ruby'
 #require 'config/config_ru'
 run Sinatra::Application

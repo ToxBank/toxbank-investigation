@@ -24,7 +24,7 @@ fi
 LOG="/tmp/`basename $0`-log.txt"
 
 echo
-echo "Ruby Enterprise edition ('$RUBY_DEST', '$LOG')."
+echo "Ruby 1.9.3 ('$RUBY_DEST', '$LOG')."
 
 
 mkdir "$RUBY_DEST" >/dev/null 2>&1
@@ -39,12 +39,16 @@ fi
 
 if [ ! $RUBY_DONE ]; then
   cd /tmp
-  URI="http://rubyenterpriseedition.googlecode.com/files/$RUBY_VER.tar.gz"
+  URI="http://ftp.ruby-lang.org/pub/ruby/1.9/$RUBY_VER.tar.gz"
+  #URI="http://rubyenterpriseedition.googlecode.com/files/$RUBY_VER.tar.gz"
   if ! [ -d "/tmp/$RUBY_VER" ]; then
     cmd="$WGET $URI" && run_cmd "$cmd" "Download"
     cmd="tar xzf $RUBY_VER.tar.gz" && run_cmd "$cmd" "Unpack"
   fi
-  cmd="sh /tmp/$RUBY_VER/installer  --dont-install-useful-gems --no-dev-docs --auto=$RUBY_DEST" && run_cmd "$cmd" "Install"
+  cmd="cd /tmp/$RUBY_VER && ./configure --prefix=$RUBY_DEST" && run_cmd "$cmd" "Configure"
+  cmd="cd /tmp/$RUBY_VER && make" && run_cmd "$cmd" "Make"
+  cmd="cd /tmp/$RUBY_VER && make install" && run_cmd "$cmd" "Install"
+  #cmd="sh /tmp/$RUBY_VER/installer  --dont-install-useful-gems --no-dev-docs --auto=$RUBY_DEST" && run_cmd "$cmd" "Install"
 fi
 
 

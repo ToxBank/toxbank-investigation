@@ -1,15 +1,4 @@
-require 'rubygems'
-require 'fileutils'
-require 'rack'
-require 'rack/contrib'
-require 'sinatra'
-require 'sinatra/url_for'
-require 'grit'
-require 'yaml'
-require 'spreadsheet'
-require 'roo'
-require 'uri'
-require 'opentox-client'
+require "opentox-server"
 require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
 TASK_SERVICE = "http://webservices.in-silico.ch/task"
@@ -85,7 +74,7 @@ helpers do
   end
 
   def isa2rdf
-    result = `cd java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout
+    result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout
     if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}"
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
@@ -94,10 +83,10 @@ helpers do
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*")], dir
     # git commit
-    newfiles = `cd investigation; git ls-files --others --exclude-standard --directory`
-    `cd investigation && git add #{newfiles}`
+    newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory`
+    `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
     ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
-    `cd investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+    `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
     # create new zipfile
     zipfile = File.join dir, "investigation_#{params[:id]}.zip"
     `zip -j #{zipfile} #{dir}/*.txt`
@@ -161,22 +150,18 @@ post '/?' do
   mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
   halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
   task = OpenTox::Task.create(TASK_SERVICE, :description => " #{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
-    begin
-      prepare_upload
-      case params[:file][:type]
-      when "application/vnd.ms-excel"
-        extract_xls
-      when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        extract_xls
-      when 'application/zip'
-        extract_zip
-      #when  'text/tab-separated-values' # do nothing, file is already in tmp
-      end
-      isa2rdf
-      task.completed uri
-    rescue => error
-      task.error error
+    prepare_upload
+    case params[:file][:type]
+    when "application/vnd.ms-excel"
+      extract_xls
+    when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      extract_xls
+    when 'application/zip'
+      extract_zip
+    #when  'text/tab-separated-values' # do nothing, file is already in tmp
     end
+    isa2rdf
+    uri
   end
   response['Content-Type'] = 'text/uri-list'
   halt 503,task.uri+"\n" if task.status == "Cancelled"
@@ -217,7 +202,7 @@ end
 delete '/:id' do
   FileUtils.remove_entry dir
   # git commit
-  `cd investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+  `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
   # TODO: updata RDF
   `4s-delete-model ToxBank #{uri}`
   response['Content-Type'] = 'text/plain'

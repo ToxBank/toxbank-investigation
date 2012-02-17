@@ -46,7 +46,7 @@ if ! $NGINX_DONE; then
   cmd="$PIN --auto-download --auto --prefix=$NGINX_DEST" && run_cmd "$cmd" "Install"
 fi
 
-cd "$RUBY_DEST/lib/ruby/gems/1.8/gems/" >>$LOG 2>&1
+cd "$RUBY_DEST/lib/ruby/gems/1.9.1/gems/" >>$LOG 2>&1
 passenger=`ls -d passenger*`
 cd - >>$LOG 2>&1
 servername=`hostname`
@@ -55,7 +55,7 @@ cmd="sed -i -e \"s,PASSENGER,$passenger,;s,SERVERNAME,$servername,;s,RUBY_DEST,$
 cmd="sed -i -e \"s,USER,`whoami`,\" ./nginx.conf" && run_cmd "$cmd" "User"
 
 if [ -z "$NGINX_PORT" ]; then
-  NGINX_PORT=80
+  NGINX_PORT=80 # allow nginx to run as non-root user
 else
   NGINX_PORT=`echo "$NGINX_PORT" | sed 's/^.//g'`
 fi

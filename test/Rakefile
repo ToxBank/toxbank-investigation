@@ -5,15 +5,14 @@ require 'rack'
 require 'rack/contrib'
 require 'sinatra'
 require 'sinatra/url_for'
-require 'grit'
+#require 'grit'
 require 'yaml'
-require 'opentox-client'
+require 'opentox-server'
 ['otlogger', 'environment', 'helper'].each do |lib|
 	require '../lib/' + lib
 end
 
 HOST = "http://localhost/"
-#HOST = "http://localhost:4567"
 AA_SERVER = "https://opensso.in-silico.ch"
 TEST_USER = "guest"
 TEST_PW = "guest"
@@ -23,7 +22,8 @@ task ARGV[0] do
   ARGV[0] = ARGV[0].gsub(/\.rb$/,"")
   puts "Test: "+ARGV[0]+".rb"
   puts File.join(File.dirname(__FILE__),ARGV[0]+".rb")
-  require File.join(File.dirname(__FILE__),ARGV[0]+".rb")
+  #require File.join(File.dirname(__FILE__),ARGV[0]+".rb")
+  require ARGV[0]+".rb"
 end
 
 task :setup do
