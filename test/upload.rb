@@ -65,14 +65,12 @@ class UploadTest < Test::Unit::TestCase
       #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       assert_match /202/, response
-      puts response
       #assert_match /202/, last_response.errors
       #uri = last_response.body.chomp
       uri = response.split("\n")[-1]
-      puts uri.to_yaml
-      #t = OpenTox::Task.new(uri)
-      #t.wait_for_completion
-      #assert_match t.hasStatus, "Completed"
+      t = OpenTox::Task.new(uri)
+      t.wait_for_completion
+      assert_match t.hasStatus, "Completed"
       #puts t.to_yaml
       #uri = t.resultURI
 =begin
