@@ -1,7 +1,7 @@
 require "opentox-server"
 require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
-TASK_SERVICE = "http://webservices.in-silico.ch/task"
+TASK_SERVICE = "http://ot-dev.in-silico.ch/task"
 
 helpers do
 

@@ -66,12 +66,12 @@ class UploadTest < Test::Unit::TestCase
       #response = `curl -X POST -i -F file="@data/valid/#{f};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       assert_match /202/, last_response.errors
       uri = last_response.body.chomp
+      puts uri
       t = OpenTox::Task.new(uri)
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
-      puts t.to_yaml
-      puts uri
-      uri = t.resultURI
+      #puts t.to_yaml
+      #uri = t.resultURI
 =begin
       # get zip file
       #
