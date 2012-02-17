@@ -62,10 +62,12 @@ class UploadTest < Test::Unit::TestCase
     # upload
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
-      post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
-      #response = `curl -X POST -i -F file="@data/valid/#{f};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
-      assert_match /202/, last_response.errors
-      uri = last_response.body.chomp
+      #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
+      response = `curl -X POST -i -F file="@data/valid/#{f};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
+      assert_match /202/, response
+      #assert_match /202/, last_response.errors
+      #uri = last_response.body.chomp
+      uri = response.lines.last
       puts uri
       t = OpenTox::Task.new(uri)
       t.wait_for_completion
