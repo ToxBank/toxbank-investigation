@@ -149,7 +149,8 @@ post '/?' do
   params[:id] = next_id
   mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
   halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-  task = OpenTox::Task.create(TASK_SERVICE, :description => " #{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+  #task = OpenTox::Task.create(TASK_SERVICE, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+  task = OpenTox::Task.create(TASK_SERVICE, :description => "just a test") do
     prepare_upload
     case params[:file][:type]
     when "application/vnd.ms-excel"
@@ -162,6 +163,8 @@ post '/?' do
     end
     isa2rdf
     uri
+=begin
+=end
   end
   response['Content-Type'] = 'text/uri-list'
   halt 503,task.uri+"\n" if task.status == "Cancelled"
