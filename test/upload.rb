@@ -82,7 +82,6 @@ class UploadTest < Test::Unit::TestCase
       assert_match t.hasStatus, "Running"
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
-=begin
       #puts t.to_yaml
       #uri = t.resultURI
       # get zip file
@@ -111,6 +110,7 @@ class UploadTest < Test::Unit::TestCase
         #end
       end
 
+=begin
       # delete
       delete uri, :subjectid => @subjectid
       assert last_response.ok?
