@@ -110,7 +110,6 @@ class UploadTest < Test::Unit::TestCase
         #end
       end
 
-=begin
       # delete
       delete uri, :subjectid => @subjectid
       assert last_response.ok?
@@ -121,6 +120,7 @@ class UploadTest < Test::Unit::TestCase
       #assert_match /200/, response
       #response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       #assert_match /404/, response
+=begin
 =end
     end
   end
