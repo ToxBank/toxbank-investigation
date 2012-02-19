@@ -83,7 +83,7 @@ class UploadTest < Test::Unit::TestCase
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
       #puts t.to_yaml
-      #uri = t.resultURI
+      uri = t.resultURI
       # get zip file
       #
       #get uri, :subjectid => @@subjectid, :accept => "application/zip"
