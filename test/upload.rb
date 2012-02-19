@@ -74,11 +74,11 @@ class UploadTest < Test::Unit::TestCase
       assert_match /202/, response
       #assert_match /202/, last_response.errors
       #uri = last_response.body.chomp
+=begin
       uri = response.split("\n")[-1]
       puts uri
       t = OpenTox::Task.new(uri)
       assert_match t.hasStatus, "Running"
-=begin
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
       #puts t.to_yaml
