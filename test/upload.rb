@@ -41,13 +41,13 @@ class UploadTest < Test::Unit::TestCase
   end
 
 
-=begin
   def test_get_all
     #puts `curl #{HOST}`
     get '/'
     assert last_response.ok?
   end
 
+=begin
   def test_invalid_zip_upload
     file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
     #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
