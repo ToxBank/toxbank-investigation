@@ -80,9 +80,9 @@ class UploadTest < Test::Unit::TestCase
       puts uri
       t = OpenTox::Task.new(uri)
       assert_match t.hasStatus, "Running"
-=begin
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
+=begin
       #puts t.to_yaml
       #uri = t.resultURI
       # get zip file
