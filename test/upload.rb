@@ -72,9 +72,6 @@ class UploadTest < Test::Unit::TestCase
     # upload
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
-      post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
-      assert_match /202/, last_response.errors
-      #uri = last_response.body.chomp
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       #puts response
       assert_match /202/, response
@@ -84,17 +81,11 @@ class UploadTest < Test::Unit::TestCase
       assert_match t.hasStatus, "Running"
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
-      #puts t.to_yaml
       uri = t.resultURI
-      # get zip file
-      #
-      #get uri, :subjectid => @@subjectid, :accept => "application/zip"
-      #puts last_response.to_yaml
       puts uri
       zip = File.join @tmpdir,"tmp.zip"
       puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
-      #File.open(zip,"w+"){|f| f.puts last_response.body}
       `unzip -o #{zip} -d #{@tmpdir}`
       files = `unzip -l data/valid/#{f}|grep txt|cut -c 31- | sed 's#^.*/##'`.split("\n")
       files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
@@ -102,26 +93,19 @@ class UploadTest < Test::Unit::TestCase
       # get isatab files
       `curl -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`.split("\n").each do |u|
         response = `curl -i -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
-        # fix UTF-8 encoding
-        #if String.method_defined?(:encode) # ruby 1.9
-          assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
-        #else
-          #require 'iconv'
-          #ic = Iconv.new('UTF-8//IGNORE', 'UTF-8')
-          #assert_match /HTTP\/1.1 200 OK/, ic.iconv(response.to_s)
-        #end
+        assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
       end
 
       # delete
-      delete uri, :subjectid => @subjectid
-      assert last_response.ok?
-      get uri, :subjectid => @subjectid
-      assert !last_response.ok?
-      assert_match /404/, last_response.errors
-      #response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
-      #assert_match /200/, response
-      #response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
-      #assert_match /404/, response
+      #delete uri, :subjectid => @subjectid
+      #assert last_response.ok?
+      #get uri, :subjectid => @subjectid
+      #assert !last_response.ok?
+      #assert_match /404/, last_response.errors
+      response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
+      assert_match /200/, response
+      response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
+      assert_match /404/, response
 =begin
 =end
     end
