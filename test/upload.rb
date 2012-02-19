@@ -91,6 +91,7 @@ class UploadTest < Test::Unit::TestCase
       puts uri
       zip = File.join @tmpdir,"tmp.zip"
       puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
+=begin
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
       #File.open(zip,"w+"){|f| f.puts last_response.body}
       `unzip -o #{zip} -d #{@tmpdir}`
@@ -110,7 +111,6 @@ class UploadTest < Test::Unit::TestCase
         #end
       end
 
-=begin
       # delete
       delete uri, :subjectid => @subjectid
       assert last_response.ok?
