@@ -3,6 +3,8 @@ require File.join(File.dirname(__FILE__),"..","application.rb")
 require 'test/unit'
 require 'rack/test'
 
+#TODO: check 4store emtries/errors
+
 ENV['RACK_ENV'] = 'test'
 
 HOST = "http://localhost/"
@@ -70,12 +72,12 @@ class UploadTest < Test::Unit::TestCase
     # upload
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
-      #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
+      post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
+      assert_match /202/, last_response.errors
+      #uri = last_response.body.chomp
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       #puts response
       assert_match /202/, response
-      #assert_match /202/, last_response.errors
-      #uri = last_response.body.chomp
       uri = response.split("\n")[-1]
       puts uri
       t = OpenTox::Task.new(uri)
@@ -124,18 +126,5 @@ class UploadTest < Test::Unit::TestCase
 =end
     end
   end
-=begin
-=end
-
-=begin
-  def test_tab_upload
-  end
-
-  def test_add_study
-  end
-
-  def test_upload_corrupted
-  end
-=end
 
 end
