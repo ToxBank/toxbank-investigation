@@ -40,13 +40,14 @@ class UploadTest < Test::Unit::TestCase
     Sinatra::Application
   end
 
+
+=begin
   def test_get_all
     #puts `curl #{HOST}`
     get '/'
     assert last_response.ok?
   end
 
-=begin
   def test_invalid_zip_upload
     file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
     #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
@@ -76,6 +77,8 @@ class UploadTest < Test::Unit::TestCase
       uri = response.split("\n")[-1]
       puts uri
       t = OpenTox::Task.new(uri)
+      assert_match t.hasStatus, "Running"
+=begin
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
       #puts t.to_yaml
@@ -116,6 +119,7 @@ class UploadTest < Test::Unit::TestCase
       #assert_match /200/, response
       #response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       #assert_match /404/, response
+=end
     end
   end
 =begin
