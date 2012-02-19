@@ -33,7 +33,7 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def teardown
-    #FileUtils.remove_entry_secure @tmpdir
+    FileUtils.remove_entry_secure @tmpdir
   end
 
   def app
@@ -41,7 +41,6 @@ class UploadTest < Test::Unit::TestCase
   end
 
 
-=begin
   def test_get_all
     puts `curl #{HOST}`
     get '/'
@@ -49,6 +48,7 @@ class UploadTest < Test::Unit::TestCase
     puts last_response.to_yaml
   end
 
+=begin
   def test_invalid_zip_upload
     file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
     #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
