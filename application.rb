@@ -1,7 +1,7 @@
 require "opentox-server"
 require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
-TASK_SERVICE = "http://ot-dev.in-silico.ch/task"
+TASK_SERVICE = "http://ot-test.in-silico.ch/task"
 
 helpers do
 
@@ -37,8 +37,8 @@ helpers do
 
   def prepare_upload
     # lock tmp dir
-    halt 423, "Importing another submission. Please try again later." if File.exists? tmp
-    halt 400, "Please submit data as multipart/form-data" unless request.form_data?
+    raise LockedError "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
+    raise BadRequestError "Please submit data as multipart/form-data" unless request.form_data?
     # move existing ISA-TAB files to tmp
     FileUtils.mkdir_p tmp
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
@@ -46,6 +46,7 @@ helpers do
   end
 
   def extract_zip
+    # TODO: raise errors if shell commands fail
     # overwrite existing files with new submission
     `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}`
     Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
@@ -55,6 +56,7 @@ helpers do
   end
 
   def extract_xls
+    # TODO: raise errors 
     # use Excelx.new instead of Excel.new if your file is a .xlsx
     xls = Excel.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xls$/)
     xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
@@ -74,11 +76,12 @@ helpers do
   end
 
   def isa2rdf
+    # TODO: raise errors instead of halt
     result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout
     if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}"
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
-      halt 400, "ISA-TAB validation failed:\n"+result
+      raise BadRequestError "ISA-TAB validation failed:\n"+result
     end
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -93,6 +96,7 @@ helpers do
     FileUtils.remove_entry tmp  # unlocks tmp
     # store RDF
     # TODO: remove RDF of existing investigations
+    # TODO: raise error if import fails
     puts `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
   end
 
@@ -150,7 +154,6 @@ post '/?' do
   mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
   halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
   task = OpenTox::Task.create(TASK_SERVICE, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
-  #task = OpenTox::Task.create(TASK_SERVICE, :description => "just a test") do
     $logger.debug "Task created"
     prepare_upload
     case params[:file][:type]
@@ -164,9 +167,13 @@ post '/?' do
     end
     isa2rdf
     uri
-=begin
-=end
   end
+=begin
+  task = OpenTox::Task.create(TASK_SERVICE, :description => "just a test") do
+    sleep 2
+    raise "An error"
+  end
+=end
   response['Content-Type'] = 'text/uri-list'
   halt 503,task.uri+"\n" if task.status == "Cancelled"
   halt 202,task.uri+"\n"
