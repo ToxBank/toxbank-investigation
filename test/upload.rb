@@ -44,28 +44,9 @@ class UploadTest < Test::Unit::TestCase
 
 
   def test_get_all
-    puts `curl #{HOST}`
-    get '/'
-    assert last_response.ok?
-    puts last_response.to_yaml
+    response = `curl -i #{HOST}`
+    assert_match /200/, response
   end
-
-=begin
-  def test_invalid_zip_upload
-    file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
-    #post "/", "file" => Rack::Test::UploadedFile.new(file,"application/zip"), :subjectid => @@subjectid
-    response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
-    #assert_match /202/, last_response.errors
-    #uri = last_response.body.chomp
-    assert_match /202/, response
-    #uri = last_response.body.chomp
-    uri = response.split("\n")[-1]
-    puts uri
-    t = OpenTox::Task.new(uri)
-    t.wait_for_completion
-    assert_match t.hasStatus, "Error"
-  end
-=end
 
   def test_valid_zip_upload
 
@@ -97,18 +78,24 @@ class UploadTest < Test::Unit::TestCase
       end
 
       # delete
-      #delete uri, :subjectid => @subjectid
-      #assert last_response.ok?
-      #get uri, :subjectid => @subjectid
-      #assert !last_response.ok?
-      #assert_match /404/, last_response.errors
       response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
-=begin
-=end
     end
   end
+
+=begin
+  def test_invalid_zip_upload
+    file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
+    response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
+    assert_match /202/, response
+    uri = response.split("\n")[-1]
+    puts uri
+    t = OpenTox::Task.new(uri)
+    t.wait_for_completion
+    assert_match t.hasStatus, "Error"
+  end
+=end
 
 end
