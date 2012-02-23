@@ -8,9 +8,10 @@ require 'sinatra/url_for'
 #require 'grit'
 require 'yaml'
 require 'opentox-server'
-['otlogger', 'environment', 'helper'].each do |lib|
-	require '../lib/' + lib
-end
+require File.join(File.dirname(__FILE__),"../lib/toxbank-investigation.rb")
+#['otlogger', 'environment', 'helper'].each do |lib|
+	#require '../lib/' + lib
+#end
 
 HOST = "http://localhost/"
 AA_SERVER = "https://opensso.in-silico.ch"
