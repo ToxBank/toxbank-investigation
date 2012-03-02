@@ -67,8 +67,6 @@ class UploadTest < Test::Unit::TestCase
       `curl -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`.split("\n").each do |u|
         unless u.match(/n3$/)
           response = `curl -i -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
-          puts u
-          puts response
           assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
         end
       end
@@ -76,9 +74,9 @@ class UploadTest < Test::Unit::TestCase
       # delete
       response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /200/, response
-      #response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
-      #puts response.inspect
-      #assert_match /404/, response
+      response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
+      puts response.inspect
+      assert_match /404/, response
     end
   end
 
