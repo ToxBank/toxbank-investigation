@@ -193,3 +193,47 @@ get '/:id' do
     $logger.debug "Accept header #{@accept} not supported for #{uri}"
   end
 end
+
+
+# Add studies, assays or data to an investigation
+# @param [Header] Content-type: multipart/form-data
+# @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
+post '/:id' do
+  prepare_upload
+  isa2rdf
+end
+
+# Delete an investigation
+delete '/:id' do
+  FileUtils.remove_entry dir
+  # git commit
+  `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+  # TODO: updata RDF
+  `4s-delete-model ToxBank #{uri}`
+  response['Content-Type'] = 'text/plain'
+  "investigation #{params[:id]} deleted"
+end
+
+# Get a study, assay, data representation
+# @param [Header] one of text/tab-separated-values, application/sparql-results+json
+# @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
+get '/:id/:filename'  do
+  case @accept
+  when "text/tab-separated-values"
+    send_file file, :type => @accept
+  when "application/sparql-results+json"
+    # TODO: return all data in rdf
+    halt 501, "SPARQL query not yet implemented"
+  else
+    halt 400, "Accept header #{@accept} not supported"
+  end
+end
+
+# Delete an individual study, assay or data file
+delete '/:id/:filename'  do
+  prepare_upload
+  File.delete File.join(tmp,params[:filename])
+  isa2rdf
+  response['Content-Type'] = 'text/plain'
+  "#{params[:filename]} deleted from investigation #{params[:id]}"
+end
