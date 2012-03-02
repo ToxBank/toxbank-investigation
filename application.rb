@@ -37,8 +37,8 @@ helpers do
 
   def prepare_upload
     # lock tmp dir
-    raise LockedError.new "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
-    raise BadRequestError.new "Please submit data as multipart/form-data" unless request.form_data?
+    locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
+    bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
     # move existing ISA-TAB files to tmp
     FileUtils.mkdir_p tmp
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
@@ -81,7 +81,7 @@ helpers do
     if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}"
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
-      raise BadRequestError.new "ISA-TAB validation failed:\n"+result
+      bad_request_error "ISA-TAB validation failed:\n"+result
     end
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -118,7 +118,7 @@ helpers do
 end
 
 before do
-  halt 404 unless File.exist? dir
+  not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
   @accept = request.env['HTTP_ACCEPT']
   response['Content-Type'] = @accept
   # TODO: A+A
@@ -152,7 +152,7 @@ post '/?' do
   # TODO check free disc space + Limit 4store to 10% free disc space
   params[:id] = next_id
   mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
-  halt 400, "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+  bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
   task = OpenTox::Task.create(TASK_SERVICE, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
     $logger.debug "Task created"
     prepare_upload
@@ -175,7 +175,7 @@ post '/?' do
   end
 =end
   response['Content-Type'] = 'text/uri-list'
-  halt 503,task.uri+"\n" if task.status == "Cancelled"
+  service_unavailable_error task.uri+"\n" if task.status == "Cancelled"
   halt 202,task.uri+"\n"
 end
 
@@ -183,7 +183,7 @@ end
 # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
 # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
 get '/:id' do
-  halt 404 unless File.exist? dir # not called in before filter???
+  not_found_error "Directory #{dir} does not exist."  unless File.exist? dir # not called in before filter???
   case @accept
   when "text/tab-separated-values"
     send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
@@ -195,7 +195,7 @@ get '/:id' do
     query_all
     # TODO return all data from [:id] investigation 
   else
-    halt 400, "Accept header #{@accept} not supported"
+    bad_request_error "Accept header #{@accept} not supported"
   end
 end
 
