@@ -38,8 +38,6 @@ class UploadTest < Test::Unit::TestCase
     FileUtils.remove_entry_secure @tmpdir
   end
 
-=begin
-=end
   def test_get_all
     response = `curl -i #{HOST}`
     assert_match /200/, response
@@ -52,17 +50,14 @@ class UploadTest < Test::Unit::TestCase
       file = File.join File.dirname(__FILE__), "data/valid", f
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       sleep 1
-      puts response
       #puts response
       assert_match /202/, response
       uri = response.split("\n")[-1]
-      puts uri
       t = OpenTox::Task.new(uri)
       assert_match t.hasStatus, "Running"
       t.wait_for_completion
       assert_match t.hasStatus, "Completed"
       uri = t.resultURI
-      puts uri
       zip = File.join @tmpdir,"tmp.zip"
       puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
@@ -79,7 +74,8 @@ class UploadTest < Test::Unit::TestCase
       # delete
       response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /200/, response
-      #response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
+      response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
+      puts response.inspect
       #assert_match /404/, response
 =begin
 =end
