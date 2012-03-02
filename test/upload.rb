@@ -77,8 +77,6 @@ class UploadTest < Test::Unit::TestCase
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       puts response.inspect
       #assert_match /404/, response
-=begin
-=end
     end
   end
 
@@ -92,7 +90,5 @@ class UploadTest < Test::Unit::TestCase
     t.wait_for_completion
     assert_match t.hasStatus, "Error"
   end
-=begin
-=end
 
 end

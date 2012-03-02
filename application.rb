@@ -183,7 +183,7 @@ end
 # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
 # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
 get '/:id' do
-  not_found_error "Directory #{dir} does not exist."  unless File.exist? dir # not called in before filter???
+  not_found_error "Invesigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
   case @accept
   when "text/tab-separated-values"
     send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
