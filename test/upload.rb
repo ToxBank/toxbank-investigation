@@ -55,7 +55,6 @@ class UploadTest < Test::Unit::TestCase
       puts response
       #puts response
       assert_match /202/, response
-=begin
       uri = response.split("\n")[-1]
       puts uri
       t = OpenTox::Task.new(uri)
@@ -82,6 +81,7 @@ class UploadTest < Test::Unit::TestCase
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
+=begin
 =end
     end
   end
