@@ -74,8 +74,8 @@ class UploadTest < Test::Unit::TestCase
       # delete
       response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /200/, response
-      response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
-      puts response.inspect
+      #response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
+      #puts response.inspect
       #assert_match /404/, response
     end
   end

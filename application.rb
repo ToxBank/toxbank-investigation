@@ -154,7 +154,6 @@ post '/?' do
   mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
   bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
   task = OpenTox::Task.create(TASK_SERVICE, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
-    $logger.debug "Task created"
     prepare_upload
     case params[:file][:type]
     when "application/vnd.ms-excel"
@@ -168,12 +167,6 @@ post '/?' do
     isa2rdf
     uri
   end
-=begin
-  task = OpenTox::Task.create(TASK_SERVICE, :description => "just a test") do
-    sleep 2
-    raise "An error"
-  end
-=end
   response['Content-Type'] = 'text/uri-list'
   service_unavailable_error task.uri+"\n" if task.hasStatus == "Cancelled"
   halt 202,task.uri+"\n"
