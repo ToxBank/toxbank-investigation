@@ -49,13 +49,11 @@ class UploadTest < Test::Unit::TestCase
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
-      sleep 1
-      #puts response
       assert_match /202/, response
       uri = response.split("\n")[-1]
       t = OpenTox::Task.new(uri)
       assert_match t.hasStatus, "Running"
-      t.wait_for_completion
+      t.wait
       assert_match t.hasStatus, "Completed"
       uri = t.resultURI
       zip = File.join @tmpdir,"tmp.zip"
