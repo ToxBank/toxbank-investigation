@@ -37,8 +37,8 @@ helpers do
 
   def prepare_upload
     # lock tmp dir
-    raise LockedError "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
-    raise BadRequestError "Please submit data as multipart/form-data" unless request.form_data?
+    raise LockedError.new "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
+    raise BadRequestError.new "Please submit data as multipart/form-data" unless request.form_data?
     # move existing ISA-TAB files to tmp
     FileUtils.mkdir_p tmp
     FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
@@ -81,7 +81,7 @@ helpers do
     if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}"
       FileUtils.remove_entry tmp 
       FileUtils.remove_entry dir
-      raise BadRequestError "ISA-TAB validation failed:\n"+result
+      raise BadRequestError.new "ISA-TAB validation failed:\n"+result
     end
     # if everything is fine move ISA-TAB files back to original dir
     FileUtils.cp Dir[File.join(tmp,"*")], dir
