@@ -188,8 +188,9 @@ get '/:id' do
     query_all
     # TODO return all data from [:id] investigation 
   else
-    $logger.debug request.to_yaml
-    #bad_request_error "Accept header #{@accept} not supported"
+    #$logger.debug request.to_yaml
+    #bad_request_error "Accept header #{@accept} not supported for #{uri}"
+    $logger.debug "Accept header #{@accept} not supported for #{uri}"
   end
 end
 
