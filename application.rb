@@ -175,7 +175,7 @@ post '/?' do
   end
 =end
   response['Content-Type'] = 'text/uri-list'
-  service_unavailable_error task.uri+"\n" if task.status == "Cancelled"
+  service_unavailable_error task.uri+"\n" if task.hasStatus == "Cancelled"
   halt 202,task.uri+"\n"
 end
 
