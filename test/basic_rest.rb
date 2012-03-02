@@ -3,6 +3,12 @@ require 'rest-client'
 require 'test/unit'
 require 'uri'
 
+HOST = "http://localhost/"
+AA_SERVER = "https://opensso.in-silico.ch"
+TEST_USER = "guest"
+TEST_PW = "guest"
+  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
+  @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
 
 class BasicTest < Test::Unit::TestCase
 
