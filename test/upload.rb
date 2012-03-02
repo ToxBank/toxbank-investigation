@@ -7,7 +7,7 @@ require 'rack/test'
 
 #ENV['RACK_ENV'] = 'test'
 
-HOST = "http://localhost:9292/"
+HOST = "http://localhost/"
 AA_SERVER = "https://opensso.in-silico.ch"
 TEST_USER = "guest"
 TEST_PW = "guest"
