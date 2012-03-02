@@ -188,7 +188,7 @@ get '/:id' do
     query_all
     # TODO return all data from [:id] investigation 
   else
-    bad_request_error "Accept header #{@accept} not supported"
+    #bad_request_error "Accept header #{@accept} not supported"
   end
 end
 
