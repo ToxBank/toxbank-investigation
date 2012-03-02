@@ -52,8 +52,8 @@ class UploadTest < Test::Unit::TestCase
       file = File.join File.dirname(__FILE__), "data/valid", f
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       puts response
-=begin
       assert_match /202/, response
+=begin
       uri = response.split("\n")[-1]
       puts uri
       t = OpenTox::Task.new(uri)
