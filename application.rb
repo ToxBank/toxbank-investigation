@@ -1,5 +1,5 @@
 require "opentox-server"
-require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
+#require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
 TASK_SERVICE = "http://ot-test.in-silico.ch/task"
 

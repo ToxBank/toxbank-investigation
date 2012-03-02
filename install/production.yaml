@@ -1,6 +1,0 @@
-:base_dir: WWW_DEST
-
-# Uncomment for verbose logging
-LOGGER
-:logger: debug
-:backtrace: true
