@@ -5,9 +5,9 @@ require 'rack/test'
 
 #TODO: check 4store emtries/errors
 
-ENV['RACK_ENV'] = 'test'
+#ENV['RACK_ENV'] = 'test'
 
-HOST = "http://localhost/"
+HOST = "http://localhost:9292/"
 AA_SERVER = "https://opensso.in-silico.ch"
 TEST_USER = "guest"
 TEST_PW = "guest"

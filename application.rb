@@ -1,49 +1,10 @@
 require "opentox-server"
 #require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
-TASK_SERVICE = "http://ot-dev.in-silico.ch/task"
-
-#error OpenTox::Error do
-#end
-# Error handling
-# Errors are logged as error and formated according to acccept-header
-# Non OpenTox::Errors (defined in error.rb) are handled as internal error (500), stacktrace is logged
-# IMPT: set sinatra settings :show_exceptions + :raise_errors to false in config.ru, otherwise Rack::Showexceptions takes over
-error do
-  #TODO: add actor to error report
-  #actor = "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}"
-  error = request.env['sinatra.error']
-  case request.env['HTTP_ACCEPT']
-  when 'application/rdf+xml'
-    content_type 'application/rdf+xml'
-  when /html/
-    content_type 'text/html'
-  when "text/n3"
-    content_type "text/n3"
-  else
-    content_type "text/n3"
-  end
-  if error.respond_to? :report
-    code = error.report.http_code
-    case request.env['HTTP_ACCEPT']
-    when 'application/rdf+xml'
-      body = error.report.to_rdfxml
-    when /html/
-      body = error.report.to_yaml
-    when "text/n3"
-      body = error.report.to_ntriples
-    else
-      body = error.report.to_ntriples
-    end
-  else
-    content_type "text/plain"
-    body = error.message
-    body += "\n#{error.backtrace}"
-  end
-
-  halt code, body
-end
-
+#TASK_SERVICE = "http://ot-dev.in-silico.ch/task"
+module OpenTox
+  class Application < Service
+helpers Sinatra::UrlForHelper
 helpers do
 
   def uri
@@ -193,7 +154,7 @@ post '/?' do
   params[:id] = next_id
   mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
   bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-  task = OpenTox::Task.create(TASK_SERVICE, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+  task = OpenTox::Task.create(CONFIG[:services]["opentox-task"], :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
     prepare_upload
     case params[:file][:type]
     when "application/vnd.ms-excel"
@@ -276,4 +237,7 @@ delete '/:id/:filename'  do
   isa2rdf
   response['Content-Type'] = 'text/plain'
   "#{params[:filename]} deleted from investigation #{params[:id]}"
+end
+
+  end
 end
