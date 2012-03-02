@@ -85,7 +85,7 @@ class UploadTest < Test::Unit::TestCase
     uri = response.split("\n")[-1]
     puts uri
     t = OpenTox::Task.new(uri)
-    t.wait_for_completion
+    t.wait
     assert_match t.hasStatus, "Error"
   end
 
