@@ -51,7 +51,9 @@ class UploadTest < Test::Unit::TestCase
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
       response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
+      sleep 1
       puts response
+      #puts response
       assert_match /202/, response
 =begin
       uri = response.split("\n")[-1]
