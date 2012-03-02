@@ -10,6 +10,7 @@ require 'lib/toxbank-ruby'
 require 'spreadsheet'
 require 'roo'
 require 'uri'
+require File.join('~/.toxbank/userpass.rb')
 
 
 helpers do
@@ -103,8 +104,8 @@ helpers do
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
     # store RDF
-    # TODO: remove RDF of existing investigations
-    puts `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
+    # TODO: fix nginx for import
+    puts `curl -0 -v -u #{USER}:#{PASS} -T #{File.join dir,n3} 'http://4store.in-silico.ch/data/#{n3}'`
     response['Content-Type'] = 'text/uri-list'
     uri
   end
@@ -114,14 +115,14 @@ helpers do
     @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
     params.each{|k, v| @query = CGI.unescape(v)}
     # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
-    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
+    @result = `curl -i -u #{USER}:#{PASS} -d "query=#{@query}" 'http://4store.in-silico.ch/sparql/'`
     @result.chomp    
   end
   
   def query_all
-    @base ="http://onto.toxbank.net/isa/TEST/"
-    @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
-    @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?s ?p ?o}'`
+    #@base ="http://onto.toxbank.net/isa/TEST/"
+    #@prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+    @result = `curl -i -u #{USER}:#{PASS} -d "query=SELECT * WHERE {?x ?p ?o}" 'http://4store.in-silico.ch/sparql/'`
     @result.chomp    
   end
 end
@@ -135,16 +136,16 @@ end
 
 # Query all investigations or get a list of all investigations
 # Requests with a query parameter will perform a SPARQL query on all investigations
-# @return [application/sparql-results+json] Query result
+# @return [application/sparql-results+xml] Query result
 # @return [text/uri-list] List of investigations
 get '/?' do
   if params[:query] # "/?query=SELECT * WHERE {?s ?p ?o}"
   # @param query SPARQL query
-    response['Content-type'] = "application/sparql-results+json"
+    response['Content-type'] = "application/sparql-results+xml"
     query
   elsif params[:query_all] # "/?query="
   # Requests without a query string return a list of all sparql results (?s ?p ?o)
-    response['Content-type'] = "application/sparql-results+json"
+    response['Content-type'] = "application/sparql-results+xml"
     query_all
   else
   # Requests without a query parameter return a list of all investigations
@@ -177,8 +178,8 @@ post '/?' do
 end
 
 # Get an investigation representation
-# @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
-# @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
+# @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+xml
+# @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+xml] Investigation in the requested format
 get '/:id' do
   halt 404 unless File.exist? dir # not called in before filter???
   case @accept
@@ -188,7 +189,7 @@ get '/:id' do
     uri_list
   when "application/zip"
     send_file File.join dir, "investigation_#{params[:id]}.zip"
-  when "application/sparql-results+json"
+  when "application/sparql-results+xml"
     query_all
     # TODO return all data from [:id] investigation 
   else
@@ -218,13 +219,13 @@ delete '/:id' do
 end
 
 # Get a study, assay, data representation
-# @param [Header] one of text/tab-separated-values, application/sparql-results+json
-# @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
+# @param [Header] one of text/tab-separated-values, application/sparql-results+xml
+# @return [text/tab-separated-values, application/sparql-results+xml] Study, assay, data representation in ISA-TAB or RDF format
 get '/:id/:filename'  do
   case @accept
   when "text/tab-separated-values"
     send_file file, :type => @accept
-  when "application/sparql-results+json"
+  when "application/sparql-results+xml"
     # TODO: return all data in rdf
     halt 501, "SPARQL query not yet implemented"
   else
