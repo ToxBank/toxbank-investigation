@@ -3,6 +3,47 @@ require "opentox-server"
 
 TASK_SERVICE = "http://ot-dev.in-silico.ch/task"
 
+#error OpenTox::Error do
+#end
+# Error handling
+# Errors are logged as error and formated according to acccept-header
+# Non OpenTox::Errors (defined in error.rb) are handled as internal error (500), stacktrace is logged
+# IMPT: set sinatra settings :show_exceptions + :raise_errors to false in config.ru, otherwise Rack::Showexceptions takes over
+error do
+  #TODO: add actor to error report
+  #actor = "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}"
+  error = request.env['sinatra.error']
+  case request.env['HTTP_ACCEPT']
+  when 'application/rdf+xml'
+    content_type 'application/rdf+xml'
+  when /html/
+    content_type 'text/html'
+  when "text/n3"
+    content_type "text/n3"
+  else
+    content_type "text/n3"
+  end
+  if error.respond_to? :report
+    code = error.report.http_code
+    case request.env['HTTP_ACCEPT']
+    when 'application/rdf+xml'
+      body = error.report.to_rdfxml
+    when /html/
+      body = error.report.to_yaml
+    when "text/n3"
+      body = error.report.to_ntriples
+    else
+      body = error.report.to_ntriples
+    end
+  else
+    content_type "text/plain"
+    body = error.message
+    body += "\n#{error.backtrace}"
+  end
+
+  halt code, body
+end
+
 helpers do
 
   def uri
@@ -76,7 +117,6 @@ helpers do
   end
 
   def isa2rdf
-    # TODO: raise errors instead of halt
     result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout
     if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}"
       FileUtils.remove_entry tmp 
@@ -223,9 +263,9 @@ get '/:id/:filename'  do
     send_file file, :type => @accept
   when "application/sparql-results+json"
     # TODO: return all data in rdf
-    halt 501, "SPARQL query not yet implemented"
+    not_implemented_error "SPARQL query not yet implemented"
   else
-    halt 400, "Accept header #{@accept} not supported"
+    bad_request_error "Accept header #{@accept} not supported"
   end
 end
 

@@ -38,9 +38,17 @@ class UploadTest < Test::Unit::TestCase
     FileUtils.remove_entry_secure @tmpdir
   end
 
+=begin
+=end
   def test_get_all
     response = `curl -i #{HOST}`
     assert_match /200/, response
+  end
+
+  def test_get_inexisting
+    puts "#{HOST}/foo"
+      response = `curl -H "Accept:text/uri-list" -i -H "subjectid:#{@@subjectid}" #{HOST}/foo`.chomp
+      assert_match /404/, response
   end
 
   def test_valid_zip_upload
@@ -75,7 +83,7 @@ class UploadTest < Test::Unit::TestCase
       response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
-      puts response.inspect
+      #puts response.inspect
       assert_match /404/, response
     end
   end
@@ -90,5 +98,7 @@ class UploadTest < Test::Unit::TestCase
     t.wait
     assert_match t.hasStatus, "Error"
   end
+=begin
+=end
 
 end
