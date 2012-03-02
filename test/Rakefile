@@ -1,14 +1,6 @@
 require 'rubygems'
-require 'rest-client'
-require 'fileutils'
-require 'rack'
-require 'rack/contrib'
-require 'sinatra'
-require 'sinatra/url_for'
-#require 'grit'
-require 'yaml'
 require 'opentox-server'
-require File.join(File.dirname(__FILE__),"../lib/toxbank-investigation.rb")
+#require File.join(File.dirname(__FILE__),"../lib/toxbank-investigation.rb")
 #['otlogger', 'environment', 'helper'].each do |lib|
 	#require '../lib/' + lib
 #end
