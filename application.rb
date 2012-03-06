@@ -10,7 +10,6 @@ require 'lib/toxbank-ruby'
 require 'spreadsheet'
 require 'roo'
 require 'uri'
-require 'rest_client'
 require File.join('~/.toxbank/userpass.rb')
 
 
