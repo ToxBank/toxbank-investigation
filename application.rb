@@ -1,7 +1,6 @@
 require "opentox-server"
 #require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
-#TASK_SERVICE = "http://ot-dev.in-silico.ch/task"
 module OpenTox
   class Application < Service
     helpers do
@@ -47,7 +46,6 @@ module OpenTox
       end
 
       def extract_zip
-        # TODO: raise errors if shell commands fail
         # overwrite existing files with new submission
         `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}`
         Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
@@ -57,7 +55,6 @@ module OpenTox
       end
 
       def extract_xls
-        # TODO: raise errors 
         # use Excelx.new instead of Excel.new if your file is a .xlsx
         xls = Excel.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xls$/)
         xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
@@ -74,11 +71,13 @@ module OpenTox
             end
           end
         end   
+      rescue
+        bad_request_error "Could not parse spreadsheet #{params[:file][:filename]}"
       end
 
       def isa2rdf
-        result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout
-        if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}"
+        result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout, isa2rdf exits always with 0 
+        if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}" or $? > 0
           FileUtils.remove_entry tmp 
           FileUtils.remove_entry dir
           bad_request_error "ISA-TAB validation failed:\n"+result
@@ -96,8 +95,7 @@ module OpenTox
         FileUtils.remove_entry tmp  # unlocks tmp
         # store RDF
         # TODO: remove RDF of existing investigations
-        # TODO: raise error if import fails
-        puts `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
+        `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
       end
 
       def query
@@ -186,7 +184,6 @@ module OpenTox
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       when "application/sparql-results+json"
         query_all
-        # TODO return all data from [:id] investigation 
       else
         #$logger.debug request.to_yaml
         #bad_request_error "Accept header #{@accept} not supported for #{uri}"
@@ -208,7 +205,6 @@ module OpenTox
       FileUtils.remove_entry dir
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
-      # TODO: updata RDF
       `4s-delete-model ToxBank #{uri}`
       response['Content-Type'] = 'text/plain'
       "investigation #{params[:id]} deleted"
