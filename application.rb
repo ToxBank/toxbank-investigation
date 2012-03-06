@@ -10,6 +10,7 @@ require 'lib/toxbank-ruby'
 require 'spreadsheet'
 require 'roo'
 require 'uri'
+require 'rest_client'
 require File.join('~/.toxbank/userpass.rb')
 
 
@@ -104,8 +105,9 @@ helpers do
     `zip -j #{zipfile} #{dir}/*.txt`
     FileUtils.remove_entry tmp  # unlocks tmp
     # store RDF
-    # TODO: fix nginx for import
-    puts `curl -0 -v -u #{USER}:#{PASS} -T #{File.join dir,n3} 'http://4store.in-silico.ch/data/#{n3}'`
+    puts length = File.size(File.join dir,n3)
+    file = File.join(dir,n3)
+    `curl -0 -u #{USER}:#{PASS} -T #{file} -H 'Content_Length => #{length}' 'http://4store.in-silico.ch/data/investigation#{n3}'`
     response['Content-Type'] = 'text/uri-list'
     uri
   end
