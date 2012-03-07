@@ -38,17 +38,14 @@ class UploadTest < Test::Unit::TestCase
     FileUtils.remove_entry_secure @tmpdir
   end
 
-=begin
-=end
   def test_get_all
     response = `curl -i #{HOST}`
     assert_match /200/, response
   end
 
   def test_get_inexisting
-    puts "#{HOST}/foo"
-      response = `curl -H "Accept:text/uri-list" -i -H "subjectid:#{@@subjectid}" #{HOST}/foo`.chomp
-      assert_match /404/, response
+    response = `curl -H "Accept:text/uri-list" -i -H "subjectid:#{@@subjectid}" #{HOST}/foo`.chomp
+    assert_match /404/, response
   end
 
   def test_valid_zip_upload
@@ -65,7 +62,7 @@ class UploadTest < Test::Unit::TestCase
       assert_match t.hasStatus, "Completed"
       uri = t.resultURI
       zip = File.join @tmpdir,"tmp.zip"
-      puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
+      #puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
       `unzip -o #{zip} -d #{@tmpdir}`
       files = `unzip -l data/valid/#{f}|grep txt|cut -c 31- | sed 's#^.*/##'`.split("\n")
@@ -92,7 +89,6 @@ class UploadTest < Test::Unit::TestCase
     response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
     assert_match /202/, response
     uri = response.split("\n")[-1]
-    puts uri
     t = OpenTox::Task.new(uri)
     t.wait
     assert_match t.hasStatus, "Error"
