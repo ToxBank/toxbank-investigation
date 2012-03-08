@@ -1,4 +1,7 @@
 require "opentox-server"
+# TODO: move to config files
+require File.join(ENV["HOME"],".opentox","config","userpass.rb")
+
 
 module OpenTox
   class Application < Service
@@ -133,9 +136,13 @@ module OpenTox
         `zip -j #{zipfile} #{dir}/*.txt`
         $logger.debug "zip created"
         # store RDF
+        length = File.size(File.join dir,n3)
+        file = File.join(dir,n3)
+        `curl -0 -u #{USER}:#{PASS} -T #{file} -H 'Content_Length => #{length}' 'http://4store.in-silico.ch/data/investigation#{n3}'`
+        #response['Content-Type'] = 'text/uri-list'
         # TODO: remove RDF of existing investigations
-        $logger.debug "4s-import -v ToxBank --model #{uri} #{File.join dir,n3}"
-        `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
+      #$logger.debug "4s-import -v ToxBank --model #{uri} #{File.join dir,n3}"
+        #`4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
         $logger.debug "rdf imported"
         FileUtils.remove_entry tmp  # unlocks tmp
         $logger.debug "tmp removed"
@@ -146,14 +153,16 @@ module OpenTox
         @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
         params.each{|k, v| @query = CGI.unescape(v)}
         # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
-        @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
+        @result = `curl -i -u #{USER}:#{PASS} -d "query=#{@query}" 'http://4store.in-silico.ch/sparql/'`
+        #@result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
         @result.chomp    
       end
       
       def query_all
-        @base ="http://onto.toxbank.net/isa/TEST/"
-        @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
-        @result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?s ?p ?o}'`
+        #@base ="http://onto.toxbank.net/isa/TEST/"
+        #@prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
+        #@result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?s ?p ?o}'`
+        @result = `curl -i -u #{USER}:#{PASS} -d "query=SELECT * WHERE {?x ?p ?o}" 'http://4store.in-silico.ch/sparql/'`
         @result.chomp    
       end
     end
@@ -251,7 +260,9 @@ module OpenTox
       FileUtils.remove_entry dir
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
-      `4s-delete-model ToxBank #{uri}`
+      # updata RDF
+      `curl -i -u #{USER}:#{PASS} -X DELETE 'http://4store.in-silico.ch/data/investigation#{n3}'`
+      #`4s-delete-model ToxBank #{uri}`
       response['Content-Type'] = 'text/plain'
       "investigation #{params[:id]} deleted"
     end

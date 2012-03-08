@@ -30,15 +30,19 @@ end
 
 task :setup do
   # setup code
-  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
-  @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
+  if AA_SERVER
+    resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
+    @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
+  else
+    @@subjectid = ""
+  end
 end
 
 task :teardown do
   # teardown code
 end
 
-[:all, :upload, :import4s, :basic_rest, :xls_upload, :querytest].each do |t|
+[:all, :upload, :basic_rest, :xls_upload, :querytest, :authorization, :httpd].each do |t|
   task :teardown => t
   task t => :setup
 end
