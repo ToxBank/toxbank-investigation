@@ -1,8 +1,44 @@
 require "opentox-server"
-#require File.join(File.dirname(__FILE__),'/lib/toxbank-ruby')
 
 module OpenTox
   class Application < Service
+
+    # TODO: move to opentox-server
+    error do
+      # TODO: set actor, calling OT::Error with uri parameter does not work
+      error = request.env['sinatra.error']
+      #error.report.actor = "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}"
+      case request.env['HTTP_ACCEPT']
+      when 'application/rdf+xml'
+        content_type 'application/rdf+xml'
+      when /html/
+        content_type 'text/html'
+      when "text/n3"
+        content_type "text/n3"
+      else
+        content_type "text/turtle"
+      end
+      if error.respond_to? :report
+        case request.env['HTTP_ACCEPT']
+        when 'application/rdf+xml'
+          body = error.report.to_rdfxml
+        when /html/
+          body = error.report.to_yaml
+        when "text/n3"
+          body = error.report.to_ntriples
+        else
+          body = error.report.to_turtle
+        end
+      else
+        content_type "text/plain"
+        body = error.message
+        body += "\n#{error.backtrace}"
+      end
+      code = error.http_code if error.respond_to? :http_code
+      code ||= 500
+      halt code, error.report.to_turtle
+    end
+
     helpers do
 
       def uri
@@ -76,8 +112,10 @@ module OpenTox
       end
 
       def isa2rdf
+        $logger.debug "cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}" # warnings go to stdout, isa2rdf exits always with 0 
         result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout, isa2rdf exits always with 0 
-        if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}" or $? > 0
+        $logger.debug result
+        if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}" 
           FileUtils.remove_entry tmp 
           FileUtils.remove_entry dir
           bad_request_error "ISA-TAB validation failed:\n"+result
@@ -89,13 +127,18 @@ module OpenTox
         `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
         ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
         `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+        $logger.debug "git commit"
         # create new zipfile
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
-        FileUtils.remove_entry tmp  # unlocks tmp
+        $logger.debug "zip created"
         # store RDF
         # TODO: remove RDF of existing investigations
+        $logger.debug "4s-import -v ToxBank --model #{uri} #{File.join dir,n3}"
         `4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
+        $logger.debug "rdf imported"
+        FileUtils.remove_entry tmp  # unlocks tmp
+        $logger.debug "tmp removed"
       end
 
       def query
@@ -175,6 +218,9 @@ module OpenTox
     # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
     get '/:id' do
       not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
+      # TODO: set actor, this does not work:
+      #actor = uri
+      #raise OpenTox::NotFoundError, "Investigation #{uri} does not exist.", actor  unless File.exist? dir # not called in before filter???
       case @accept
       when "text/tab-separated-values"
         send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
