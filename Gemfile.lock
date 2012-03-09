@@ -1,25 +1,8 @@
 PATH
-  remote: ~/opentox-client
+  remote: .
   specs:
-    opentox-client (0.0.1pre)
-      bundler
-      open4
-      rdf
-      rdf-raptor
-      rest-client
-
-PATH
-  remote: ~/opentox-server
-  specs:
-    opentox-server (0.0.1pre)
-      emk-sinatra-url-for
-      opentox-client
-      rack
-      rack-contrib
-      roo
-      sinatra
-      sinatra-contrib
-      unicorn
+    toxbank-investigation (0.0.1pre)
+      opentox-server
 
 GEM
   remote: http://rubygems.org/
@@ -50,6 +33,21 @@ GEM
       faraday (~> 0.7)
       multi_json (~> 1.0)
     open4 (1.3.0)
+    opentox-client (0.0.1pre)
+      bundler
+      open4
+      rdf
+      rdf-raptor
+      rest-client
+    opentox-server (0.0.1pre)
+      emk-sinatra-url-for
+      opentox-client
+      rack
+      rack-contrib
+      roo
+      sinatra
+      sinatra-contrib
+      unicorn
     rack (1.4.1)
     rack-contrib (1.1.0)
       rack (>= 0.9.1)
@@ -99,6 +97,5 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  opentox-client!
-  opentox-server!
   rack-test
+  toxbank-investigation!
