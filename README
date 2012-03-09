@@ -9,16 +9,6 @@ Installation:
 
 Development:
 
-  git clone git@github.com:ToxBank/toxbank-investigation.git 
-  cd toxbank-investigation
-  bundle install
-  ./bin/toxbank-investigation-install # if not already installed
-  git flow init 
-  git flow feature start <your feature>
-  # edit Gemfile, if you are working on opentox-server|client gems as well, eg
-    gem 'opentox-server', :path => "~/opentox-server"
-    gem "opentox-client", :path => "~/opentox-client"
-  # code, test, ...
-  git flow feature finish <your feature>
-  # test
+  see https://github.com/opentox/opentox-server
+  
  

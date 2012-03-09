@@ -1,18 +1,13 @@
 require 'test/unit'
+require 'bundler'
+Bundler.require
 require 'opentox-client'
-#require 'rack/test'
-#require File.join(File.dirname(__FILE__),"..","application.rb")
-
 
 #TODO: check 4store emtries/errors
 
+require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
 HOST = "http://localhost:8080"
-AA_SERVER = "https://opensso.in-silico.ch"
-TEST_USER = "guest"
-TEST_PW = "guest"
-#$logger = OTLogger.new(STDOUT)
 class UploadTest < Test::Unit::TestCase
-  #include Rack::Test::Methods
 
   def setup
     @tmpdir = File.join(File.dirname(__FILE__),"tmp")
@@ -29,8 +24,8 @@ class UploadTest < Test::Unit::TestCase
       "acetaminophen-plate3-data.txt",
       "ic50.txt",
     ]
-  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
-  @@subjectid = resource.post(:username=>TEST_USER, :password => TEST_PW).sub("token.id=","").sub("\n","")
+  resource = RestClient::Resource.new("#{AA}/auth/authenticate")
+  @@subjectid = resource.post(:username=>AA_USER, :password => AA_PASS).sub("token.id=","").sub("\n","")
   end
 
   def teardown
@@ -80,6 +75,8 @@ class UploadTest < Test::Unit::TestCase
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
+=begin
+=end
     end
   end
 
