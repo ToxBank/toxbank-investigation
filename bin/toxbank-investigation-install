@@ -1,0 +1,58 @@
+#!/bin/sh
+# Main ToxBank-investigation install script
+# Author: Christoph Helma, Andreas Maunz, Denis Gebele.
+
+TB_HOME=`dirname $0`/..
+
+echo
+echo "ToxBank-investigation installation."
+echo "You may have to run the script as root if the toxbank-invetigation gem has been installed as root (deprecated)"
+echo
+
+cd $TB_HOME
+mkdir -p investigation
+mkdir -p java
+mkdir -p public
+
+echo "Installing isa2rdf"
+cd java
+# TODO: check if jar exists
+wget https://github.com/downloads/ToxBank/isa2rdf/isa2rdf-0.0.1-SNAPSHOT.jar
+cd $TB_HOME
+
+echo "Initializing git"
+# TODO: check if git already initialized
+cd investigation
+git init
+echo "*/*.zip" > .gitignore
+echo "*/tmp" >> .gitignore
+git add .gitignore
+git commit -am ".gitignore added"
+cd $TB_HOME
+
+echo "Installing configuration files"
+servername="`hostname`"
+serverdomain="`dnsdomainname`"
+if [ -n "$serverdomain" ]; then
+  servername="$servername"."$serverdomain"
+fi
+escapedserver="`echo $servername | sed 's/\/\\\//'`"
+
+logger=""
+aa="https:\/\/opensso.in-silico.ch"
+
+mkdir -p "$HOME/.opentox/config" 
+mkdir -p "$HOME/.opentox/log" 
+mkdir -p "$HOME/.opentox/tmp" 
+
+#git checkout production.yaml      >>$LOG 2>&1
+#git checkout aa-$TB_INSTALL.yaml  >>$LOG 2>&1
+
+#cmd="sed -e \"s,SERVERNAME,$servername,;s,ESCAPEDSERVER,$escapedserver,;s,LOGGER,$logger,;s,AA,$aa,;s,WWW_DEST,$WWW_DEST,;s,NGINX_PORT,$NGINX_PORT,\" $DIR/production.yaml > $HOME/.toxbank/config/production.yaml" && run_cmd "$cmd" "Config 1"
+#cmd="sed -e \"s,SERVERNAME,$servername,;s,ESCAPEDSERVER,$escapedserver,;s,LOGGER,$logger,;s,AA,$aa,;s,WWW_DEST,$WWW_DEST,;s,NGINX_PORT,$NGINX_PORT,\" $DIR/aa-$TB_INSTALL.yaml >> $HOME/.toxbank/config/production.yaml" && run_cmd "$cmd" "Config 2"
+echo "Installation of configuration files not yet implemented. Please edit $HOME/.opentox/config/production.yaml by hand"
+
+echo
+echo "Installation finished and system configured."
+echo "Run 'unicorn -E production -D' to start the service. See 'unicorn -h' for more options"
+echo

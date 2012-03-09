@@ -1,11 +1,10 @@
-require 'rubygems'
 require File.join(File.dirname(__FILE__),"..","application.rb")
 require 'test/unit'
 require 'rack/test'
 
 #TODO: check 4store emtries/errors
 
-HOST = "http://localhost/"
+HOST = "http://localhost:8080"
 AA_SERVER = "https://opensso.in-silico.ch"
 TEST_USER = "guest"
 TEST_PW = "guest"
