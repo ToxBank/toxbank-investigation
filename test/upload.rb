@@ -1,6 +1,8 @@
-require File.join(File.dirname(__FILE__),"..","application.rb")
 require 'test/unit'
-require 'rack/test'
+require 'opentox-client'
+#require 'rack/test'
+#require File.join(File.dirname(__FILE__),"..","application.rb")
+
 
 #TODO: check 4store emtries/errors
 
@@ -8,9 +10,9 @@ HOST = "http://localhost:8080"
 AA_SERVER = "https://opensso.in-silico.ch"
 TEST_USER = "guest"
 TEST_PW = "guest"
-$logger = OTLogger.new(STDOUT)
+#$logger = OTLogger.new(STDOUT)
 class UploadTest < Test::Unit::TestCase
-  include Rack::Test::Methods
+  #include Rack::Test::Methods
 
   def setup
     @tmpdir = File.join(File.dirname(__FILE__),"tmp")

@@ -24,6 +24,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "opentox-service"
 
   # external requirements
-  s.requirements << ["git", "zip", "java", "curl", "wget"]
+  ["git", "zip", "java", "curl", "wget"].each{|r| s.requirements << r}
   s.post_install_message = "Run toxbank-investigation-install to set up your service"
 end

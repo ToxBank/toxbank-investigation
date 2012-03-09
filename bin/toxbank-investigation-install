@@ -2,57 +2,75 @@
 # Main ToxBank-investigation install script
 # Author: Christoph Helma, Andreas Maunz, Denis Gebele.
 
-TB_HOME=`dirname $0`/..
+ISA2RDF=isa2rdf-0.0.1-SNAPSHOT.jar
 
 echo
-echo "ToxBank-investigation installation."
+echo "This script will setup and configure the toxbank-investigation service."
 echo "You may have to run the script as root if the toxbank-invetigation gem has been installed as root (deprecated)"
 echo
 
+TB_HOME=`dirname $0`/..
 cd $TB_HOME
+TB_HOME=`pwd`
 mkdir -p investigation
 mkdir -p java
 mkdir -p public
 
-echo "Installing isa2rdf"
+
 cd java
-# TODO: check if jar exists
-wget https://github.com/downloads/ToxBank/isa2rdf/isa2rdf-0.0.1-SNAPSHOT.jar
+if [ ! -f $ISA2RDF ]
+then
+  echo "Installing isa2rdf"
+  wget -v "https://github.com/downloads/ToxBank/isa2rdf/$ISA2RDF"
+fi
 cd $TB_HOME
 
-echo "Initializing git"
-# TODO: check if git already initialized
 cd investigation
-git init
-echo "*/*.zip" > .gitignore
-echo "*/tmp" >> .gitignore
-git add .gitignore
-git commit -am ".gitignore added"
+if [ ! -d .git ]
+then
+  echo "Initializing git for investigations"
+  git init
+  echo "*/*.zip" > .gitignore
+  echo "*/tmp" >> .gitignore
+  git add .gitignore
+  git commit -am "Initial commit: .gitignore added"
+fi
 cd $TB_HOME
 
 echo "Installing configuration files"
-servername="`hostname`"
-serverdomain="`dnsdomainname`"
-if [ -n "$serverdomain" ]; then
-  servername="$servername"."$serverdomain"
-fi
-escapedserver="`echo $servername | sed 's/\/\\\//'`"
 
-logger=""
-aa="https:\/\/opensso.in-silico.ch"
-
-mkdir -p "$HOME/.opentox/config" 
+mkdir -p "$HOME/.opentox/config/toxbank-investigation" 
 mkdir -p "$HOME/.opentox/log" 
 mkdir -p "$HOME/.opentox/tmp" 
 
-#git checkout production.yaml      >>$LOG 2>&1
-#git checkout aa-$TB_INSTALL.yaml  >>$LOG 2>&1
+config="$HOME/.opentox/config/toxbank-investigation/production.rb" 
 
-#cmd="sed -e \"s,SERVERNAME,$servername,;s,ESCAPEDSERVER,$escapedserver,;s,LOGGER,$logger,;s,AA,$aa,;s,WWW_DEST,$WWW_DEST,;s,NGINX_PORT,$NGINX_PORT,\" $DIR/production.yaml > $HOME/.toxbank/config/production.yaml" && run_cmd "$cmd" "Config 1"
-#cmd="sed -e \"s,SERVERNAME,$servername,;s,ESCAPEDSERVER,$escapedserver,;s,LOGGER,$logger,;s,AA,$aa,;s,WWW_DEST,$WWW_DEST,;s,NGINX_PORT,$NGINX_PORT,\" $DIR/aa-$TB_INSTALL.yaml >> $HOME/.toxbank/config/production.yaml" && run_cmd "$cmd" "Config 2"
-echo "Installation of configuration files not yet implemented. Please edit $HOME/.opentox/config/production.yaml by hand"
+if [ -f $config ]
+then
+  echo "Configuration $config exists. Please check if the settings are correct."
+else
+  echo "Creating configuration"
+  echo "Please enter your 4store username:"
+  read user
+  echo "Please enter your 4store password:"
+  read pass
+
+  sed -e "s/\<USER\>/$user/;s/\<PASS\>/$pass/" config/production.rb > $config
+  echo "Configuration $config created. Please check if the settings are correct."
+fi
 
 echo
 echo "Installation finished and system configured."
-echo "Run 'unicorn -E production -D' to start the service. See 'unicorn -h' for more options"
+echo "Do you want to start the webserver? (y/n)"
+
+read answer
+if [ $answer = "y" ]
+then
+  last_ip=`ip addr show|grep -w inet|grep -v '127.0'|sed  's/ \+inet //'|cut -d '/' -f1|cut -d '.' -f4`
+  port=8`printf "%03d" $last_ip`
+  echo "Starting unicorn in production mode at port $port"
+  unicorn -p $port -E production -D 
+else
+  echo "Run 'unicorn -E production -D' to start the service. See 'unicorn -h' for more options"
+fi
 echo

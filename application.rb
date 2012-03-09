@@ -1,6 +1,5 @@
 require "opentox-server"
-# TODO: move to config files
-require File.join(ENV["HOME"],".opentox","config","userpass.rb")
+require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
 
 
 module OpenTox
@@ -79,9 +78,7 @@ module OpenTox
       end
 
       def isa2rdf
-        $logger.debug "cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}" # warnings go to stdout, isa2rdf exits always with 0 
         result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout, isa2rdf exits always with 0 
-        $logger.debug result
         if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}" 
           FileUtils.remove_entry tmp 
           FileUtils.remove_entry dir
@@ -94,39 +91,26 @@ module OpenTox
         `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
         ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
         `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
-        $logger.debug "git commit"
         # create new zipfile
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
-        $logger.debug "zip created"
+        # TODO: delete all RDF data for this investigation (partial updates and deletes)
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -u #{USER}:#{PASS} -T #{file} -H 'Content_Length => #{length}' 'http://4store.in-silico.ch/data/investigation#{n3}'`
-        #response['Content-Type'] = 'text/uri-list'
-        # TODO: remove RDF of existing investigations
-      #$logger.debug "4s-import -v ToxBank --model #{uri} #{File.join dir,n3}"
-        #`4s-import -v ToxBank --model #{uri} #{File.join dir,n3}`
-        $logger.debug "rdf imported"
+        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
-        $logger.debug "tmp removed"
       end
 
       def query
-        @base ="http://onto.toxbank.net/isa/TEST/"
-        @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
         params.each{|k, v| @query = CGI.unescape(v)}
         # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
-        @result = `curl -i -u #{USER}:#{PASS} -d "query=#{@query}" 'http://4store.in-silico.ch/sparql/'`
-        #@result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} #{@query}'`
+        @result = `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@query}" '#{FOUR_STORE}/sparql/'`
         @result.chomp    
       end
       
       def query_all
-        #@base ="http://onto.toxbank.net/isa/TEST/"
-        #@prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>PREFIX dc:<http://purl.org/dc/elements/1.1/>PREFIX owl: <http://www.w3.org/2002/07/owl#>PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>PREFIX dcterms: <http://purl.org/dc/terms/>"
-        #@result = `4s-query --soft-limit -1 ToxBank -f json -b '#{@base}' '#{@prefix} SELECT * WHERE {?s ?p ?o}'`
-        @result = `curl -i -u #{USER}:#{PASS} -d "query=SELECT * WHERE {?x ?p ?o}" 'http://4store.in-silico.ch/sparql/'`
+        @result = `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=SELECT * WHERE {?x ?p ?o}" '#{FOUR_STORE}/sparql/'`
         @result.chomp    
       end
     end
@@ -144,15 +128,15 @@ module OpenTox
     # @return [text/uri-list] List of investigations
     get '/?' do
       if params[:query] # "/?query=SELECT * WHERE {?s ?p ?o}"
-      # @param query SPARQL query
+        # @param query SPARQL query
         response['Content-type'] = "application/sparql-results+json"
         query
       elsif params[:query_all] # "/?query="
-      # Requests without a query string return a list of all sparql results (?s ?p ?o)
+        # Requests without a query string return a list of all sparql results (?s ?p ?o)
         response['Content-type'] = "application/sparql-results+json"
         query_all
       else
-      # Requests without a query parameter return a list of all investigations
+        # Requests without a query parameter return a list of all investigations
         response['Content-Type'] = 'text/uri-list'
         uri_list
       end
@@ -163,11 +147,10 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Investigation URI 
     post '/?' do
-      # TODO check free disc space + Limit 4store to 10% free disc space
       params[:id] = next_id
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create(CONFIG[:services]["opentox-task"], :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+      task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
@@ -182,7 +165,6 @@ module OpenTox
         uri
       end
       response['Content-Type'] = 'text/uri-list'
-      service_unavailable_error task.uri+"\n" if task.hasStatus == "Cancelled"
       halt 202,task.uri+"\n"
     end
 
@@ -191,9 +173,6 @@ module OpenTox
     # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
     get '/:id' do
       not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
-      # TODO: set actor, this does not work:
-      #actor = uri
-      #raise OpenTox::NotFoundError, "Investigation #{uri} does not exist.", actor  unless File.exist? dir # not called in before filter???
       case @accept
       when "text/tab-separated-values"
         send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
@@ -206,17 +185,23 @@ module OpenTox
       else
         #$logger.debug request.to_yaml
         #bad_request_error "Accept header #{@accept} not supported for #{uri}"
-        $logger.debug "Accept header #{@accept} not supported for #{uri}"
+        $logger.warn "Accept header #{@accept} not supported for #{uri}" # do not halt: strange requests from test, TODO: identify and fix
       end
     end
-
 
     # Add studies, assays or data to an investigation
     # @param [Header] Content-type: multipart/form-data
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     post '/:id' do
-      prepare_upload
-      isa2rdf
+      mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
+      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+      task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+        prepare_upload
+        isa2rdf
+        uri
+      end
+      response['Content-Type'] = 'text/uri-list'
+      halt 202,task.uri+"\n"
     end
 
     # Delete an investigation
@@ -225,8 +210,7 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      `curl -i -u #{USER}:#{PASS} -X DELETE 'http://4store.in-silico.ch/data/investigation#{n3}'`
-      #`4s-delete-model ToxBank #{uri}`
+      `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
       "investigation #{params[:id]} deleted"
     end
@@ -248,11 +232,14 @@ module OpenTox
 
     # Delete an individual study, assay or data file
     delete '/:id/:filename'  do
-      prepare_upload
-      File.delete File.join(tmp,params[:filename])
-      isa2rdf
-      response['Content-Type'] = 'text/plain'
-      "#{params[:filename]} deleted from investigation #{params[:id]}"
+      task = OpenTox::Task.create(TASK, :description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+        prepare_upload
+        File.delete File.join(tmp,params[:filename])
+        isa2rdf
+        "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
+      end
+      response['Content-Type'] = 'text/uri-list'
+      halt 202,task.uri+"\n"
     end
 
   end
