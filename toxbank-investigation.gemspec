@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 1.9.2'
 
   # specify any dependencies here; for example:
-  s.add_runtime_dependency "opentox-service"
+  s.add_runtime_dependency "opentox-server"
 
   # external requirements
   ["git", "zip", "java", "curl", "wget"].each{|r| s.requirements << r}
