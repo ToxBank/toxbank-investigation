@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.license     = 'GPL-3'
   s.platform    = Gem::Platform::CURRENT
 
-  s.rubyforge_project = "opentox-server"
+  s.rubyforge_project = "toxbank-investigation"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
