@@ -50,12 +50,12 @@ then
   echo "Configuration $config exists. Please check if the settings are correct."
 else
   echo "Creating configuration"
-  echo "Please enter your 4store username:"
+  echo -n "Please enter your 4store username: "
   read user
-  echo "Please enter your 4store password:"
+  echo -n "Please enter your 4store password: "
   read pass
 
-  sed -e "s/\<USER\>/$user/;s/\<PASS\>/$pass/" config/production.rb > $config
+  sed -e "s/ USER/ '$user'/;s/ PASS/ '$pass'/" config/production.rb > $config
   echo "Configuration $config created. Please check if the settings are correct."
 fi
 

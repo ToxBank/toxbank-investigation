@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.summary     = %q{Toxbank investigation service}
   s.description = %q{Toxbank investigation service}
   s.license     = 'GPL-3'
-  s.platform    = Gem::Platform::CURRENT
+  #s.platform    = Gem::Platform::CURRENT
 
   s.rubyforge_project = "toxbank-investigation"
 
