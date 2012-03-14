@@ -94,24 +94,37 @@ module OpenTox
         # create new zipfile
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
-        # TODO: delete all RDF data for this investigation (partial updates and deletes)
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/investigation#{n3}'`
+        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{GRAPH_NAME}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
       end
 
       def query
-        params.each{|k, v| @query = CGI.unescape(v)}
-        # use it like: "http://localhost/?query=SELECT * WHERE {?x ?p ?o}" in your browser
-        @result = `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@query}" '#{FOUR_STORE}/sparql/'`
-        @result.chomp    
+        # use it like: curl -H "Accept:application/sparql-results+xml" "http://localhost/?query=Select * =WHERE =?s?p?o =LIMIT 5"
+        @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX dc:<http://purl.org/dc/elements/1.1/>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX dcterms: <http://purl.org/dc/terms/>"
+        @query = Array[]
+        params.each{|k, v| @query = CGI.unescape(v).split('=')}
+        uri_list.each do |uri|
+            c = uri.split('/', 4).last   
+            @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@prefix} #{@query[0]} FROM <#{FOUR_STORE}/data/#{GRAPH_NAME}/investigation#{c.chomp}.n3> #{@query[1]} { #{@query[2]} } #{@query[3]}" '#{FOUR_STORE}/sparql/'`
+        end
+        result = @single 
       end
       
       def query_all
-        @result = `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=SELECT * WHERE {?x ?p ?o}" '#{FOUR_STORE}/sparql/'`
-        @result.chomp    
+        uri_list.each do |uri|
+          c = uri.split('/', 4).last
+          @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=SELECT * FROM <#{FOUR_STORE}/data/#{GRAPH_NAME}/investigation#{c.chomp}.n3> WHERE {?s ?p ?o } LIMIT 15000" '#{FOUR_STORE}/sparql/'`
+        end
+        result = @single   
       end
     end
 
@@ -210,7 +223,7 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/investigation#{n3}'`
+      `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{GRAPH_NAME}/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
       "investigation #{params[:id]} deleted"
     end
