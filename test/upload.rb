@@ -9,7 +9,7 @@ require 'uri'
 class UploadTest < Test::Unit::TestCase
 
   def setup
-    #@uri = `curl -X POST -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
+    #@uri = `curl -X POST -k -F file="@data/isa_TB_ACCUTOX.zip;type=application/zip" #{HOST}`.chomp
     @tmpdir = "./tmp"
     FileUtils.mkdir_p @tmpdir
     @isatab_files = [
@@ -31,7 +31,7 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def test_invalid_zip_upload
-    response = `curl -X POST -i -F file="@data/invalid/isa_TB_ACCUTOX.zip;type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
+    response = `curl -X POST -k -i -F file="@data/invalid/isa_TB_ACCUTOX.zip;type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
     assert_match /400 Bad Request/, response
   end
 
@@ -39,19 +39,19 @@ class UploadTest < Test::Unit::TestCase
 
     # upload
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
-      response = `curl -X POST -i -F file="@data/valid/#{f};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
+      response = `curl -X POST -k -i -F file="@data/valid/#{f};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
       assert_match /200/, response
       uri = response.split("\n").last
 
       # get zip file
-      `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{@tmpdir}/tmp.zip`
+      `curl -H "Accept:application/zip" -k -H "subjectid:#{@@subjectid}" #{uri} > #{@tmpdir}/tmp.zip`
       `unzip -o #{@tmpdir}/tmp.zip -d #{@tmpdir}`
       files = `unzip -l data/valid/#{f}|grep txt|cut -c 31- | sed 's#^.*/##'`.split("\n")
       files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
 
       # get isatab files
-      `curl -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`.split("\n").each do |u|
-        response = `curl -i -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
+      `curl -H "Accept:text/uri-list" -k -H "subjectid:#{@@subjectid}" #{uri}`.split("\n").each do |u|
+        response = `curl -i -k -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
         # fix UTF-8 encoding
         if String.method_defined?(:encode) # ruby 1.9
           assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
@@ -63,9 +63,9 @@ class UploadTest < Test::Unit::TestCase
       end
 
       # delete
-      response = `curl -i -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
+      response = `curl -i -k -X DELETE -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /200/, response
-      response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
+      response = `curl -i -k -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
     end
   end
