@@ -97,7 +97,7 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{GRAPH_NAME}/investigation#{n3}'`
+        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE_USER}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
       end
 
@@ -114,7 +114,7 @@ module OpenTox
         params.each{|k, v| @query = CGI.unescape(v).split('=')}
         uri_list.each do |uri|
             c = uri.split('/', 4).last   
-            @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@prefix} #{@query[0]} FROM <#{FOUR_STORE}/data/#{GRAPH_NAME}/investigation#{c.chomp}.n3> #{@query[1]} { #{@query[2]} } #{@query[3]}" '#{FOUR_STORE}/sparql/'`
+            @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@prefix} #{@query[0]} FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{c.chomp}.n3> #{@query[1]} { #{@query[2]} } #{@query[3]}" '#{FOUR_STORE}/sparql/'`
         end
         result = @single 
       end
@@ -122,7 +122,7 @@ module OpenTox
       def query_all
         uri_list.each do |uri|
           c = uri.split('/', 4).last
-          @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=SELECT * FROM <#{FOUR_STORE}/data/#{GRAPH_NAME}/investigation#{c.chomp}.n3> WHERE {?s ?p ?o } LIMIT 15000" '#{FOUR_STORE}/sparql/'`
+          @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=SELECT * FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{c.chomp}.n3> WHERE {?s ?p ?o } LIMIT 15000" '#{FOUR_STORE}/sparql/'`
         end
         result = @single   
       end
@@ -223,7 +223,7 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{GRAPH_NAME}/investigation#{n3}'`
+      `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
       "investigation #{params[:id]} deleted"
     end
