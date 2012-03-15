@@ -5,7 +5,7 @@ PATH
       opentox-server
 
 PATH
-  remote: ~/opentox/opentox-client
+  remote: ~/opentox-client
   specs:
     opentox-client (0.0.1pre)
       bundler
@@ -15,7 +15,7 @@ PATH
       rest-client
 
 PATH
-  remote: ~/opentox/opentox-server
+  remote: ~/opentox-server
   specs:
     opentox-server (0.0.1pre)
       emk-sinatra-url-for

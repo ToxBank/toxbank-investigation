@@ -163,7 +163,7 @@ module OpenTox
       params[:id] = next_id
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+      task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
