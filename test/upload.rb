@@ -33,6 +33,7 @@ class UploadTest < Test::Unit::TestCase
   end
 
 =begin
+=end
   def test_get_all
     response = `curl -i #{HOST}`
     assert_match /200/, response
@@ -42,7 +43,6 @@ class UploadTest < Test::Unit::TestCase
     response = `curl -H "Accept:text/uri-list" -i -H "subjectid:#{@@subjectid}" #{HOST}/foo`.chomp
     assert_match /404/, response
   end
-=end
 
   def test_valid_zip_upload
 
@@ -81,12 +81,9 @@ class UploadTest < Test::Unit::TestCase
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
-=begin
-=end
     end
   end
 
-=begin
   def test_invalid_zip_upload
     file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
     response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
@@ -97,6 +94,7 @@ class UploadTest < Test::Unit::TestCase
     assert_match t.hasStatus, "Error"
   end
 
+=begin
   def test_rest_client_wrapper
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
