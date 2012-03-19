@@ -1,17 +1,15 @@
-require "rubygems"
-#require "opentox-ruby"
-require "test/unit"
+require File.join(File.expand_path(File.dirname(__FILE__)),"setup.rb")
 
 TEST_URI  = "http://only_a_test/test/" + rand(1000000).to_s
-unless AA_SERVER #overwrite turned off A&A server for testing
-  AA_SERVER = "https://opensso.in-silico.ch"
-  @@subjectid = OpenTox::Authorization.authenticate(TEST_USER,TEST_PW)
+unless defined? AA #overwrite turned off A&A server for testing
+  AA = "https://opensso.in-silico.ch"
+  @@subjectid = OpenTox::Authorization.authenticate(AA_USER,AA_PASS)
 end
 
 class TestOpenToxAuthorizationBasic < Test::Unit::TestCase
  
   def test_01_server
-    @aaserver = AA_SERVER
+    @aaserver = AA
     assert_equal(@aaserver, OpenTox::Authorization.server)
   end
  
@@ -44,11 +42,11 @@ class TestOpenToxAuthorizationLDAP < Test::Unit::TestCase
   end  
 
   def test_02_list_user_groups
-    assert_kind_of Array, OpenTox::Authorization.list_user_groups(TEST_USER, @@subjectid)
+    assert_kind_of Array, OpenTox::Authorization.list_user_groups(AA_USER, @@subjectid)
   end
   
   def test_03_get_user
-    assert_equal TEST_USER, OpenTox::Authorization.get_user(@@subjectid)
+    assert_equal AA_USER, OpenTox::Authorization.get_user(@@subjectid)
   end
 
 end
@@ -76,7 +74,7 @@ class TestOpenToxAuthorizationLDAP < Test::Unit::TestCase
     owner_rights = {"GET" => true, "POST" => true, "PUT" => true, "DELETE" => true}
     groupmember_rights = {"GET" => true, "POST" => nil, "PUT" => nil, "DELETE" => nil}
     owner_rights.each do |request, right|
-      assert_equal right, OpenTox::Authorization.authorize(TEST_URI, request, @@subjectid), "#{TEST_USER} requests #{request} to #{TEST_URI}"
+      assert_equal right, OpenTox::Authorization.authorize(TEST_URI, request, @@subjectid), "#{AA_USER} requests #{request} to #{TEST_URI}"
     end
     groupmember_rights.each do |request, r|
       assert_equal r, OpenTox::Authorization.authorize(TEST_URI, request, tok_anonymous), "anonymous requests #{request} to #{TEST_URI}"
@@ -108,5 +106,5 @@ def logout (token)
 end
 
 def login
-  OpenTox::Authorization.authenticate(TEST_USER,TEST_PW)
+  OpenTox::Authorization.authenticate(AA_USER,AA_PASS)
 end 

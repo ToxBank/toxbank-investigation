@@ -1,12 +1,7 @@
-require 'test/unit'
-require 'bundler'
-Bundler.require
-require 'opentox-client'
+require File.join(File.expand_path(File.dirname(__FILE__)),"setup.rb")
 
-#TODO: check 4store emtries/errors
+#TODO: check 4store entries/errors
 
-require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
-HOST = "http://localhost:8080"
 class UploadTest < Test::Unit::TestCase
 
   def setup
@@ -24,8 +19,6 @@ class UploadTest < Test::Unit::TestCase
       "acetaminophen-plate3-data.txt",
       "ic50.txt",
     ]
-  resource = RestClient::Resource.new("#{AA}/auth/authenticate")
-  @@subjectid = resource.post(:username=>AA_USER, :password => AA_PASS).sub("token.id=","").sub("\n","")
   end
 
   def teardown
@@ -57,6 +50,7 @@ class UploadTest < Test::Unit::TestCase
       assert t.completed?
       assert_match t.hasStatus, "Completed"
       uri = t.resultURI
+      #`curl "#{uri}/metadata"`
       zip = File.join @tmpdir,"tmp.zip"
       #puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
@@ -77,6 +71,8 @@ class UploadTest < Test::Unit::TestCase
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
+=begin
+=end
     end
   end
 
