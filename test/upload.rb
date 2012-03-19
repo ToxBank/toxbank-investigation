@@ -32,8 +32,6 @@ class UploadTest < Test::Unit::TestCase
     FileUtils.remove_entry_secure @tmpdir
   end
 
-=begin
-=end
   def test_get_all
     response = `curl -i #{HOST}`
     assert_match /200/, response
@@ -45,7 +43,6 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def test_valid_zip_upload
-
     # upload
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
       file = File.join File.dirname(__FILE__), "data/valid", f
@@ -56,10 +53,8 @@ class UploadTest < Test::Unit::TestCase
       assert t.running?
       assert_match t.hasStatus, "Running"
       t.wait
-      puts t.uri
       assert t.completed?
       assert_match t.hasStatus, "Completed"
-      puts t.hasStatus
       uri = t.resultURI
       zip = File.join @tmpdir,"tmp.zip"
       #puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
@@ -92,6 +87,7 @@ class UploadTest < Test::Unit::TestCase
     t = OpenTox::Task.new(uri)
     t.wait
     assert_match t.hasStatus, "Error"
+    # TODO: check error message
   end
 
 =begin

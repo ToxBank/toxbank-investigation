@@ -78,11 +78,12 @@ module OpenTox
       end
 
       def isa2rdf
-        result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` # warnings go to stdout, isa2rdf exits always with 0 
-        if result =~ /Invalid ISA-TAB/ or !File.exists? "#{File.join tmp,n3}" 
+        begin # isa2rdf returns correct exit code
+          result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` 
+        rescue
           FileUtils.remove_entry tmp 
           FileUtils.remove_entry dir
-          bad_request_error "ISA-TAB validation failed:\n"+result
+          bad_request_error "ISA-TAB validation failed:\n#{$!.message}"
         end
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
