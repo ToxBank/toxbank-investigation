@@ -24,6 +24,10 @@ Development:
 
   bundle install
   bin/toxbank-investigation-install
+  # Do you want to start the webserver? (y/n)
+  # Answer "n" 
+  unicorn # starts server in development mode at port 8080
+  # unicorn -h: more options
 
   see also https://github.com/opentox/opentox-server
   

@@ -1,6 +1,6 @@
 require "opentox-server"
 require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
-
+# TODO: return RDFXML or N3, not json
 
 module OpenTox
   class Application < Service
@@ -38,6 +38,7 @@ module OpenTox
       end
 
       def prepare_upload
+        # TODO remove stale directories from failed tests
         # lock tmp dir
         locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
         bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
@@ -81,10 +82,13 @@ module OpenTox
         begin # isa2rdf returns correct exit code
           result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` 
         rescue
-          FileUtils.remove_entry tmp 
           FileUtils.remove_entry dir
-          bad_request_error "ISA-TAB validation failed:\n#{$!.message}"
+          # TODO return correct error message from task
+          bad_request_error "ISA-TAB validation failed:\n#{$!.message}", uri
         end
+        # rewrite investigation URI in n3 files
+        investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
+        `sed -i 's;#{investigation_id};<#{uri}>;g' #{File.join tmp,n3}`
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         # git commit
@@ -100,6 +104,7 @@ module OpenTox
         file = File.join(dir,n3)
         `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE_USER}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
+        uri
       end
 
       def query
@@ -176,7 +181,6 @@ module OpenTox
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
-        uri
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
@@ -203,6 +207,13 @@ module OpenTox
       end
     end
 
+=begin
+    get '/:id/metadata' do
+      params[:query] = "SELECT * WHERE {?<#{uri}> ?p ?o}"
+      query
+    end
+=end
+
     # Add studies, assays or data to an investigation
     # @param [Header] Content-type: multipart/form-data
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
@@ -212,7 +223,6 @@ module OpenTox
       task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
         prepare_upload
         isa2rdf
-        uri
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
