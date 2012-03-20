@@ -13,7 +13,10 @@ module OpenTox
 
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-        Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''),:full) if f.match(/\.txt$/) or f.match(/\d$/) }.compact.sort.join("\n") + "\n"
+        uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full) }
+        params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
+        uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
+        uris.compact.sort.join("\n") + "\n"
       end
 
       def dir
@@ -38,7 +41,7 @@ module OpenTox
       end
 
       def prepare_upload
-        # TODO remove stale directories from failed tests
+        # remove stale directories from failed tests
         stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
         `cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
         # lock tmp dir
@@ -88,9 +91,11 @@ module OpenTox
           # TODO return correct error message from task
           bad_request_error "ISA-TAB validation failed:\n#{$!.message}", uri
         end
-        # rewrite investigation URI in n3 files
+        # rewrite default prefix
+        `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{uri}/;' #{File.join tmp,n3}`
+        # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
-        `sed -i 's;#{investigation_id};<#{uri}>;g' #{File.join tmp,n3}`
+        `echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         # git commit
@@ -109,7 +114,11 @@ module OpenTox
         uri
       end
 
-      def query
+      def query sparql
+        call = "curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'"
+        puts call
+        `#{call}`
+=begin
         # use it like: curl -H "Accept:application/sparql-results+xml" "http://localhost/?query=Select * =WHERE =?s?p?o =LIMIT 5"
         @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -125,6 +134,7 @@ module OpenTox
             @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@prefix} #{@query[0]} FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{c.chomp}.n3> #{@query[1]} { #{@query[2]} } #{@query[3]}" '#{FOUR_STORE}/sparql/'`
         end
         result = @single 
+=end
       end
       
       def query_all
@@ -158,8 +168,25 @@ module OpenTox
         query_all
       else
         # Requests without a query parameter return a list of all investigations
-        response['Content-Type'] = 'text/uri-list'
-        uri_list
+        case @accept
+        when 'text/uri-list'
+          response['Content-Type'] = 'text/uri-list'
+          uri_list
+        else
+          response['Content-Type'] = 'application/rdf+xml'
+          response['Content-Type'] = @accept if @accept == 'text/turtle'
+          q = "
+            PREFIX isa: <http://onto.toxbank.net/isa/>
+            CONSTRUCT { ?s ?p ?o . }
+            WHERE {
+              ?s a isa:Investigation ;
+                ?p ?o .
+              }
+          "
+          call = "curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{q}' '#{FOUR_STORE}/sparql/'"
+          result = `#{call}`
+          result
+        end
       end
     end
 
@@ -210,8 +237,35 @@ module OpenTox
     end
 
     get '/:id/metadata' do
-      params[:query] = "SELECT * WHERE {?<#{uri}> ?p ?o}"
-      query
+      query "
+        PREFIX : <#{uri}/>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        CONSTRUCT { ?s ?p ?o.  }
+        WHERE {
+          : owl:sameAs ?s .
+          ?s ?p ?o .
+        }
+      "
+    end
+
+    # Get a study, assay, data representation
+    # @param [Header] one of text/tab-separated-values, application/sparql-results+json
+    # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
+    get '/:id/isatab/:filename'  do
+      not_found_error "File #{File.join uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
+      # TODO: returns text/plain content type
+      send_file file, :type => File.new(file).mime_type
+    end
+
+    get '/:id/:resource' do
+      query "
+        PREFIX : <#{uri}/>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        CONSTRUCT { :#{params[:resource]} ?p ?o.  }
+        WHERE {
+          :#{params[:resource]} ?p ?o .
+        }
+      "
     end
 
     # Add studies, assays or data to an investigation
@@ -237,21 +291,6 @@ module OpenTox
       `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
       "investigation #{params[:id]} deleted"
-    end
-
-    # Get a study, assay, data representation
-    # @param [Header] one of text/tab-separated-values, application/sparql-results+json
-    # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
-    get '/:id/:filename'  do
-      case @accept
-      when "text/tab-separated-values"
-        send_file file, :type => @accept
-      when "application/sparql-results+json"
-        # TODO: return all data in rdf
-        not_implemented_error "SPARQL query not yet implemented"
-      else
-        bad_request_error "Accept header #{@accept} not supported"
-      end
     end
 
     # Delete an individual study, assay or data file
