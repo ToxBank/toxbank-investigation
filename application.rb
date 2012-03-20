@@ -121,7 +121,6 @@ module OpenTox
         else
           response['Content-type'] = "application/sparql-results+xml"
         end
-        puts sparql
         `curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
       end
       
@@ -139,10 +138,7 @@ module OpenTox
     # @return [application/sparql-results+json] Query result
     # @return [text/uri-list] List of investigations
     get '/?' do
-      puts "GET"
       if params[:query] # pass SPARQL query to 4store
-        puts "SPARQL"
-        puts params[:query]
         query params[:query]
       elsif params[:query_all] # "/?query="
         # Requests without a query string return a list of all sparql results (?s ?p ?o)
