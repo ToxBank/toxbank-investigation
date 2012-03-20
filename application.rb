@@ -1,6 +1,5 @@
 require "opentox-server"
 require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
-# TODO: return RDFXML or N3, not json
 
 module OpenTox
   class Application < Service
@@ -115,35 +114,17 @@ module OpenTox
       end
 
       def query sparql
-        call = "curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'"
-        puts call
-        `#{call}`
-=begin
-        # use it like: curl -H "Accept:application/sparql-results+xml" "http://localhost/?query=Select * =WHERE =?s?p?o =LIMIT 5"
-        @prefix ="PREFIX isa: <http://onto.toxbank.net/isa/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX dc:<http://purl.org/dc/elements/1.1/>
-        PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX dcterms: <http://purl.org/dc/terms/>"
-        @query = Array[]
-        params.each{|k, v| @query = CGI.unescape(v).split('=')}
-        uri_list.each do |uri|
-            c = uri.split('/', 4).last   
-            @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=#{@prefix} #{@query[0]} FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{c.chomp}.n3> #{@query[1]} { #{@query[2]} } #{@query[3]}" '#{FOUR_STORE}/sparql/'`
+        if @accept.match(/turtle/) and sparql.match(/CONSTRUCT/)
+          response['Content-type'] = @accept
+        elsif sparql.match(/CONSTRUCT/)
+          response['Content-type'] = 'application/rdf+xml'
+        else
+          response['Content-type'] = "application/sparql-results+xml"
         end
-        result = @single 
-=end
+        puts sparql
+        `curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
       end
       
-      def query_all
-        uri_list.each do |uri|
-          c = uri.split('/', 4).last
-          @single = `curl -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d "query=SELECT * FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{c.chomp}.n3> WHERE {?s ?p ?o } LIMIT 15000" '#{FOUR_STORE}/sparql/'`
-        end
-        result = @single   
-      end
     end
 
     before do
@@ -158,10 +139,11 @@ module OpenTox
     # @return [application/sparql-results+json] Query result
     # @return [text/uri-list] List of investigations
     get '/?' do
-      if params[:query] # "/?query=SELECT * WHERE {?s ?p ?o}"
-        # @param query SPARQL query
-        response['Content-type'] = "application/sparql-results+json"
-        query
+      puts "GET"
+      if params[:query] # pass SPARQL query to 4store
+        puts "SPARQL"
+        puts params[:query]
+        query params[:query]
       elsif params[:query_all] # "/?query="
         # Requests without a query string return a list of all sparql results (?s ?p ?o)
         response['Content-type'] = "application/sparql-results+json"
@@ -175,7 +157,7 @@ module OpenTox
         else
           response['Content-Type'] = 'application/rdf+xml'
           response['Content-Type'] = @accept if @accept == 'text/turtle'
-          q = "
+          query "
             PREFIX isa: <http://onto.toxbank.net/isa/>
             CONSTRUCT { ?s ?p ?o . }
             WHERE {
@@ -183,9 +165,6 @@ module OpenTox
                 ?p ?o .
               }
           "
-          call = "curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{q}' '#{FOUR_STORE}/sparql/'"
-          result = `#{call}`
-          result
         end
       end
     end
@@ -227,8 +206,9 @@ module OpenTox
         uri_list
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
-      when "application/sparql-results+json"
-        query_all
+      when "application/rdf+xml"
+        # TODO: returns always empty results, works without FROM clause
+        query "CONSTRUCT { ?s ?p ?o } FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}> WHERE {?s ?p ?o } LIMIT 15000"
       else
         #$logger.debug request.to_yaml
         #bad_request_error "Accept header #{@accept} not supported for #{uri}"
@@ -236,6 +216,7 @@ module OpenTox
       end
     end
 
+    # Get investigation metadata in RDF
     get '/:id/metadata' do
       query "
         PREFIX : <#{uri}/>
@@ -253,10 +234,11 @@ module OpenTox
     # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
     get '/:id/isatab/:filename'  do
       not_found_error "File #{File.join uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
-      # TODO: returns text/plain content type
+      # TODO: returns text/plain content type for tab separated files
       send_file file, :type => File.new(file).mime_type
     end
 
+    # Get RDF for an investigation resource
     get '/:id/:resource' do
       query "
         PREFIX : <#{uri}/>
@@ -290,7 +272,7 @@ module OpenTox
       # updata RDF
       `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
-      "investigation #{params[:id]} deleted"
+      "Investigation #{params[:id]} deleted"
     end
 
     # Delete an individual study, assay or data file
