@@ -2,7 +2,7 @@ require "bundler/gem_tasks"
 require 'bundler'
 Bundler.require
 Bundler.setup
-
+require "opentox-server"
 # TODO: pass constants to test files
 require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
 # TODO: autostart unicorn??
@@ -23,7 +23,8 @@ end
 Rake::TestTask.new do |t|
   t.libs << 'test'
   #t.test_files = FileList['test/upload.rb']
-  t.test_files = FileList['test/*.rb']
+  #t.test_files = FileList['test/upload.rb']
+  t.test_files = FileList['test/basic_rest.rb']
   t.verbose = true
 end
 
