@@ -4,13 +4,13 @@ class BasicTest < Test::Unit::TestCase
 
   # check response from service
   def test_01_get_investigations_200
-    response = RestClient.get HOST,:subjectid => @@subjectid
+    response = OpenTox::RestClientWrapper.get HOST, {}, :subjectid => @@subjectid
     assert_equal 200, response.code
   end
 
   # check if default response header is text/uri-list
   def test_02_get_investigations_type
-    response = RestClient.get HOST, { :subjectid => @@subjectid }
+    response = OpenTox::RestClientWrapper.get HOST, {}, { :accept => 'text/uri-list', :subjectid => @@subjectid }
     assert_equal "text/uri-list", response.headers[:content_type]
   end
 
@@ -29,58 +29,60 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
 
   # check post to investigation service with wrong content type
   def test_01_post_investigation_400
-    uri = URI(File.join(HOST, 'investigation'))
-    req = Net::HTTP::Post.new("#{uri.path}?subjectid=#{CGI.escape(@@subjectid)}")
-    req.content_type = "text/dummy"
-    res = Net::HTTP.start(uri.host, uri.port) do |http|
-      http.request(req)
+    uri = File.join(HOST, 'investigation')
+    assert_raise OpenTox::NotFoundError do
+      OpenTox::RestClientWrapper.post uri, {}, { :accept => 'text/dummy', :subjectid => @@subjectid }
     end
-    assert_equal 400, res.code.to_i
   end
 
   # create an investigation by uploading a zip file
   def test_02_post_investigation
     @@uri = ""
-    result = `curl -X POST #{HOST} -H "Content-Type: multipart/form-data" -F "file=@data/valid/BII-I-1.zip;type=application/zip" -H "subjectid:#{@@subjectid}"`
-    puts result
-    @@uri = URI(result)
+    task_uri = `curl -X POST #{HOST} -H "Content-Type: multipart/form-data" -F "file=@data/valid/BII-I-1.zip;type=application/zip" -H "subjectid:#{@@subjectid}"`
+
+    task = OpenTox::Task.new task_uri
+    task.wait
+    uri = task.resultURI
+    @@uri = URI(uri)
     assert @@uri.host == URI(HOST).host
   end
 
   # get investigation/{id} as text/uri-list
   def test_03_get_investigation_uri_list
-    result = RestClient.get @@uri.to_s, {:Accept => "text/uri-list", :subjectid => @@subjectid}
+    result = OpenTox::RestClientWrapper.get @@uri.to_s, {}, {:accept => "text/uri-list", :subjectid => @@subjectid}
     assert_equal "text/uri-list", result.headers[:content_type]
   end
 
   # get investigation/{id} as application/zip
   def test_04_get_investigation_zip
-    result = RestClient.get @@uri.to_s, {:Accept => "application/zip", :subjectid => @@subjectid}
+    result = OpenTox::RestClientWrapper.get @@uri.to_s, {}, {:accept => "application/zip", :subjectid => @@subjectid}
     assert_equal "application/zip", result.headers[:content_type]
   end
 
   # get investigation/{id} as text/tab-separated-values
   def test_05_get_investigation_tab
-    result = RestClient.get @@uri.to_s, {:Accept => "text/tab-separated-values", :subjectid => @@subjectid}
+    result = OpenTox::RestClientWrapper.get @@uri.to_s, {}, {:accept => "text/tab-separated-values", :subjectid => @@subjectid}
     assert_equal "text/tab-separated-values;charset=utf-8", result.headers[:content_type]
   end
 
   # get investigation/{id} as application/sparql-results+json
   def test_06_get_investigation_sparql
-    result = RestClient.get @@uri.to_s, {:Accept => "application/sparql-results+json", :subjectid => @@subjectid}
-    assert_equal "application/sparql-results+json", result.headers[:content_type]
+    result = OpenTox::RestClientWrapper.get @@uri.to_s, {}, {:accept => "application/rdf+xml", :subjectid => @@subjectid}
+    assert_equal "application/rdf+xml", result.headers[:content_type]
   end
 
   # check if uri is in uri-list
   def test_98_get_investigation
-    response = RestClient.get HOST, :subjectid => @@subjectid
+    response = OpenTox::RestClientWrapper.get HOST, {}, :subjectid => @@subjectid
     assert response.index(@@uri.to_s) != nil, "URI: #{@@uri} is not in uri-list"
   end
 
   # delete investigation/{id}
   def test_99_delete_investigation
-    result = RestClient.delete @@uri.to_s, :subjectid => @@subjectid
-    assert result.match(/^investigation.[0-9]*.deleted$/)
+    result = OpenTox::RestClientWrapper.delete @@uri.to_s, {}, :subjectid => @@subjectid
+    assert_raise OpenTox::NotFoundError do
+      OpenTox::RestClientWrapper.get @@uri.to_s, {}, {:accept => "text/uri-list", :subjectid => @@subjectid}
+    end
   end
 
 end

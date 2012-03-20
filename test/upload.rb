@@ -25,17 +25,17 @@ class UploadTest < Test::Unit::TestCase
     FileUtils.remove_entry_secure @tmpdir
   end
 
-  def test_get_all
+  def test_01_get_all
     response = `curl -i #{HOST}`
     assert_match /200/, response
   end
 
-  def test_get_inexisting
+  def test_02_get_inexisting
     response = `curl -H "Accept:text/uri-list" -i -H "subjectid:#{@@subjectid}" #{HOST}/foo`.chomp
     assert_match /404/, response
   end
 
-  def test_valid_zip_upload
+  def test_03_valid_zip_upload
     # upload
     #["isa-tab-renamed.zip"].each do |f|
     ["BII-I-1.zip","isa-tab-renamed.zip"].each do |f|
@@ -51,6 +51,8 @@ class UploadTest < Test::Unit::TestCase
       assert_match t.hasStatus, "Completed"
       uri = t.resultURI
       #`curl "#{uri}/metadata"`
+      metadata = `curl "subjectid:#{@@subjectid}" #{uri}/metadata`
+      assert_match /#{uri}/, metadata
       zip = File.join @tmpdir,"tmp.zip"
       #puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
@@ -60,7 +62,7 @@ class UploadTest < Test::Unit::TestCase
 
       # get isatab files
       `curl -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`.split("\n").each do |u|
-        unless u.match(/n3$/)
+        unless u.match(/[n3|zip]$/)
           response = `curl -i -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
           assert_match /HTTP\/1.1 200 OK/, response.to_s.encode!('UTF-8', 'UTF-8', :invalid => :replace) 
         end
@@ -71,8 +73,6 @@ class UploadTest < Test::Unit::TestCase
       assert_match /200/, response
       response = `curl -i -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`
       assert_match /404/, response
-=begin
-=end
     end
   end
 
