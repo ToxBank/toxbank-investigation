@@ -53,9 +53,10 @@ class UploadTest < Test::Unit::TestCase
 
     # get isatab files
     `curl -H "Accept:text/uri-list" -H "subjectid:#{@@subjectid}" #{uri}`.split("\n").each do |u|
-      puts u
-      response = `curl -i -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
-      assert_match /200/, response
+      if u.match(/txt$/)
+        response = `curl -i -H Accept:text/tab-separated-values -H "subjectid:#{@@subjectid}" #{u}`
+        assert_match /200/, response
+      end
     end
 
     # delete
