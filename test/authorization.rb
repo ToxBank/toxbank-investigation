@@ -1,17 +1,9 @@
-require 'test/unit'
-require 'bundler'
-Bundler.require
-require 'opentox-server'
-
-#TODO: check 4store emtries/errors
-
-require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
-HOST = "http://localhost:8080"
+require File.join(File.expand_path(File.dirname(__FILE__)),"setup.rb")
 
 TEST_URI  = "http://only_a_test/test/" + rand(1000000).to_s
-
-unless AA_SERVER #overwrite turned off A&A server for testing
-  AA_SERVER = "https://opensso.in-silico.ch"
+unless defined? AA #overwrite turned off A&A server for testing
+  AA = "https://opensso.in-silico.ch"
+  @@subjectid = OpenTox::Authorization.authenticate(AA_USER,AA_PASS)
 end
 
 @@subjectid ||= OpenTox::Authorization.authenticate(AA_USER,AA_PASS) 
@@ -19,7 +11,7 @@ end
 class TestOpenToxAuthorizationBasic < Test::Unit::TestCase
  
   def test_01_server
-    @aaserver = AA_SERVER
+    @aaserver = AA
     assert_equal(@aaserver, OpenTox::Authorization.server)
   end
  

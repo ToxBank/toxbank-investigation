@@ -1,9 +1,4 @@
-require 'rubygems'
-require 'fileutils'
-require 'test/unit'
-require 'uri'
-
-#HOST="http://localhost/"
+require File.join(File.expand_path(File.dirname(__FILE__)),"setup.rb")
 
 class QueryTest < Test::Unit::TestCase
 

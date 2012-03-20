@@ -39,6 +39,8 @@ module OpenTox
 
       def prepare_upload
         # TODO remove stale directories from failed tests
+        stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
+        `cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
         # lock tmp dir
         locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
         bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
@@ -207,12 +209,10 @@ module OpenTox
       end
     end
 
-=begin
     get '/:id/metadata' do
       params[:query] = "SELECT * WHERE {?<#{uri}> ?p ?o}"
       query
     end
-=end
 
     # Add studies, assays or data to an investigation
     # @param [Header] Content-type: multipart/form-data
