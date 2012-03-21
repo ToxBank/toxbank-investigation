@@ -6,10 +6,8 @@ require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","produ
 
 HOST = "http://localhost:8080"
 if defined? AA_SERVER
-  # TODO: move to RestClientWrapper
-  resource = RestClient::Resource.new("#{AA_SERVER}/auth/authenticate")
-  @@subjectid = resource.post(:username=>AA_USER, :password => AA_PASS).sub("token.id=","").sub("\n","")
+  @@subjectid = OpenTox::Authorization.authenticate(AA_USER, AA_PASS)
 else
   @@subjectid = ""
 end
-
+puts "setup: subjectid: #{@@subjectid}"
