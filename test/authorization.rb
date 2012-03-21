@@ -27,8 +27,9 @@ class TestOpenToxAuthorizationBasic < Test::Unit::TestCase
   end
   
   def test_04_logout
-    tok = login  
-    assert logout(tok) 
+    tok = login 
+    assert logout(tok)
+    assert_equal false, OpenTox::Authorization.is_token_valid(tok)
   end
   
   def test_05_list_policies
@@ -39,15 +40,11 @@ end
 
 class TestOpenToxAuthorizationLDAP < Test::Unit::TestCase
 
-  def test_01_list_groups
-    assert_kind_of Array, OpenTox::Authorization.list_groups(@@subjectid)
-  end  
-
-  def test_02_list_user_groups
+  def test_01_list_user_groups
     assert_kind_of Array, OpenTox::Authorization.list_user_groups(AA_USER, @@subjectid)
   end
   
-  def test_03_get_user
+  def test_02_get_user
     assert_equal AA_USER, OpenTox::Authorization.get_user(@@subjectid)
   end
 
