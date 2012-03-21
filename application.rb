@@ -108,7 +108,7 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE_USER}/investigation#{n3}'`
+        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         uri
       end
@@ -199,7 +199,6 @@ module OpenTox
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       when "application/rdf+xml"
-        # TODO: returns always empty results, works without FROM clause
         query "CONSTRUCT { ?s ?p ?o } FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}> WHERE {?s ?p ?o } LIMIT 15000"
       else
         #$logger.debug request.to_yaml

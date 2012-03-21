@@ -11,11 +11,13 @@ class UploadTest < Test::Unit::TestCase
   def test_01_basic_response
     response = `curl -i --user #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} '#{FOUR_STORE}/status/'`.chomp
     assert_match /200/, response
+    response = `curl -i -u guest:guest '#{FOUR_STORE}/status/'`.chomp
+    assert_match /401/, response
   end
   
   def test_02_add_data
     # upload invalid data
-    response = `curl -0 -i -u guest:toxbank -T '#{File.join File.dirname(__FILE__),"data/invalid/BII-invalid.n3"}' '#{FOUR_STORE}/data/BII-I-1.n3'`.chomp
+    response = `curl -0 -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T '#{File.join File.dirname(__FILE__),"data/invalid/BII-invalid.n3"}' '#{FOUR_STORE}/data/BII-I-1.n3'`.chomp
     assert_match /400/, response
     # upload valid data
     response = `curl -0 -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T '#{File.join File.dirname(__FILE__),"data/valid/BII-I-1.n3"}' '#{FOUR_STORE}/data/BII-I-1.n3'`.chomp
