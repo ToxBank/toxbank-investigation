@@ -140,10 +140,6 @@ module OpenTox
     get '/?' do
       if params[:query] # pass SPARQL query to 4store
         query params[:query]
-      elsif params[:query_all] # "/?query="
-        # Requests without a query string return a list of all sparql results (?s ?p ?o)
-        response['Content-type'] = "application/sparql-results+json"
-        query_all
       else
         # Requests without a query parameter return a list of all investigations
         case @accept
