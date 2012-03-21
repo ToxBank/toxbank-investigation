@@ -5,6 +5,7 @@ require 'opentox-client'
 require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
 
 HOST = "http://localhost:8080"
+=begin
 if defined? AA
   # TODO: move to RestClientWrapper
   resource = RestClient::Resource.new("#{AA}/auth/authenticate")
@@ -12,4 +13,5 @@ if defined? AA
 else
   @@subjectid = ""
 end
-
+=end
+@@subjectid = ""

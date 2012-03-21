@@ -6,23 +6,8 @@ class UploadTest < Test::Unit::TestCase
 
   def setup
     @tmpdir = File.join(File.dirname(__FILE__),"tmp")
-    @tmpdir = "./tmp"
     FileUtils.mkdir_p @tmpdir
-    @isatab_files = [
-      "i_Investigation.txt",
-      "s_TB-ACCUTOX-acetaminophen.txt",
-      "a_TB-ACCUTOX-plate1.txt",
-      "a_TB-ACCUTOX-plate2.txt",
-      "a_TB-ACCUTOX-plate3.txt",
-      "acetaminophen-plate1-data.txt",
-      "acetaminophen-plate2-data.txt",
-      "acetaminophen-plate3-data.txt",
-      "ic50.txt",
-    ]
-  end
-
-  def teardown
-    FileUtils.remove_entry_secure @tmpdir
+    FileUtils.rm_r Dir[File.join @tmpdir, '*']
   end
 
   def test_01_get_all
@@ -57,7 +42,7 @@ class UploadTest < Test::Unit::TestCase
       #puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
       `curl -H "Accept:application/zip" -H "subjectid:#{@@subjectid}" #{uri} > #{zip}`
       `unzip -o #{zip} -d #{@tmpdir}`
-      files = `unzip -l data/valid/#{f}|grep txt|cut -c 31- | sed 's#^.*/##'`.split("\n")
+      files = `unzip -l #{File.join File.dirname(__FILE__),"data/valid",f}|grep txt|cut -c 31- | sed 's#^.*/##'`.split("\n")
       files.each{|f| assert_equal true, File.exists?(File.join(File.expand_path(@tmpdir),f)) }
 
       # get isatab files

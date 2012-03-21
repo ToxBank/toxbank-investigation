@@ -38,7 +38,9 @@ class BasicTestCRUDInvestigation < Test::Unit::TestCase
   # create an investigation by uploading a zip file
   def test_02_post_investigation
     @@uri = ""
-    task_uri = `curl -X POST #{HOST} -H "Content-Type: multipart/form-data" -F "file=@data/valid/BII-I-1.zip;type=application/zip" -H "subjectid:#{@@subjectid}"`
+    file = File.join File.dirname(__FILE__), "data/valid", "BII-I-1.zip"
+
+    task_uri = `curl -X POST #{HOST} -H "Content-Type: multipart/form-data" -F "file=@#{file};type=application/zip" -H "subjectid:#{@@subjectid}"`
 
     task = OpenTox::Task.new task_uri
     task.wait
