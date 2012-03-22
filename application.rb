@@ -84,11 +84,11 @@ module OpenTox
 
       def isa2rdf
         begin # isa2rdf returns correct exit code
-          result = `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3}` 
+          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} &> #{File.join tmp,'log'}`
         rescue
+          log = File.read File.join(tmp,"log")
           FileUtils.remove_entry dir
-          # TODO return correct error message from task
-          bad_request_error "ISA-TAB validation failed:\n#{$!.message}", uri
+          bad_request_error "ISA-TAB validation failed:\n#{log}", uri
         end
         # rewrite default prefix
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{uri}/;' #{File.join tmp,n3}`

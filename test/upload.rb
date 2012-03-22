@@ -61,7 +61,7 @@ class UploadTest < Test::Unit::TestCase
     end
   end
 
-  def test_invalid_zip_upload
+  def test_04_invalid_zip_upload
     file = File.join File.dirname(__FILE__), "data/invalid/isa_TB_ACCUTOX.zip"
     response = `curl -X POST -i -F file="@#{file};type=application/zip" -H "subjectid:#{@@subjectid}" #{HOST}`.chomp
     assert_match /202/, response
@@ -69,8 +69,7 @@ class UploadTest < Test::Unit::TestCase
     t = OpenTox::Task.new(uri)
     t.wait
     assert_match t.hasStatus, "Error"
-    # puts t.to_turtle
-    # TODO: check error message
+    # TODO: test errorReport, rdf output of tasks has to be fixed for that purpose
   end
 
 =begin
