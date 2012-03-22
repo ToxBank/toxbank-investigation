@@ -108,7 +108,7 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
+        `curl -0 -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         uri
       end
@@ -121,7 +121,7 @@ module OpenTox
         else
           response['Content-type'] = "application/sparql-results+xml"
         end
-        `curl -H 'Accept:#{@accept}' -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
+        `curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
       end
       
     end
@@ -261,7 +261,7 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      `curl -i -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
+      `curl -i -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
