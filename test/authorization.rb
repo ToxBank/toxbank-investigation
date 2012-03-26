@@ -3,7 +3,6 @@ require File.join(File.expand_path(File.dirname(__FILE__)),"setup.rb")
 TEST_URI  = "http://only_a_test/test/" + rand(1000000).to_s
 unless defined? AA #overwrite turned off A&A server for testing
   AA = "https://opensso.in-silico.ch"
-  @@subjectid = OpenTox::Authorization.authenticate(AA_USER,AA_PASS)
 end
 
 @@subjectid ||= OpenTox::Authorization.authenticate(AA_USER,AA_PASS) 
@@ -11,8 +10,7 @@ end
 class TestOpenToxAuthorizationBasic < Test::Unit::TestCase
  
   def test_01_server
-    @aaserver = AA
-    assert_equal(@aaserver, OpenTox::Authorization.server)
+    assert_equal(AA, OpenTox::Authorization.server)
   end
  
   def test_02_get_token
@@ -27,7 +25,7 @@ class TestOpenToxAuthorizationBasic < Test::Unit::TestCase
   end
   
   def test_04_logout
-    tok = login 
+    tok = login
     assert logout(tok)
     assert_equal false, OpenTox::Authorization.is_token_valid(tok)
   end
