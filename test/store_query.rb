@@ -45,7 +45,7 @@ class UploadTest < Test::Unit::TestCase
   end
   
   def test_05_delete_data
-    response = `curl -i -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/#{FOUR_STORE_USER}/BII-I-1.n3'`.chomp
+    response = `curl -i -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/BII-I-1.n3'`.chomp
     assert_match /200/, response
   end
 =begin  
