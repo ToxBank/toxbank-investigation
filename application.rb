@@ -110,6 +110,7 @@ module OpenTox
         file = File.join(dir,n3)
         `curl -0 -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
+        OpenTox::Autorization.check_policy(uri, @subjectid)
         uri
       end
 
