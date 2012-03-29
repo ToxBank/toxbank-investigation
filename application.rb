@@ -110,7 +110,7 @@ module OpenTox
         file = File.join(dir,n3)
         `curl -0 -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
-        OpenTox::Autorization.check_policy(uri, @subjectid)
+        OpenTox::Authorization.check_policy(uri, @subjectid)
         uri
       end
 
@@ -122,6 +122,7 @@ module OpenTox
         else
           response['Content-type'] = "application/sparql-results+xml"
         end
+        puts "curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'"
         `curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
       end
       
@@ -169,6 +170,7 @@ module OpenTox
     post '/?' do
       params[:id] = next_id
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
+      bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
       task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
         prepare_upload
@@ -210,6 +212,7 @@ module OpenTox
 
     # Get investigation metadata in RDF
     get '/:id/metadata' do
+      not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
       query "
         PREFIX : <#{uri}/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
