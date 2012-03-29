@@ -121,6 +121,7 @@ module OpenTox
         else
           response['Content-type'] = "application/sparql-results+xml"
         end
+        puts "curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'"
         `curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
       end
       
@@ -209,6 +210,7 @@ module OpenTox
 
     # Get investigation metadata in RDF
     get '/:id/metadata' do
+      not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
       query "
         PREFIX : <#{uri}/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>

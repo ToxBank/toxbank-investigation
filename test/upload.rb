@@ -36,7 +36,7 @@ class UploadTest < Test::Unit::TestCase
       assert_match t.hasStatus, "Completed"
       uri = t.resultURI
       #`curl "#{uri}/metadata"`
-      metadata = `curl "subjectid:#{@@subjectid}" #{uri}/metadata`
+      metadata = `curl -H "subjectid:#{@@subjectid}" #{uri}/metadata`
       assert_match /#{uri}/, metadata
       zip = File.join @tmpdir,"tmp.zip"
       #puts "curl -H 'Accept:application/zip' -H 'subjectid:#{@@subjectid}' #{uri} > #{zip}"
