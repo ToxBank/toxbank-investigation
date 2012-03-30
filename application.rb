@@ -1,5 +1,5 @@
 require "opentox-server"
-require File.join(ENV["HOME"],".opentox","config","toxbank-investigation","production.rb")
+require File.join(ENV["HOME"],".opentox","config","toxbank-investigation.rb")
 
 module OpenTox
   class Application < Service
@@ -13,7 +13,6 @@ module OpenTox
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full) }
-        params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
