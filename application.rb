@@ -95,6 +95,7 @@ module OpenTox
         # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
+        FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         # git commit
@@ -108,7 +109,7 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -T #{file} -H 'Content_Length => #{length}' '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
+        `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content_Length => #{length}' '#{$four_store[:uri]}/data/?graph=#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
         uri
@@ -122,8 +123,7 @@ module OpenTox
         else
           response['Content-type'] = "application/sparql-results+xml"
         end
-        puts "curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'"
-        `curl -H 'Accept:#{@accept}' -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -d 'query=#{sparql}' '#{FOUR_STORE}/sparql/'`
+        `curl -H 'Accept:#{@accept}' -k -u #{$four_store[:user]}:#{$four_store[:password]} -d 'query=#{sparql}' '#{$four_store[:uri]}/sparql/'`
       end
       
     end
@@ -146,7 +146,6 @@ module OpenTox
         # Requests without a query parameter return a list of all investigations
         case @accept
         when 'text/uri-list'
-          response['Content-Type'] = 'text/uri-list'
           uri_list
         else
           response['Content-Type'] = 'application/rdf+xml'
@@ -172,7 +171,7 @@ module OpenTox
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
+      task = OpenTox::Task.create($task[:uri], :description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
@@ -202,7 +201,7 @@ module OpenTox
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       when "application/rdf+xml"
-        query "CONSTRUCT { ?s ?p ?o } FROM <#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}> WHERE {?s ?p ?o } LIMIT 15000"
+        query "CONSTRUCT { ?s ?p ?o } FROM <#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}> WHERE {?s ?p ?o } LIMIT 15000"
       else
         #$logger.debug request.to_yaml
         #bad_request_error "Accept header #{@accept} not supported for #{uri}"
@@ -251,7 +250,7 @@ module OpenTox
     post '/:id' do
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create(TASK, :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+      task = OpenTox::Task.create($task[:uri], :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
         prepare_upload
         isa2rdf
       end
@@ -265,14 +264,14 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      `curl -i -k -u #{FOUR_STORE_USER}:#{FOUR_STORE_PASS} -X DELETE '#{FOUR_STORE}/data/?graph=#{FOUR_STORE}/data/#{FOUR_STORE_USER}/investigation#{n3}'`
+      `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
 
     # Delete an individual study, assay or data file
     delete '/:id/:filename'  do
-      task = OpenTox::Task.create(TASK, :description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+      task = OpenTox::Task.create($task[:uri], :description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
