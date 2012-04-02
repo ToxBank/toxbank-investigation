@@ -3,7 +3,7 @@ $:.push File.expand_path("../lib", __FILE__)
 
 Gem::Specification.new do |s|
   s.name        = "toxbank-investigation"
-  s.version     = "0.0.1pre"
+  s.version     = "0.0.2pre"
   s.authors     = ["Christoph Helma","Denis Gebele","Micha Rautenberg"]
   s.email       = ["helma@in-silico.ch","gebele@in-silico.ch","rautenenberg@in-silico.ch"]
   s.homepage    = "http://github.com/ToxBank/toxbank-investigation"
