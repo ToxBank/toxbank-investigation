@@ -1,2 +1,0 @@
-Add {source "$HOME/.toxbank-ui-sh"} to your .bashrc and check tb-tools.sh for commands. Works on Debian and Ubuntu (if you get problems during installation try to remove already installed libraptor1 library before you run the installer).
-After configure the paths install gems from the gemlist.

@@ -1,11 +1,11 @@
+*.gem
+.bundle
+pkg/*
 tmp/*
 public/*
 investigation/*
 target/*
-services/*
-java/isa2rdf-0.0.1-SNAPSHOT.jar
+java/*.jar
 java/logs
-java/ISA-validator-1.4.zip
-java/ISA-validator-1.4/*
 oo_*/*
 *~
