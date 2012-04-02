@@ -108,13 +108,16 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content_Length => #{length}' '#{$four_store[:uri]}/data/?graph=#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
+        #`curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content_Length => #{length}' '#{$four_store[:uri]}/data/?graph=#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
+        puts "curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'"
+        `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
         uri
       end
 
       def query sparql
+        puts sparql
         if @accept.match(/turtle/) and sparql.match(/CONSTRUCT/)
           response['Content-type'] = @accept
         elsif sparql.match(/CONSTRUCT/)
@@ -149,6 +152,7 @@ module OpenTox
         else
           response['Content-Type'] = 'application/rdf+xml'
           response['Content-Type'] = @accept if @accept == 'text/turtle'
+          #sparql = "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }"
           query "
             PREFIX isa: <http://onto.toxbank.net/isa/>
             CONSTRUCT { ?s ?p ?o . }
@@ -200,7 +204,7 @@ module OpenTox
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       when "application/rdf+xml"
-        query "CONSTRUCT { ?s ?p ?o } FROM <#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}> WHERE {?s ?p ?o } LIMIT 15000"
+        query "CONSTRUCT { ?s ?p ?o } FROM <#{uri}> WHERE {?s ?p ?o } LIMIT 15000"
       else
         #$logger.debug request.to_yaml
         #bad_request_error "Accept header #{@accept} not supported for #{uri}"
@@ -215,6 +219,7 @@ module OpenTox
         PREFIX : <#{uri}/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
         CONSTRUCT { ?s ?p ?o.  }
+        FROM <#{uri}>
         WHERE {
           : owl:sameAs ?s .
           ?s ?p ?o .
@@ -237,6 +242,7 @@ module OpenTox
         PREFIX : <#{uri}/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
         CONSTRUCT { :#{params[:resource]} ?p ?o.  }
+        FROM <#{uri}>
         WHERE {
           :#{params[:resource]} ?p ?o .
         }
@@ -263,7 +269,8 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
+      #`curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
+      `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{uri}'`
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
