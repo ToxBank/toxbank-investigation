@@ -7,7 +7,7 @@ PATH
 PATH
   remote: ~/opentox-client
   specs:
-    opentox-client (0.0.1pre)
+    opentox-client (0.0.2pre)
       bundler
       open4
       rdf
@@ -17,7 +17,7 @@ PATH
 PATH
   remote: ~/opentox-server
   specs:
-    opentox-server (0.0.1pre)
+    opentox-server (0.0.2pre)
       emk-sinatra-url-for
       opentox-client
       rack
