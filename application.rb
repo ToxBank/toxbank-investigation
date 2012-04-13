@@ -271,7 +271,7 @@ module OpenTox
       # updata RDF
       #`curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
       `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{uri}'`
-      if @subjectid and !File.exists? dir and @uri
+      if @subjectid and !File.exists?(dir) and uri
         begin
           res = OpenTox::Authorization.delete_policies_from_uri(uri, @subjectid)
           LOGGER.debug "Policy deleted for Investigation URI: #{uri} with result: #{res}"
