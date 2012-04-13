@@ -2,7 +2,7 @@
 # Main ToxBank-investigation install script
 # Author: Christoph Helma, Andreas Maunz, Denis Gebele.
 
-ISA2RDF=isa2rdf-0.0.1-SNAPSHOT.jar
+ISA2RDF=isa2rdf-0.0.2-SNAPSHOT.jar
 
 echo
 echo "This script will setup and configure the toxbank-investigation service."
