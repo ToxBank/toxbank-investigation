@@ -83,7 +83,7 @@ module OpenTox
 
       def isa2rdf
         begin # isa2rdf returns correct exit code
-          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} &> #{File.join tmp,'log'}`
+          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.2-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} &> #{File.join tmp,'log'}`
         rescue
           log = File.read File.join(tmp,"log")
           FileUtils.remove_entry dir
