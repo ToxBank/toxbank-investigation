@@ -7,12 +7,14 @@ module OpenTox
     helpers do
 
       def uri
-        params[:id] ? url_for("/#{params[:id]}", :full).sub("http://","https://") : "https://#{request.env['HTTP_HOST']}"
+        #params[:id] ? url_for("/#{params[:id]}", :full).sub("http://","https://") : "https://#{request.env['HTTP_HOST']}"
+        to(params[:id]) # new
       end
 
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-        uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full).sub("http://","https://") }
+        #uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full).sub("http://","https://") }
+        uris = Dir[d].collect{|f| to(f) }# new
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
