@@ -14,7 +14,7 @@ module OpenTox
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         #uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full).sub("http://","https://") }
-        uris = Dir[d].collect{|f| to(f) }# new
+        uris = Dir[d].collect{|f| to(f.sub(/\.\/investigation/,'')) }# new
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
