@@ -7,14 +7,12 @@ module OpenTox
     helpers do
 
       def uri
-        #params[:id] ? url_for("/#{params[:id]}", :full).sub("http://","https://") : "https://#{request.env['HTTP_HOST']}"
-        to(params[:id]) # new
+        to(params[:id])
       end
 
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-        #uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full).sub("http://","https://") }
-        uris = Dir[d].collect{|f| to(f.sub(/\.\/investigation/,'')) }# new
+        uris = Dir[d].collect{|f| to(f.sub(/\.\/investigation/,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
@@ -110,8 +108,6 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        #`curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content_Length => #{length}' '#{$four_store[:uri]}/data/?graph=#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
-        puts "curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'"
         `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
@@ -271,7 +267,6 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      #`curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
       `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{uri}'`
       if @subjectid and !File.exists?(dir) and uri
         begin
