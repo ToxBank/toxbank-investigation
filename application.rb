@@ -1,5 +1,5 @@
 require "opentox-server"
-require File.join(ENV["HOME"],".opentox","config","toxbank-investigation.rb")
+#require File.join(ENV["HOME"],".opentox","config","toxbank-investigation.rb")
 
 module OpenTox
   class Application < Service
@@ -143,7 +143,7 @@ module OpenTox
     # Requests with a query parameter will perform a SPARQL query on all investigations
     # @return [application/sparql-results+json] Query result
     # @return [text/uri-list] List of investigations
-    get '/?' do
+    get '/investigation/?' do
       if params[:query] # pass SPARQL query to 4store
         query params[:query]
       else
@@ -171,12 +171,15 @@ module OpenTox
     # @param [Header] Content-type: multipart/form-data
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Investigation URI 
-    post '/?' do
+    post '/investigation/?' do
       params[:id] = next_id
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create($task[:uri], :description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
+      #task = OpenTox::Task.create($task[:uri], RDF::DC.description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
+      puts "URI"
+      puts $task[:uri]
+      task = OpenTox::Task.create($task[:uri]) do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
@@ -196,7 +199,7 @@ module OpenTox
     # Get an investigation representation
     # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
     # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
-    get '/:id' do
+    get '/investigation/:id' do
       not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
       case @accept
       when "text/tab-separated-values"
@@ -215,7 +218,7 @@ module OpenTox
     end
 
     # Get investigation metadata in RDF
-    get '/:id/metadata' do
+    get '/investigation/:id/metadata' do
       not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
       query "
         PREFIX : <#{uri}/>
@@ -232,14 +235,14 @@ module OpenTox
     # Get a study, assay, data representation
     # @param [Header] one of text/tab-separated-values, application/sparql-results+json
     # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
-    get '/:id/isatab/:filename'  do
+    get '/investigation/:id/isatab/:filename'  do
       not_found_error "File #{File.join uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # TODO: returns text/plain content type for tab separated files
       send_file file, :type => File.new(file).mime_type
     end
 
     # Get RDF for an investigation resource
-    get '/:id/:resource' do
+    get '/investigation/:id/:resource' do
       query "
         PREFIX : <#{uri}/>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
@@ -254,10 +257,10 @@ module OpenTox
     # Add studies, assays or data to an investigation
     # @param [Header] Content-type: multipart/form-data
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
-    post '/:id' do
+    post '/investigation/:id' do
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create($task[:uri], :description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+      task = OpenTox::Task.create($task[:uri], RDF::DC.description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
         prepare_upload
         isa2rdf
       end
@@ -266,7 +269,7 @@ module OpenTox
     end
 
     # Delete an investigation
-    delete '/:id' do
+    delete '/investigation/:id' do
       FileUtils.remove_entry dir
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
@@ -286,8 +289,8 @@ module OpenTox
     end
 
     # Delete an individual study, assay or data file
-    delete '/:id/:filename'  do
-      task = OpenTox::Task.create($task[:uri], :description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+    delete '/investigation/:id/:filename'  do
+      task = OpenTox::Task.create($task[:uri], RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf

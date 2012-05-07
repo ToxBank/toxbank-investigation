@@ -1,4 +1,4 @@
-SERVICE = "task"
+SERVICE = "investigation"
 require 'bundler'
 Bundler.require
 #Encoding.default_external = Encoding::UTF_8
