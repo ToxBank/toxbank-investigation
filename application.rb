@@ -7,12 +7,12 @@ module OpenTox
     helpers do
 
       def uri
-        params[:id] ? url_for("/#{params[:id]}", :full).sub("http://","https://") : "https://#{request.env['HTTP_HOST']}"
+        to(params[:id])
       end
 
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-        uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full).sub("http://","https://") }
+        uris = Dir[d].collect{|f| to(f.sub(/\.\/investigation/,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
@@ -83,7 +83,7 @@ module OpenTox
 
       def isa2rdf
         begin # isa2rdf returns correct exit code
-          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.1-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} &> #{File.join tmp,'log'}`
+          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.3-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} &> #{File.join tmp,'log'}`
         rescue
           log = File.read File.join(tmp,"log")
           FileUtils.remove_entry dir
@@ -108,8 +108,6 @@ module OpenTox
         # store RDF
         length = File.size(File.join dir,n3)
         file = File.join(dir,n3)
-        #`curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content_Length => #{length}' '#{$four_store[:uri]}/data/?graph=#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
-        puts "curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'"
         `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
@@ -174,7 +172,7 @@ module OpenTox
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create($task[:uri], :description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
+      task = OpenTox::Task.create($task[:uri], :description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
@@ -269,8 +267,15 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      #`curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
       `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{uri}'`
+      if @subjectid and !File.exists?(dir) and uri
+        begin
+          res = OpenTox::Authorization.delete_policies_from_uri(uri, @subjectid)
+          LOGGER.debug "Policy deleted for Investigation URI: #{uri} with result: #{res}"
+        rescue
+          $logger.warn "Policy delete error for Investigation URI: #{uri}"
+        end
+      end
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
