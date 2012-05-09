@@ -1,0 +1,79 @@
+module OpenTox
+
+  RDF::TB  = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
+  RDF::TBU = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/user/"
+
+  CLASSES << "TBAccount"
+
+  # add new OpenTox class
+  c = Class.new do
+    include OpenTox
+    extend OpenTox::ClassMethods
+  end
+  OpenTox.const_set "TBAccount",c
+
+  #Get rdf reppresentation for a user,organisation or project from the ToxBank service
+  #@example TBAccount
+  #  require "opentox-server"
+  #  User1 = OpenTox::TBAccount.new("http://uri_to_toxbankservice/toxbank/user/U123", subjectid)
+  #  puts User1.ldap_dn #=> "uid=username,ou=people,dc=opentox,dc=org"
+  #  User1.send_policy("http://uri_toprotect/bla/foo") #=> creates new read policy for http://uri_toprotect/bla/foo
+  class TBAccount
+
+    # Get hasAccount value of a user,organisation or project from ToxBank service
+    def account
+      @account ||= get_account
+    end
+    
+    def ldap_dn
+      @uri.match(RDF::TBU.to_s) ? "uid=#{self.account},ou=people,dc=opentox,dc=org" : "cn=#{self.account},ou=groups,dc=opentox,dc=org"
+    end
+
+    def ldap_type
+      @uri.match(RDF::TBU.to_s) ? "LDAPUsers" : "LDAPGroups"
+    end
+
+    def send_policy uri, type="read" 
+      OpenTox::Authorization.create_policy(policy(uri, type), @subjectid)
+    end  
+
+    private
+
+    def get_account
+      self.pull
+      search_arg = uri.match(RDF::TBU.to_s) ? eval("RDF::TBU.#{uri.split('/')[-1]}") : nil    
+      out = self.rdf.query([search_arg, RDF::TB.hasAccount, nil]).first_value
+      return out
+    end
+
+    def policy uri, type="read"
+      return <<-EOS
+<!DOCTYPE Policies PUBLIC "-//Sun Java System Access Manager7.1 2006Q3 Admin CLI DTD//EN" "jar://com/sun/identity/policy/policyAdmin.dtd">
+<Policies>
+  <Policy name="tbi-#{self.ldap_type[4,6].downcase}-#{Time.now.strftime("%Y-%m-%d-%H-%M-%S-x") + rand(1000).to_s}" referralPolicy="false" active="true">
+    <Rule name="rule_name">
+      <ServiceName name="iPlanetAMWebAgentService" />
+      <ResourceName name="#{uri}"/>
+      #{get_permissions(type)}
+    </Rule>
+    <Subjects name="subjects_name" description="">
+      <Subject name="subject_name" type="#{self.ldap_type}" includeType="inclusive">
+        <AttributeValuePair>
+          <Attribute name="Values"/>
+          <Value>#{self.ldap_dn}</Value>
+        </AttributeValuePair>
+      </Subject>
+    </Subjects>
+  </Policy>
+</Policies>
+      EOS
+    end
+  
+    def get_permissions type
+      requests = type == "all" ? ["GET", "POST", "PUT", "DELETE"] : ["GET"]
+      out=""
+      requests.each{|r| out = "#{out}<AttributeValuePair><Attribute name=\"#{r}\" /><Value>allow</Value></AttributeValuePair>\n"}
+      return out
+    end
+  end
+end
