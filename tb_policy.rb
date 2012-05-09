@@ -24,7 +24,7 @@ module OpenTox
     def account
       @account ||= get_account
     end
-    
+
     def ldap_dn
       @uri.match(RDF::TBU.to_s) ? "uid=#{self.account},ou=people,dc=opentox,dc=org" : "cn=#{self.account},ou=groups,dc=opentox,dc=org"
     end
@@ -33,15 +33,15 @@ module OpenTox
       @uri.match(RDF::TBU.to_s) ? "LDAPUsers" : "LDAPGroups"
     end
 
-    def send_policy uri, type="read" 
+    def send_policy uri, type="read"
       OpenTox::Authorization.create_policy(policy(uri, type), @subjectid)
-    end  
+    end
 
     private
 
     def get_account
       self.pull
-      search_arg = uri.match(RDF::TBU.to_s) ? eval("RDF::TBU.#{uri.split('/')[-1]}") : nil    
+      search_arg = uri.match(RDF::TBU.to_s) ? eval("RDF::TBU.#{uri.split('/')[-1]}") : nil
       out = self.rdf.query([search_arg, RDF::TB.hasAccount, nil]).first_value
       return out
     end
@@ -68,7 +68,7 @@ module OpenTox
 </Policies>
       EOS
     end
-  
+
     def get_permissions type
       requests = type == "all" ? ["GET", "POST", "PUT", "DELETE"] : ["GET"]
       out=""

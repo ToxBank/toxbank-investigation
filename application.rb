@@ -1,5 +1,6 @@
 require "opentox-server"
 require File.join(ENV["HOME"],".opentox","config","toxbank-investigation.rb")
+require "#{File.dirname(__FILE__)}/tb_policy.rb"
 
 module OpenTox
   class Application < Service
