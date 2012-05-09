@@ -1,5 +1,4 @@
 require "opentox-server"
-#require File.join(ENV["HOME"],".opentox","config","toxbank-investigation.rb")
 
 module OpenTox
   class Application < Service
@@ -7,14 +6,12 @@ module OpenTox
     helpers do
 
       def uri
-        #params[:id] ? url_for("/#{params[:id]}", :full).sub("http://","https://") : "https://#{request.env['HTTP_HOST']}"
-        to(params[:id]) # new
+        to("/investigation/#{params[:id]}") # new in Sinatra, replaces url_for
       end
 
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-        #uris = Dir[d].collect{|f|  url_for(f.sub(/\.\/investigation/,''), :full).sub("http://","https://") }
-        uris = Dir[d].collect{|f| to(f.sub(/\.\/investigation/,'')) }# new
+        uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }# new
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
@@ -33,11 +30,6 @@ module OpenTox
 
       def n3
         "#{params[:id]}.n3"
-      end
-
-      def next_id
-        id = Dir["./investigation/*"].collect{|f| File.basename(f).to_i}.sort.last
-        id ? id + 1 : 0
       end
 
       def prepare_upload
@@ -95,7 +87,9 @@ module OpenTox
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{uri}/;' #{File.join tmp,n3}`
         # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
-        `echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
+        `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
+        `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
+        #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -108,26 +102,11 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        length = File.size(File.join dir,n3)
-        file = File.join(dir,n3)
-        #`curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content_Length => #{length}' '#{$four_store[:uri]}/data/?graph=#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
-        puts "curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'"
-        `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'`
+        four_store_uri = $four_store[:uri].sub(%r{//},"//#{$four_store[:user]}:#{$four_store[:password]}@")
+        RestClient.put File.join(four_store_uri,"data",uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
         uri
-      end
-
-      def query sparql
-        puts sparql
-        if @accept.match(/turtle/) and sparql.match(/CONSTRUCT/)
-          response['Content-type'] = @accept
-        elsif sparql.match(/CONSTRUCT/)
-          response['Content-type'] = 'application/rdf+xml'
-        else
-          response['Content-type'] = "application/sparql-results+xml"
-        end
-        `curl -H 'Accept:#{@accept}' -k -u #{$four_store[:user]}:#{$four_store[:password]} -d 'query=#{sparql}' '#{$four_store[:uri]}/sparql/'`
       end
       
     end
@@ -136,7 +115,6 @@ module OpenTox
       not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
-      # TODO: A+A
     end
 
     # Query all investigations or get a list of all investigations
@@ -145,25 +123,9 @@ module OpenTox
     # @return [text/uri-list] List of investigations
     get '/investigation/?' do
       if params[:query] # pass SPARQL query to 4store
-        query params[:query]
+        FourStore.query params[:query], request.env['HTTP_ACCEPT']
       else
-        # Requests without a query parameter return a list of all investigations
-        case @accept
-        when 'text/uri-list'
-          uri_list
-        else
-          response['Content-Type'] = 'application/rdf+xml'
-          response['Content-Type'] = @accept if @accept == 'text/turtle'
-          #sparql = "SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }"
-          query "
-            PREFIX isa: <http://onto.toxbank.net/isa/>
-            CONSTRUCT { ?s ?p ?o . }
-            WHERE {
-              ?s a isa:Investigation ;
-                ?p ?o .
-              }
-          "
-        end
+        FourStore.list request.env['HTTP_ACCEPT']
       end
     end
 
@@ -172,14 +134,12 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Investigation URI 
     post '/investigation/?' do
-      params[:id] = next_id
+      params[:id] = SecureRandom.uuid
+      #params[:id] = next_id
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      #task = OpenTox::Task.create($task[:uri], RDF::DC.description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
-      puts "URI"
-      puts $task[:uri]
-      task = OpenTox::Task.create($task[:uri]) do
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
@@ -208,28 +168,15 @@ module OpenTox
         uri_list
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
-      when "application/rdf+xml"
-        query "CONSTRUCT { ?s ?p ?o } FROM <#{uri}> WHERE {?s ?p ?o } LIMIT 15000"
       else
-        #$logger.debug request.to_yaml
-        #bad_request_error "Accept header #{@accept} not supported for #{uri}"
-        $logger.warn "Accept header #{@accept} not supported for #{uri}" # do not halt: strange requests from test, TODO: identify and fix
+        FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{uri}> WHERE {?s ?p ?o } LIMIT 15000", @accept
       end
     end
 
     # Get investigation metadata in RDF
     get '/investigation/:id/metadata' do
       not_found_error "Investigation #{uri} does not exist."  unless File.exist? dir # not called in before filter???
-      query "
-        PREFIX : <#{uri}/>
-        PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        CONSTRUCT { ?s ?p ?o.  }
-        FROM <#{uri}>
-        WHERE {
-          : owl:sameAs ?s .
-          ?s ?p ?o .
-        }
-      "
+      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept
     end
 
     # Get a study, assay, data representation
@@ -243,15 +190,7 @@ module OpenTox
 
     # Get RDF for an investigation resource
     get '/investigation/:id/:resource' do
-      query "
-        PREFIX : <#{uri}/>
-        PREFIX owl: <http://www.w3.org/2002/07/owl#>
-        CONSTRUCT { :#{params[:resource]} ?p ?o.  }
-        FROM <#{uri}>
-        WHERE {
-          :#{params[:resource]} ?p ?o .
-        }
-      "
+      FourStore.query " CONSTRUCT {  <#{File.join(uri,params[:resource])}> ?p ?o.  } FROM <#{uri}> WHERE { <#{File.join(uri,params[:resource])}> ?p ?o .  } ", @accept
     end
 
     # Add studies, assays or data to an investigation
@@ -260,7 +199,7 @@ module OpenTox
     post '/investigation/:id' do
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create($task[:uri], RDF::DC.description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
         prepare_upload
         isa2rdf
       end
@@ -274,8 +213,7 @@ module OpenTox
       # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
-      #`curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{$four_store[:user]}/investigation#{n3}'`
-      `curl -i -k -u #{$four_store[:user]}:#{$four_store[:password]} -X DELETE '#{$four_store[:uri]}/data/#{uri}'`
+      FourStore.delete uri
       if @subjectid and !File.exists?(dir) and uri
         begin
           res = OpenTox::Authorization.delete_policies_from_uri(uri, @subjectid)
@@ -290,7 +228,7 @@ module OpenTox
 
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
-      task = OpenTox::Task.create($task[:uri], RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
