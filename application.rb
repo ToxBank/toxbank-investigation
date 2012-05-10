@@ -112,6 +112,9 @@ module OpenTox
         `curl -0 -k -u #{$four_store[:user]}:#{$four_store[:password]} -T #{file} -H 'Content-type:text/turtle' '#{$four_store[:uri]}/data/?graph=#{uri}'`
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
+        puts "params[:allowReadByUser]    #{params[:allowReadByUser].to_s} "
+        create_policies params[:allowReadByUser] if params[:allowReadByUser]
+        create_policies params[:allowReadByGroup] if params[:allowReadByGroup]
         uri
       end
 
@@ -126,7 +129,15 @@ module OpenTox
         end
         `curl -H 'Accept:#{@accept}' -k -u #{$four_store[:user]}:#{$four_store[:password]} -d 'query=#{sparql}' '#{$four_store[:uri]}/sparql/'`
       end
-      
+
+      def create_policies uristring
+        uriarray = uristring.split(",")
+        uriarray.each do |u|
+          puts "cp u: #{u}"
+          tbaccount = OpenTox::TBAccount.new(u, @subjectid)
+          tbaccount.send_policy(uri)
+        end
+      end
     end
 
     before do
