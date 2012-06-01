@@ -215,10 +215,21 @@ module OpenTox
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
         prepare_upload
+        case params[:file][:type]
+        when 'application/zip'
+          extract_zip
+        end
+        # TODO: create initial policy with read permission only for PI 
         isa2rdf
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
+    end
+
+    put '/investigation/:id' do
+      if params[:published]
+        # TODO: change investigation policy and allow group access
+      end
     end
 
     # Delete an investigation
