@@ -2,6 +2,8 @@ module OpenTox
 
   RDF::TB  = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
   RDF::TBU = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/user/"
+  RDF::TBO = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/organisation/"
+  RDF::TBPT = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/project/"
 
   CLASSES << "TBAccount"
 
@@ -35,6 +37,14 @@ module OpenTox
 
     def send_policy uri, type="read"
       OpenTox::Authorization.create_policy(policy(uri, type), @subjectid)
+    end
+
+    # Get prefixed account URI e.G.: TBU:U2
+    def ns_uri
+      out = "TBU:#{uri.split('/')[-1]}"  if uri.match(RDF::TBU.to_s)
+      out = "TBO:#{uri.split('/')[-1]}"  if uri.match(RDF::TBO.to_s)
+      out = "TBPT:#{uri.split('/')[-1]}" if uri.match(RDF::TBPT.to_s)
+      out
     end
 
     private
