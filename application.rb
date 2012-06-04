@@ -113,10 +113,14 @@ module OpenTox
       end
 
       def create_policies uristring
-        uriarray = uristring.split(",")
-        uriarray.each do |u|
-          tbaccount = OpenTox::TBAccount.new(u, @subjectid)
-          tbaccount.send_policy(uri)
+        begin
+          uriarray = uristring.split(",")
+          uriarray.each do |u|
+            tbaccount = OpenTox::TBAccount.new(u, @subjectid)
+            tbaccount.send_policy(uri)
+          end
+        rescue
+          $logger.warn "create policies error for Investigation URI: #{uri} for user/group uris: #{uristring}"
         end
       end
     end
@@ -238,7 +242,7 @@ module OpenTox
       if @subjectid and !File.exists?(dir) and uri
         begin
           res = OpenTox::Authorization.delete_policies_from_uri(uri, @subjectid)
-          LOGGER.debug "Policy deleted for Investigation URI: #{uri} with result: #{res}"
+          $logger.debug "Policy deleted for Investigation URI: #{uri} with result: #{res}"
         rescue
           $logger.warn "Policy delete error for Investigation URI: #{uri}"
         end
