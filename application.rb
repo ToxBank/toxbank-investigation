@@ -107,8 +107,6 @@ module OpenTox
         RestClient.put File.join(four_store_uri,"data",uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
-        puts "params[:allowReadByUser]    #{params[:allowReadByUser].to_s} "
-        $logger.debug "mr ::: xyz appl: params[:allowReadByUser]: #{params[:allowReadByUser]}"
         create_policies params[:allowReadByUser] if params[:allowReadByUser]
         create_policies params[:allowReadByGroup] if params[:allowReadByGroup]
         uri
@@ -116,9 +114,7 @@ module OpenTox
 
       def create_policies uristring
         uriarray = uristring.split(",")
-        $logger.debug "mr ::: xyz #{uriarray.inspect}"
         uriarray.each do |u|
-          $logger.debug "mr ::: xyz cp u: #{u}"
           tbaccount = OpenTox::TBAccount.new(u, @subjectid)
           tbaccount.send_policy(uri)
         end
