@@ -41,9 +41,9 @@ module OpenTox
 
     # Get prefixed account URI e.G.: TBU:U2
     def ns_uri
-      out = "TBU:#{uri.split('/')[-1]}"  if uri.match(RDF::TBU.to_s)
-      out = "TBO:#{uri.split('/')[-1]}"  if uri.match(RDF::TBO.to_s)
-      out = "TBPT:#{uri.split('/')[-1]}" if uri.match(RDF::TBPT.to_s)
+      out = "TBU:#{@uri.split('/')[-1]}"  if @uri.match(RDF::TBU.to_s)
+      out = "TBO:#{@uri.split('/')[-1]}"  if @uri.match(RDF::TBO.to_s)
+      out = "TBPT:#{@uri.split('/')[-1]}" if @uri.match(RDF::TBPT.to_s)
       out
     end
 
