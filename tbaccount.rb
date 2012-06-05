@@ -1,8 +1,9 @@
 module OpenTox
 
-  RDF::TB  = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
-  RDF::TBU = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/user/"
-  RDF::TBO = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/organisation/"
+  # define RDF vocabularies
+  RDF::TB   = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
+  RDF::TBU  = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/user/"
+  RDF::TBO  = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/organisation/"
   RDF::TBPT = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/project/"
 
   CLASSES << "TBAccount"
@@ -27,14 +28,17 @@ module OpenTox
       @account ||= get_account
     end
 
+    # returns LDAP Distinguished Name (DN)
     def ldap_dn
       @uri.match(RDF::TBU.to_s) ? "uid=#{self.account},ou=people,dc=opentox,dc=org" : "cn=#{self.account},ou=groups,dc=opentox,dc=org"
     end
 
+    # returns LDAP type
     def ldap_type
       @uri.match(RDF::TBU.to_s) ? "LDAPUsers" : "LDAPGroups"
     end
 
+    # sends policy to opensso server
     def send_policy uri, type="read"
       OpenTox::Authorization.create_policy(policy(uri, type), @subjectid)
     end
@@ -49,6 +53,7 @@ module OpenTox
 
     private
 
+    # Get rdf from user service and returns username
     def get_account
       self.pull
       search_arg = uri.match(RDF::TBU.to_s) ? eval("RDF::TBU.#{uri.split('/')[-1]}") : nil
@@ -56,6 +61,7 @@ module OpenTox
       return out
     end
 
+    # creates policy
     def policy uri, type="read"
       return <<-EOS
 <!DOCTYPE Policies PUBLIC "-//Sun Java System Access Manager7.1 2006Q3 Admin CLI DTD//EN" "jar://com/sun/identity/policy/policyAdmin.dtd">
@@ -79,6 +85,7 @@ module OpenTox
       EOS
     end
 
+    # creates permission part of policy
     def get_permissions type
       requests = case type
       when "all"
