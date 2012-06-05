@@ -1,5 +1,5 @@
 require "opentox-server"
-require "#{File.dirname(__FILE__)}/tb_policy.rb"
+require "#{File.dirname(__FILE__)}/tbaccount.rb"
 
 module OpenTox
   class Application < Service
