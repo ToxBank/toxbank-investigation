@@ -1,4 +1,5 @@
 require "opentox-server"
+require "#{File.dirname(__FILE__)}/tbaccount.rb"
 
 module OpenTox
   class Application < Service
@@ -106,9 +107,22 @@ module OpenTox
         RestClient.put File.join(four_store_uri,"data",uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         OpenTox::Authorization.check_policy(uri, @subjectid)
+        create_policies params[:allowReadByUser] if params[:allowReadByUser]
+        create_policies params[:allowReadByGroup] if params[:allowReadByGroup]
         uri
       end
-      
+
+      def create_policies uristring
+        begin
+          uriarray = uristring.split(",")
+          uriarray.each do |u|
+            tbaccount = OpenTox::TBAccount.new(u, @subjectid)
+            tbaccount.send_policy(uri)
+          end
+        rescue
+          $logger.warn "create policies error for Investigation URI: #{uri} for user/group uris: #{uristring}"
+        end
+      end
     end
 
     before do
@@ -228,7 +242,7 @@ module OpenTox
       if @subjectid and !File.exists?(dir) and uri
         begin
           res = OpenTox::Authorization.delete_policies_from_uri(uri, @subjectid)
-          LOGGER.debug "Policy deleted for Investigation URI: #{uri} with result: #{res}"
+          $logger.debug "Policy deleted for Investigation URI: #{uri} with result: #{res}"
         rescue
           $logger.warn "Policy delete error for Investigation URI: #{uri}"
         end
