@@ -1,6 +1,5 @@
 require "opentox-server"
 require "#{File.dirname(__FILE__)}/tb_policy.rb"
-require "#{File.dirname(__FILE__)}/pirewriter.rb"
 
 module OpenTox
   class Application < Service
@@ -50,7 +49,6 @@ module OpenTox
       def extract_zip
         # overwrite existing files with new submission
         `unzip -o #{File.join(tmp,params[:file][:filename])} -d #{tmp}`
-        replace_pi @subjectid
         Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
           `mv #{d}/* #{tmp}`
           `rmdir #{d}`
