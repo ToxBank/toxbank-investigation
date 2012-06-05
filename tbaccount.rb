@@ -80,7 +80,14 @@ module OpenTox
     end
 
     def get_permissions type
-      requests = type == "all" ? ["GET", "POST", "PUT", "DELETE"] : ["GET"]
+      requests = case type
+      when "all"
+        ["GET", "POST", "PUT", "DELETE"]
+      when "readwrite"
+        ["GET", "POST", "PUT"]
+      else
+        ["GET"]
+      end
       out=""
       requests.each{|r| out = "#{out}<AttributeValuePair><Attribute name=\"#{r}\" /><Value>allow</Value></AttributeValuePair>\n"}
       return out
