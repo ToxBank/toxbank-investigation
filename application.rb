@@ -106,21 +106,38 @@ module OpenTox
         four_store_uri = $four_store[:uri].sub(%r{//},"//#{$four_store[:user]}:#{$four_store[:password]}@")
         RestClient.put File.join(four_store_uri,"data",uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
-        OpenTox::Authorization.check_policy(uri, @subjectid)
-        create_policies params[:allowReadByUser] if params[:allowReadByUser]
-        create_policies params[:allowReadByGroup] if params[:allowReadByGroup]
+        OpenTox::Authorization.create_pi_policy(uri, @subjectid) 
+        create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
+        create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        send_policies if params[:published] && params[:published] == "true"
         uri
       end
 
-      def create_policies uristring
+      def create_policy_file ldaptype, uristring
         begin
+          filename = File.join(dir, "#{ldaptype}_policies")
+          policyfile = File.open(filename,"w")
           uriarray = uristring.split(",")
           uriarray.each do |u|
             tbaccount = OpenTox::TBAccount.new(u, @subjectid)
-            tbaccount.send_policy(uri)
+            policyfile.puts tbaccount.get_policy(uri)
           end
+          policyfile.close
+          policytext = File.read filename
+          replace = policytext.gsub!("</Policies>\n<!DOCTYPE Policies PUBLIC \"-//Sun Java System Access Manager7.1 2006Q3 Admin CLI DTD//EN\" \"jar://com/sun/identity/policy/policyAdmin.dtd\">\n<Policies>\n", "")
+          File.open(filename, "w") { |file| file.puts replace } if replace
         rescue
           $logger.warn "create policies error for Investigation URI: #{uri} for user/group uris: #{uristring}"
+        end
+      end
+
+      def send_policies
+        ["user","group"].each do |policytype|
+          policyfile = File.join dir, "#{policytype}_policies"
+          if File.exists?(policyfile)
+            ret = Authorization.create_policy(File.read(policyfile), @subjectid)
+            File.delete policyfile if ret
+          end
         end
       end
     end
@@ -227,8 +244,10 @@ module OpenTox
     end
 
     put '/investigation/:id' do
+      create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
+      create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
       if params[:published]
-        # TODO: change investigation policy and allow group access
+        send_policies if params[:published] == "true"
       end
     end
 

@@ -38,6 +38,10 @@ module OpenTox
       @uri.match(RDF::TBU.to_s) ? "LDAPUsers" : "LDAPGroups"
     end
 
+    def get_policy uri, type="read"
+      policy(uri, type)
+    end
+
     # sends policy to opensso server
     def send_policy uri, type="read"
       OpenTox::Authorization.create_policy(policy(uri, type), @subjectid)
@@ -55,7 +59,11 @@ module OpenTox
 
     # Get rdf from user service and returns username
     def get_account
-      self.pull
+      begin
+        pull
+      rescue
+        $logger.error "OpenTox::TBAccount method get_account error in pull data."
+      end
       search_arg = uri.match(RDF::TBU.to_s) ? eval("RDF::TBU.#{uri.split('/')[-1]}") : nil
       out = self.rdf.query([search_arg, RDF::TB.hasAccount, nil]).first_value
       return out
@@ -99,5 +107,25 @@ module OpenTox
       requests.each{|r| out = "#{out}<AttributeValuePair><Attribute name=\"#{r}\" /><Value>allow</Value></AttributeValuePair>\n"}
       return out
     end
+
+  end
+
+  module Authorization
+
+    # Create policy for PI-user (owner of subjectid)
+    # @param [String, String] URI,subjectid URI to create a policy for
+    def self.create_pi_policy uri, subjectid
+      user = get_user(subjectid)
+      piuri = RestClientWrapper.get("http://toxbanktest1.opentox.org:8080/toxbank/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
+      piaccount = TBAccount.new(piuri, subjectid)
+      piaccount.send_policy(uri, "all")
+    end
+
+    # URI is published? Has more than the PI policy?
+    # @param [String, String] URI,subjectid
+    def self.published? uri, subjectid
+      return list_uri_policies(uri, subjectid).size > 1
+    end
+
   end
 end
