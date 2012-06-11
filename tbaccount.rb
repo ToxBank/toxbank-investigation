@@ -60,13 +60,10 @@ module OpenTox
     # Get rdf from user service and returns username
     def get_account
       begin
-        pull
+        self.metadata[RDF::TB.hasAccount][0].value
       rescue
-        $logger.error "OpenTox::TBAccount method get_account error in pull data."
+        $logger.error "OpenTox::TBAccount get_account can not get username."
       end
-      search_arg = uri.match(RDF::TBU.to_s) ? eval("RDF::TBU.#{uri.split('/')[-1]}") : nil
-      out = self.rdf.query([search_arg, RDF::TB.hasAccount, nil]).first_value
-      return out
     end
 
     # creates policy
