@@ -12,7 +12,7 @@ module OpenTox
 
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
-        uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }# new
+        uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.compact.sort.join("\n") + "\n"
       end
@@ -170,7 +170,9 @@ module OpenTox
       mime_types = ['application/zip','text/tab-separated-values', "application/vnd.ms-excel"]
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploding, validating and converting to RDF") do
+      # TODO check if zip is empty
+      #bad_request_error "Empty zip file." unless `unzip -l #{File.join(params[:file][:tempfile])}`.split("\n")[3].split(" ").first.to_i > 0
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
