@@ -32,6 +32,8 @@ then
   git init
   echo "*/*.zip" > .gitignore
   echo "*/tmp" >> .gitignore
+  echo "user_policies" >> .gitignore
+  echo "group_policies" >> .gitignore
   git add .gitignore
   git commit -am "Initial commit: .gitignore added"
 fi
