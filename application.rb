@@ -166,7 +166,7 @@ module OpenTox
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      bad_request_error "The file #{params[:file][:filename]} contains no investigation file." unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.include? "i_Investigation.txt"
+      bad_request_error "The file #{params[:file][:filename]} contains no investigation file." unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('txt')
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
