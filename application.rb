@@ -134,6 +134,7 @@ module OpenTox
             ret = Authorization.create_policy(File.read(policyfile), @subjectid)
             File.delete policyfile if ret
           end
+          #ToDo set published = true in Metadata
         end
       end
     end
@@ -180,6 +181,7 @@ module OpenTox
         end
         isa2rdf
         OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
+        #ToDo set published = false in Metadata
         create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri

@@ -63,6 +63,7 @@ module OpenTox
         self.metadata[RDF::TB.hasAccount][0].value
       rescue
         $logger.error "OpenTox::TBAccount get_account can not get username."
+        return nil
       end
     end
 
