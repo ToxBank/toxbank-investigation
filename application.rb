@@ -14,6 +14,7 @@ module OpenTox
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
+        uris.delete_if{|u| u.match(/_policies$/)}
         uris.compact.sort.join("\n") + "\n"
       end
 
