@@ -90,6 +90,7 @@ module OpenTox
         # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
+        #`echo "\n:\n  a       isa:Investigation ;\n  tb:isPublished  \"false\"." >>  #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
         #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
@@ -135,8 +136,20 @@ module OpenTox
             ret = Authorization.create_policy(File.read(policyfile), @subjectid)
             File.delete policyfile if ret
           end
-          #ToDo set published = true in Metadata
         end
+        set_published true
+      end
+
+      def set_published value
+        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::TB.isPublished}> \"#{!value}\"^^<#{RDF::XSD.boolean}>}}"
+        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::TB.isPublished}> \"#{value}\"^^<#{RDF::XSD.boolean}>}}"
+      end
+
+      def get_published
+        data = FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF::TB.isPublished}> ?o. ?s ?p ?o .  } ", "application/rdf+xml"
+        g = RDF::Graph.new
+        RDF::Reader.for(:rdfxml).new(data){|r| r.each{|s| g << s}}
+        g.first.object.value
       end
     end
 
@@ -184,7 +197,7 @@ module OpenTox
         end
         isa2rdf
         OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
-        #ToDo set published = false in Metadata
+        set_published false
         create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
@@ -244,11 +257,12 @@ module OpenTox
             extract_zip
           end
           isa2rdf
+          (params[:published] && params[:published]) == "true" ? send_policies : set_published(false)
         end
       end
       create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
       create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-      send_policies if params[:published] && params[:published] == "true"
+      (params[:published] && params[:published]) == "true" ? send_policies : set_published(false) unless params[:file]
       response['Content-Type'] = 'text/uri-list'
       if params[:file]
         halt 202,task.uri+"\n"

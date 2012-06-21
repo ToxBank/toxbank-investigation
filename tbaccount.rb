@@ -72,7 +72,7 @@ module OpenTox
       return <<-EOS
 <!DOCTYPE Policies PUBLIC "-//Sun Java System Access Manager7.1 2006Q3 Admin CLI DTD//EN" "jar://com/sun/identity/policy/policyAdmin.dtd">
 <Policies>
-  <Policy name="tbi-#{self.ldap_type[4,6].downcase}-#{Time.now.strftime("%Y-%m-%d-%H-%M-%S-x") + rand(1000).to_s}" referralPolicy="false" active="true">
+  <Policy name="tbi-#{self.account}-#{self.ldap_type[4,6].downcase}-#{Time.now.strftime("%Y-%m-%d-%H-%M-%S-x") + rand(1000).to_s}" referralPolicy="false" active="true">
     <Rule name="rule_name">
       <ServiceName name="iPlanetAMWebAgentService" />
       <ResourceName name="#{uri}"/>
