@@ -105,8 +105,7 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        four_store_uri = $four_store[:uri].sub(%r{//},"//#{$four_store[:user]}:#{$four_store[:password]}@")
-        RestClient.put File.join(four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
+        RestClient.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         investigation_uri
       end
@@ -167,7 +166,8 @@ module OpenTox
       if params[:query] # pass SPARQL query to 4store
         FourStore.query params[:query], request.env['HTTP_ACCEPT']
       else
-        FourStore.list request.env['HTTP_ACCEPT']
+        list = FourStore.list request.env['HTTP_ACCEPT']
+        list.split.keep_if{|v| v =~ /#{$toxbank_investigation[:uri]}/}.join("\n")
       end
     end
 
