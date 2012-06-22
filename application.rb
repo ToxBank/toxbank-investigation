@@ -174,7 +174,7 @@ module OpenTox
     # Create a new investigation from ISA-TAB files
     # @param [Header] Content-type: multipart/form-data
     # @param file Zipped investigation files in ISA-TAB format
-    # @return [text/uri-list] Investigation URI 
+    # @return [text/uri-list] Task URI
     post '/investigation/?' do
       params[:id] = SecureRandom.uuid
       #params[:id] = next_id
@@ -246,29 +246,26 @@ module OpenTox
     # Add studies, assays or data to an investigation
     # @param [Header] Content-type: multipart/form-data
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
+    # @return [text/uri-list] Task URI
     put '/investigation/:id' do
-      if params[:file]
-        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploding, validationg and converting to RDF") do
+      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
+        if params[:file]
           prepare_upload
           case params[:file][:type]
           when 'application/zip'
             extract_zip
           end
           isa2rdf
-          (params[:published] && params[:published]) == "true" ? send_policies : set_published(false)
         end
+        create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
+        create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        params[:published] && params[:published] == "true" ? send_policies : set_published(false)
+        investigation_uri
       end
-      create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
-      create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-      (params[:published] && params[:published]) == "true" ? send_policies : set_published(false) unless params[:file]
       response['Content-Type'] = 'text/uri-list'
-      if params[:file]
-        halt 202,task.uri+"\n"
-      else
-        investigation_uri+"\n"
-      end
+      halt 202,task.uri+"\n"
     end
 
     # Delete an investigation
