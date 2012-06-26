@@ -119,10 +119,12 @@ module OpenTox
       piaccount.send_policy(uri, "all")
     end
 
-    # URI is published? Has more than the PI policy?
+    # resets all investigation policies exept pi policy
     # @param [String, String] URI,subjectid
-    def self.published? uri, subjectid
-      return list_uri_policies(uri, subjectid).size > 1
+    def self.reset_policies uri, subjectid
+      policies = self.list_uri_policies(uri, subjectid)
+      user = get_user(subjectid)
+      policies.each{|policy| self.delete_policy(policy, subjectid) unless policy =~ /^tbi-#{user}-users-*/ }
     end
 
   end
