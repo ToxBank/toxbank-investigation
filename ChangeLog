@@ -1,2 +1,24 @@
+v0.0.4 2012-06-
+- Address and IDs changed
+  - Service URI https://INVESTIGATIONSERVICE is now https://INVESTIGATIONSERVICE/investigation
+  - IDs changed to UUIDs e.G.: https://INVESTIGATIONSERVICE/123 changed to https://INVESTIGATIONSERVICE/investigation/1f6d584a-53aa-4c59-bae3-8c7ac9cb82ff
+    UUID is a v4 random UUID (Universally Unique IDentifier).
+- Policy/Access management
+  - allowReadByUser and allowReadByGroup parameters added to POST and PUT request (POST to service and PUT to a specific investigation).
+    both values are optional and can be empty or contain single or comma separated URIs of an existing ToxBank user or group (e.G.: allowReadByUser=http://USERSERVICE/toxbank/user/U2,http://USERSERVICE/toxbank/user/U124 )
+    as described here: http://api.toxbank.net/index.php/Protocol#Security.
+    Every user or group get read access to the specific investigation.
+  - The creator of a new investigation gets full REST access (GET/POST/PUT/DELETE). Creator is identified by its subjectid from login and should be member of the LDAP Public Investigator group (cn=PI_GROUP,ou=groups,dc=DOMAIN,dc=TLD).
+- Published flag
+    - New investigations get http://onto.toxbank.net/api/isPublished = false to its metadata RDF representation:
+    e.G.:
+    <rdf:Description rdf:about="https://INVESTIGATIONSERVICE/investigation/f0154c33-e27a-4683-b9cd-94473beccae3/">
+      <ns0:isPublished xmlns:ns0="http://onto.toxbank.net/api/" rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</ns0:isPublished>
+    </rdf:Description>
+  - published parameter added to PUT request to set isPublished in metadata to true:
+    curl -Lk -X PUT -i -H "subjectid:MYTOKEN" -d "published=true" https://INVESTIGATIONSERVICE/investigation/UUID
+- Add studies, assays or data to an investigation / Updating an investigation
+  - additions to or updating an investigation will be handled via PUT request
+
 v0.0.3 2012-05-07
 * switch from v0.0.2pre to v0.0.3
