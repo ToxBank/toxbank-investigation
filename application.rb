@@ -1,5 +1,6 @@
 require "opentox-server"
 require "#{File.dirname(__FILE__)}/tbaccount.rb"
+require "#{File.dirname(__FILE__)}/pirewriter.rb"
 
 module OpenTox
   class Application < Service
@@ -54,6 +55,7 @@ module OpenTox
           `mv #{d}/* #{tmp}`
           `rmdir #{d}`
         end
+        replace_pi @subjectid
       end
 
       def extract_xls
