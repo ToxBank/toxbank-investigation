@@ -120,11 +120,13 @@ module OpenTox
     end
 
     # resets all investigation policies exept pi policy
-    # @param [String, String] URI,subjectid
-    def self.reset_policies uri, subjectid
+    # @param [String, String, String] URI,LDAPtype,subjectid
+    def self.reset_policies uri, type, subjectid
       policies = self.list_uri_policies(uri, subjectid)
       user = get_user(subjectid)
-      policies.each{|policy| self.delete_policy(policy, subjectid) unless policy =~ /^tbi-#{user}-users-*/ }
+      policies.keep_if{|policy| policy =~ /^tbi-\w+-#{type}-*/ }
+      policies.delete_if{|policy| policy =~ /^tbi-#{user}-users-*/ }
+      policies.each{|policy| self.delete_policy(policy, subjectid) }
     end
 
   end

@@ -112,7 +112,7 @@ module OpenTox
         investigation_uri
       end
 
-      def create_policy_file ldaptype, uristring
+      def create_policy ldaptype, uristring
         begin
           filename = File.join(dir, "#{ldaptype}_policies")
           policyfile = File.open(filename,"w")
@@ -125,33 +125,30 @@ module OpenTox
           policytext = File.read filename
           replace = policytext.gsub!("</Policies>\n<!DOCTYPE Policies PUBLIC \"-//Sun Java System Access Manager7.1 2006Q3 Admin CLI DTD//EN\" \"jar://com/sun/identity/policy/policyAdmin.dtd\">\n<Policies>\n", "")
           File.open(filename, "w") { |file| file.puts replace } if replace
+          Authorization.reset_policies investigation_uri, ldaptype, @subjectid
+          ret = Authorization.create_policy(File.read(policyfile), @subjectid)
+          File.delete policyfile if ret
         rescue
           $logger.warn "create policies error for Investigation URI: #{investigation_uri} for user/group uris: #{uristring}"
         end
       end
 
-      def send_policies
-        ["user","group"].each do |policytype|
-          policyfile = File.join dir, "#{policytype}_policies"
-          if File.exists?(policyfile)
-            ret = Authorization.create_policy(File.read(policyfile), @subjectid)
-            File.delete policyfile if ret
-          end
-        end
-        set_published true
+      def set_flag flag, value
+        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"^^<#{RDF::XSD.boolean}>}}"
+        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"^^<#{RDF::XSD.boolean}>}}"
       end
 
-      def set_published value
-        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::TB.isPublished}> \"#{!value}\"^^<#{RDF::XSD.boolean}>}}"
-        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::TB.isPublished}> \"#{value}\"^^<#{RDF::XSD.boolean}>}}"
-      end
-
-      def get_published
-        data = FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF::TB.isPublished}> ?o. ?s ?p ?o .  } ", "application/rdf+xml"
+      def get_flag flag
+        data = FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{flag}> ?o. ?s ?p ?o .  } ", "application/rdf+xml"
         g = RDF::Graph.new
         RDF::Reader.for(:rdfxml).new(data){|r| r.each{|s| g << s}}
         g.first.object.value
       end
+
+      def is_pi?
+        OpenTox::Authorization.get_uri_owner(investigation_uri, @subjectid)
+      end
+
     end
 
     before do
@@ -199,9 +196,10 @@ module OpenTox
         end
         isa2rdf
         OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
-        set_published false
-        create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
-        create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        set_flag(RDF::TB.isPublished, false)
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false))
+        create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
+        create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -261,9 +259,10 @@ module OpenTox
           end
           isa2rdf
         end
-        create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
-        create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        params[:published] && params[:published] == "true" ? send_policies : set_published(false)
+        set_flag(RDF::TB.isPublished, (params[:published] ? true : false)) if params[:file] || (!params[:file] && params[:published])
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false)) if params[:file] || (!params[:file] && params[:summarySearchable])
+        create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
+        create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
