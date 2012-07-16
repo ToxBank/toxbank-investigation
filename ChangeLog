@@ -12,9 +12,9 @@ v0.0.4 2012-07-
 - isPublished flag
   - New investigations get http://onto.toxbank.net/api/isPublished = false to its metadata RDF representation:
     e.G.:
-    <rdf:Description rdf:about="https://INVESTIGATIONSERVICE/investigation/f0154c33-e27a-4683-b9cd-94473beccae3/">
-      <ns0:isPublished xmlns:ns0="http://onto.toxbank.net/api/" rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</ns0:isPublished>
-    </rdf:Description>
+      <rdf:Description rdf:about="https://INVESTIGATIONSERVICE/investigation/f0154c33-e27a-4683-b9cd-94473beccae3/">
+        <ns0:isPublished xmlns:ns0="http://onto.toxbank.net/api/" rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</ns0:isPublished>
+      </rdf:Description>
   - published parameter added to PUT request to set isPublished in metadata to true:
     curl -Lk -X PUT -i -H "subjectid:MYTOKEN" -d "published=true" https://INVESTIGATIONSERVICE/investigation/UUID
 - isSummarySearchable flag
