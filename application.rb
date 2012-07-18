@@ -154,9 +154,10 @@ module OpenTox
     end
 
     before do
-      request.content_type ? response['Content-Type'] = request.content_type : response['Content-Type'] = request.env['HTTP_ACCEPT']
+      #request.content_type ? response['Content-Type'] = request.content_type : response['Content-Type'] = request.env['HTTP_ACCEPT']
       parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
+      response['Content-Type'] = @accept
       not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
     end
 
@@ -183,10 +184,13 @@ module OpenTox
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
-        if params[:file][:type].match('application/zip') then
-          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file." unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
+      puts params.inspect
+      if params[:file]
+        if params[:file][:type] == "application/zip"
+          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
         end
+      end
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload
         case params[:file][:type]
         when "application/vnd.ms-excel"
@@ -198,13 +202,10 @@ module OpenTox
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
-=begin
-        #TODO: fix AA
         OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
         set_published false
         create_policy_file "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy_file "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-=end
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
