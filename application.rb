@@ -153,11 +153,10 @@ module OpenTox
     end
 
     before do
-      #request.content_type ? response['Content-Type'] = request.content_type : response['Content-Type'] = request.env['HTTP_ACCEPT']
+      not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
       parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
-      not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
     end
 
     # Query all investigations or get a list of all investigations
@@ -183,7 +182,6 @@ module OpenTox
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      puts params.inspect
       if params[:file]
         if params[:file][:type] == "application/zip"
           bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
