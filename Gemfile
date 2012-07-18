@@ -7,6 +7,6 @@ gemspec
 #gem 'rake', '~> 0.9.3.beta.1'
 gem 'opentox-server', :path => "~/opentox-server"
 gem "opentox-client", :path => "~/opentox-client"
-group :test do
-  gem "rack-test", :require => "rack/test"
-end
+#group :test do
+  #gem "rack-test", :require => "rack/test"
+#end

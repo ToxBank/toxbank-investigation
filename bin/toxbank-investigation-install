@@ -41,11 +41,11 @@ cd $TB_HOME
 
 echo "Installing configuration files"
 
-mkdir -p "$HOME/.opentox/config/toxbank-investigation" 
+mkdir -p "$HOME/.opentox/config" 
 mkdir -p "$HOME/.opentox/log" 
 mkdir -p "$HOME/.opentox/tmp" 
 
-config="$HOME/.opentox/config/toxbank-investigation/production.rb" 
+config="$HOME/.opentox/config/investigation.rb" 
 
 if [ -f $config ]
 then
