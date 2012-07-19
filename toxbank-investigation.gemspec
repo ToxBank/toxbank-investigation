@@ -15,13 +15,11 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "toxbank-investigation"
 
   s.files         = `git ls-files`.split("\n")
-  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
-  #s.require_paths = ["lib"]
   s.required_ruby_version = '>= 1.9.2'
 
   # specify any dependencies here; for example:
   s.add_runtime_dependency "opentox-server"
+  s.add_runtime_dependency 'roo'
 
   # external requirements
   ["git", "zip", "java", "curl", "wget"].each{|r| s.requirements << r}

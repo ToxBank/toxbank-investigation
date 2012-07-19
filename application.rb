@@ -1,4 +1,4 @@
-require "opentox-server"
+require 'opentox-server'
 require "#{File.dirname(__FILE__)}/tbaccount.rb"
 require "#{File.dirname(__FILE__)}/pirewriter.rb"
 
@@ -45,7 +45,7 @@ module OpenTox
         # move existing ISA-TAB files to tmp
         FileUtils.mkdir_p tmp
         FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
-        File.open(File.join(tmp, params[:file][:filename]), "w+"){|f| f.puts params[:file][:tempfile].read}
+        FileUtils.cp params[:file][:tempfile], File.join(tmp, params[:file][:filename])
       end
 
       def extract_zip
@@ -107,7 +107,8 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        RestClient.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), :content_type => "application/x-turtle" # content-type not very consistent in 4store
+        c_length = File.size(File.join dir,n3)
+        RestClient.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), {:content_type => "application/x-turtle", :content_length => c_length} # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         investigation_uri
       end
@@ -153,6 +154,7 @@ module OpenTox
 
     before do
       not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
+      parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
     end
@@ -163,10 +165,11 @@ module OpenTox
     # @return [text/uri-list] List of investigations
     get '/investigation/?' do
       if params[:query] # pass SPARQL query to 4store
-        FourStore.query params[:query], request.env['HTTP_ACCEPT']
+        FourStore.query params[:query], @accept
       else
-        list = FourStore.list request.env['HTTP_ACCEPT']
-        list.split.keep_if{|v| v =~ /#{$toxbank_investigation[:uri]}/}.join("\n")
+        response['Content-Type'] = 'text/uri-list'
+        list = FourStore.list to("/investigation"), "text/uri-list"
+        list.split.keep_if{|v| v =~ /#{$investigation[:uri]}/}.join("\n")
       end
     end
 
@@ -176,12 +179,13 @@ module OpenTox
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
       params[:id] = SecureRandom.uuid
-      #params[:id] = next_id
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "No file uploaded." unless params[:file]
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      if params[:file][:type].match('application/zip') then
-        bad_request_error "The zip #{params[:file][:filename]} contains no investigation file." unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
+      if params[:file]
+        if params[:file][:type] == "application/zip"
+          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
+        end
       end
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload

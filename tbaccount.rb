@@ -8,12 +8,15 @@ module OpenTox
 
   CLASSES << "TBAccount"
 
+=begin
+  # TODO: this should not be necessary, class in initialized below
   # add new OpenTox class
   c = Class.new do
     include OpenTox
-    extend OpenTox::ClassMethods
+    #extend OpenTox::ClassMethods
   end
   OpenTox.const_set "TBAccount",c
+=end
 
   # Get rdf representation for a user, organisation or project from the ToxBank service 
   # @see http://api.toxbank.net/index.php/User ToxBank API User
@@ -26,6 +29,7 @@ module OpenTox
   #   puts User1.ldap_dn #=> "uid=username,ou=people,dc=opentox,dc=org"
   #   User1.send_policy("http://uri_toprotect/bla/foo") #=> creates new read policy for http://uri_toprotect/bla/foo
   class TBAccount
+    include OpenTox
 
     # Get hasAccount value of a user,organisation or project from ToxBank service
     # @return [String] username
@@ -75,12 +79,10 @@ module OpenTox
     # Get rdf from user service and returns username
     # @private 
     def get_account
-      begin
-        self.metadata[RDF::TB.hasAccount][0].value
-      rescue
-        $logger.error "OpenTox::TBAccount get_account can not get username."
-        return nil
-      end
+      get "application/rdf+xml" # get rdfxml instead of ntriples
+      # do not catch errors as this will lead do follow up problems
+      # error handling is implemented at a lower level in opentox-client
+      self[RDF::TB.hasAccount]
     end
 
     # creates policy
