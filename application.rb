@@ -36,9 +36,10 @@ module OpenTox
       end
 
       def prepare_upload
+        clean_repository
         # remove stale directories from failed tests
         stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
-        `cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
+        #`cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
         # lock tmp dir
         locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
         bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
@@ -92,14 +93,13 @@ module OpenTox
         # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
-        #`echo "\n:\n  a       isa:Investigation ;\n  tb:isPublished  \"false\"." >>  #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
         #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         # git commit
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory`
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
         ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
         `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
@@ -134,9 +134,10 @@ module OpenTox
         end
       end
 
-      def set_flag flag, value
-        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"^^<#{RDF::XSD.boolean}>}}"
-        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"^^<#{RDF::XSD.boolean}>}}"
+      def set_flag flag, value, type = ""
+        flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
+        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"#{flagtype}}}"
+        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
       end
 
       def get_flag flag
@@ -146,8 +147,21 @@ module OpenTox
         g.first.object.value
       end
 
-      def is_pi?
-        OpenTox::Authorization.get_uri_owner(investigation_uri, @subjectid)
+      def clean_repository
+        ref_time = Time.now - (60*60*24) #yesterday
+        stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.split
+        stale_files.each do |sf|  # rm all directories not in git 
+          file = File.join File.dirname(File.expand_path __FILE__), "investigation", sf
+          dirtime = File.mtime(File.join File.dirname(File.expand_path __FILE__), "investigation", sf)
+          #`rm -rf #{file}` if ref_time > dirtime
+          $logger.debug "stale file: #{file} with date: #{dirtime}" if ref_time > dirtime
+        end
+        tmp_dirs = `cd #{File.dirname(__FILE__)}/investigation;find .  -name tmp -type d`.split
+        tmp_dirs.each do |td|  # git rm all directories with tmp file
+          file = File.join File.dirname(File.expand_path __FILE__), "investigation", td.gsub("./","/").gsub("/tmp","")
+          dirtime = File.mtime(File.join File.dirname(File.expand_path __FILE__), "investigation", td)
+          $logger.debug "odd tmp-dir: #{file} with date: #{dirtime}" if ref_time > dirtime
+        end
       end
 
     end
@@ -178,6 +192,7 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
+      clean_repository
       params[:id] = SecureRandom.uuid
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "No file uploaded." unless params[:file]
@@ -189,6 +204,7 @@ module OpenTox
       end
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload
+        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
         case params[:file][:type]
         when "application/vnd.ms-excel"
           extract_xls
@@ -199,9 +215,9 @@ module OpenTox
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
-        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
-        set_flag(RDF::TB.isPublished, false)
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false))
+        set_flag(RDF::TB.isPublished, false, "boolean")
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
+        #set_flag(RDF.Type, RDF::OT.Investigation)
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
@@ -263,8 +279,8 @@ module OpenTox
           end
           isa2rdf
         end
-        set_flag(RDF::TB.isPublished, (params[:published] ? true : false)) if params[:file] || (!params[:file] && params[:published])
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false)) if params[:file] || (!params[:file] && params[:summarySearchable])
+        set_flag(RDF::TB.isPublished, (params[:published] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
