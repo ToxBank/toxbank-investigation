@@ -167,7 +167,7 @@ module OpenTox
     end
 
     before do
-      not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
+      resource_not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
       parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
@@ -182,8 +182,9 @@ module OpenTox
         FourStore.query params[:query], @accept
       else
         response['Content-Type'] = 'text/uri-list'
-        list = FourStore.list to("/investigation"), "text/uri-list"
-        list.split.keep_if{|v| v =~ /#{$investigation[:uri]}/}.join("\n")
+        puts "QERY"
+        list = FourStore.list(to("/investigation"), "text/uri-list")
+        list.split.keep_if{|v| v =~ %r{#{$investigation[:uri]}}}.join("\n")
       end
     end
 
@@ -230,7 +231,7 @@ module OpenTox
     # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
     # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
     get '/investigation/:id' do
-      not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       case @accept
       when "text/tab-separated-values"
         send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
@@ -245,7 +246,7 @@ module OpenTox
 
     # Get investigation metadata in RDF
     get '/investigation/:id/metadata' do
-      not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept
     end
 
@@ -253,7 +254,7 @@ module OpenTox
     # @param [Header] one of text/tab-separated-values, application/sparql-results+json
     # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
     get '/investigation/:id/isatab/:filename'  do
-      not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
+      resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # TODO: returns text/plain content type for tab separated files
       send_file file, :type => File.new(file).mime_type
     end
