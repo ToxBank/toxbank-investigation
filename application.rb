@@ -36,9 +36,8 @@ module OpenTox
       end
 
       def prepare_upload
-        clean_repository
         # remove stale directories from failed tests
-        stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
+        #stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
         #`cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
         # lock tmp dir
         locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
@@ -98,11 +97,6 @@ module OpenTox
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
-        # git commit
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
-        `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-        ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
-        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
         # create new zipfile
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
@@ -110,6 +104,11 @@ module OpenTox
         c_length = File.size(File.join dir,n3)
         RestClient.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), {:content_type => "application/x-turtle", :content_length => c_length} # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
+        # git commit
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
+        `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
+        ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
+        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
         investigation_uri
       end
 
@@ -147,23 +146,6 @@ module OpenTox
         g.first.object.value
       end
 
-      def clean_repository
-        ref_time = Time.now - (60*60*24) #yesterday
-        stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.split
-        stale_files.each do |sf|  # rm all directories not in git 
-          file = File.join File.dirname(File.expand_path __FILE__), "investigation", sf
-          dirtime = File.mtime(File.join File.dirname(File.expand_path __FILE__), "investigation", sf)
-          #`rm -rf #{file}` if ref_time > dirtime
-          $logger.debug "stale file: #{file} with date: #{dirtime}" if ref_time > dirtime
-        end
-        tmp_dirs = `cd #{File.dirname(__FILE__)}/investigation;find .  -name tmp -type d`.split
-        tmp_dirs.each do |td|  # git rm all directories with tmp file
-          file = File.join File.dirname(File.expand_path __FILE__), "investigation", td.gsub("./","/").gsub("/tmp","")
-          dirtime = File.mtime(File.join File.dirname(File.expand_path __FILE__), "investigation", td)
-          $logger.debug "odd tmp-dir: #{file} with date: #{dirtime}" if ref_time > dirtime
-        end
-      end
-
     end
 
     before do
@@ -193,7 +175,6 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
-      clean_repository
       params[:id] = SecureRandom.uuid
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "No file uploaded." unless params[:file]
