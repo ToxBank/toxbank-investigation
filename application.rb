@@ -204,6 +204,7 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
@@ -267,6 +268,7 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
@@ -286,6 +288,7 @@ module OpenTox
           $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
         end
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
@@ -298,6 +301,7 @@ module OpenTox
         isa2rdf
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
