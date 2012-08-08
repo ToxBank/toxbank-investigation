@@ -139,15 +139,41 @@ module OpenTox
         FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"^^<#{RDF::XSD.boolean}>}}"
       end
 
-      def get_flag flag
-        data = FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{flag}> ?o. ?s ?p ?o .  } ", "application/rdf+xml"
-        g = RDF::Graph.new
-        RDF::Reader.for(:rdfxml).new(data){|r| r.each{|s| g << s}}
-        g.first.object.value
+      def is_pi?(subjectid)
+        $logger.debug "uri owner: #{OpenTox::Authorization.get_uri_owner(investigation_uri, subjectid)}"
+        $logger.debug "user name: #{OpenTox::Authorization.get_user(subjectid)}"
+        OpenTox::Authorization.get_uri_owner(investigation_uri, subjectid) == OpenTox::Authorization.get_user(subjectid) ? true : false
       end
 
-      def is_pi?
-        OpenTox::Authorization.get_uri_owner(investigation_uri, @subjectid)
+      def qfilter(flag, uri=nil)
+        if uri == nil
+          qfilter = FourStore.query "SELECT ?s FROM <#{investigation_uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
+          qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '')
+        else
+          qfilter = FourStore.query "SELECT ?s FROM <#{uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
+          qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '')
+        end
+      end
+
+      def protected!(subjectid)
+        if env["session"]
+          unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
+            flash[:notice] = "You don't have access to this section: "
+            redirect back
+        end
+        elsif !env["session"] && subjectid
+          unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
+            $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
+            raise OpenTox::NotAuthorizedError.new "Not authorized"
+          end
+        else
+          raise OpenTox::NotAuthorizedError.new "Not authorized" unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
+        end
+      end
+
+      def qlist
+        list = FourStore.list(to("/investigation"), "text/uri-list")
+        list.split.keep_if{|v| v =~ %r{#{$investigation[:uri]}} && (OpenTox::Authorization.get_uri_owner(v, @subjectid) == OpenTox::Authorization.get_user(@subjectid) || qfilter("isSummarySearchable") || qfilter("isPublished", v))}.join("\n")
       end
 
     end
@@ -163,13 +189,19 @@ module OpenTox
     # Requests with a query parameter will perform a SPARQL query on all investigations
     # @return [application/sparql-results+json] Query result
     # @return [text/uri-list] List of investigations
+    # include own, published and metadata from searchable
     get '/investigation/?' do
-      if params[:query] # pass SPARQL query to 4store
-        FourStore.query params[:query], @accept
+      if params[:query] 
+        # sparql over own and published investigations
+        # include metadata if searchable
+        qlist if OpenTox::Authorization.is_token_valid(@subjectid)
+        @u = []
+        qlist.split.each{|u| @u << qfilter("isSummarySearchable", u) ? FourStore.query(params[:query].gsub(/WHERE/i, "FROM <#{u}> WHERE"), @accept) : FourStore.query(params[:query].gsub(/WHERE \{/i, "FROM <#{u}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. "), @accept) }
+        @u
       else
+        # returns uri-list, include searchable investigations
         response['Content-Type'] = 'text/uri-list'
-        list = FourStore.list to("/investigation"), "text/uri-list"
-        list.split.keep_if{|v| v =~ /#{$investigation[:uri]}/}.join("\n")
+        qlist if OpenTox::Authorization.is_token_valid(@subjectid)
       end
     end
 
@@ -213,6 +245,7 @@ module OpenTox
     # Get an investigation representation
     # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
     # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
+    # include own and published
     get '/investigation/:id' do
       not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       case @accept
@@ -223,28 +256,31 @@ module OpenTox
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       else
-        FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o } LIMIT 15000", @accept
+        FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
       end
     end
 
     # Get investigation metadata in RDF
+    # include own, pulished and searchable
     get '/investigation/:id/metadata' do
       not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept
+      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept if is_pi?(@subjectid) || qfilter("isSummarySearchable") =~ /#{investigation_uri}/ || qfilter("isPublished") =~ /#{investigation_uri}/
     end
 
     # Get a study, assay, data representation
     # @param [Header] one of text/tab-separated-values, application/sparql-results+json
     # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
+    # include own and published
     get '/investigation/:id/isatab/:filename'  do
       not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # TODO: returns text/plain content type for tab separated files
-      send_file file, :type => File.new(file).mime_type
+      send_file file, :type => File.new(file).mime_type if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
     end
 
     # Get RDF for an investigation resource
+    # include own and published
     get '/investigation/:id/:resource' do
-      FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
+      FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
     end
 
     # Add studies, assays or data to an investigation
