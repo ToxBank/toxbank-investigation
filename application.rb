@@ -196,7 +196,8 @@ module OpenTox
         # include metadata if searchable
         qlist if OpenTox::Authorization.is_token_valid(@subjectid)
         @u = []
-        qlist.split.each{|u| @u << qfilter("isSummarySearchable", u) ? FourStore.query(params[:query].gsub(/WHERE/i, "FROM <#{u}> WHERE"), @accept) : FourStore.query(params[:query].gsub(/WHERE \{/i, "FROM <#{u}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. "), @accept) }
+        qlist.split.each{|u| @u << res = qfilter("isSummarySearchable", u) ? FourStore.query(params[:query].gsub(/WHERE \{/i, "FROM <#{u}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. "), @accept) : FourStore.query(params[:query].gsub(/WHERE/i, "FROM <#{u}> WHERE"), @accept) }
+        $logger.debug "@u:\n@accept:#{@accept}"
         @u
       else
         # returns uri-list, include searchable investigations
