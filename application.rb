@@ -210,42 +210,38 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
-      if OpenTox::Authorization.is_token_valid(@subjectid)
-        params[:id] = SecureRandom.uuid
-        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-        bad_request_error "No file uploaded." unless params[:file]
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-        if params[:file]
-          if params[:file][:type] == "application/zip"
-            bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
-          end
+      params[:id] = SecureRandom.uuid
+      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+      bad_request_error "No file uploaded." unless params[:file]
+      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+      if params[:file]
+        if params[:file][:type] == "application/zip"
+          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
         end
-        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
-          prepare_upload
-          OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
-          case params[:file][:type]
-          when "application/vnd.ms-excel"
-            extract_xls
-          when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            extract_xls
-          when 'application/zip'
-            extract_zip
-          #when  'text/tab-separated-values' # do nothing, file is already in tmp
-          end
-          isa2rdf
-          set_flag(RDF::TB.isPublished, false, "boolean")
-          set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
-          #set_flag(RDF.Type, RDF::OT.Investigation)
-          create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
-          create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-          investigation_uri
-        end
-        # TODO send notification to UI
-        response['Content-Type'] = 'text/uri-list'
-        halt 202,task.uri+"\n"
-      else
-        bad_request_error "not authorized"
       end
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
+        prepare_upload
+        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
+        case params[:file][:type]
+        when "application/vnd.ms-excel"
+          extract_xls
+        when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          extract_xls
+        when 'application/zip'
+          extract_zip
+        #when  'text/tab-separated-values' # do nothing, file is already in tmp
+        end
+        isa2rdf
+        set_flag(RDF::TB.isPublished, false, "boolean")
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
+        #set_flag(RDF.Type, RDF::OT.Investigation)
+        create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
+        create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        investigation_uri
+      end
+      # TODO send notification to UI
+      response['Content-Type'] = 'text/uri-list'
+      halt 202,task.uri+"\n"
     end
 
     # Get an investigation representation
