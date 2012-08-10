@@ -18,9 +18,7 @@ module OpenTox
   OpenTox.const_set "TBAccount",c
 =end
 
-
-
-  # Get rdf representation for a user,organisation or project from the ToxBank service 
+  # Get rdf representation for a user, organisation or project from the ToxBank service 
   # @see http://api.toxbank.net/index.php/User ToxBank API User
   # @see http://api.toxbank.net/index.php/Organisation ToxBank API Organisation
   # @see http://api.toxbank.net/index.php/Project ToxBank API Project

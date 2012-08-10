@@ -37,8 +37,8 @@ module OpenTox
 
       def prepare_upload
         # remove stale directories from failed tests
-        stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
-        `cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
+        #stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
+        #`cd #{File.dirname(__FILE__)}/investigation && rm -rf #{stale_files}` unless stale_files.empty?
         # lock tmp dir
         locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
         bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
@@ -92,17 +92,11 @@ module OpenTox
         # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
-        #`echo "\n:\n  a       isa:Investigation ;\n  tb:isPublished  \"false\"." >>  #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
         #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
-        # git commit
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory`
-        `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-        ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
-        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
         # create new zipfile
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
@@ -110,6 +104,11 @@ module OpenTox
         c_length = File.size(File.join dir,n3)
         RestClient.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), {:content_type => "application/x-turtle", :content_length => c_length} # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
+        # git commit
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
+        `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
+        ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
+        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
         investigation_uri
       end
 
@@ -134,9 +133,10 @@ module OpenTox
         end
       end
 
-      def set_flag flag, value
-        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"^^<#{RDF::XSD.boolean}>}}"
-        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"^^<#{RDF::XSD.boolean}>}}"
+      def set_flag flag, value, type = ""
+        flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
+        FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"#{flagtype}}}"
+        FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
       end
 
       def is_pi?(subjectid)
@@ -179,7 +179,7 @@ module OpenTox
     end
 
     before do
-      not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
+      resource_not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
       parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
@@ -221,6 +221,7 @@ module OpenTox
       end
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
         prepare_upload
+        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
         case params[:file][:type]
         when "application/vnd.ms-excel"
           extract_xls
@@ -231,13 +232,14 @@ module OpenTox
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
-        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
-        set_flag(RDF::TB.isPublished, false)
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false))
+        set_flag(RDF::TB.isPublished, false, "boolean")
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
+        #set_flag(RDF.Type, RDF::OT.Investigation)
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
@@ -247,7 +249,7 @@ module OpenTox
     # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
     # include own and published
     get '/investigation/:id' do
-      not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       case @accept
       when "text/tab-separated-values"
         send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
@@ -263,7 +265,7 @@ module OpenTox
     # Get investigation metadata in RDF
     # include own, pulished and searchable
     get '/investigation/:id/metadata' do
-      not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept if is_pi?(@subjectid) || qfilter("isSummarySearchable") =~ /#{investigation_uri}/ || qfilter("isPublished") =~ /#{investigation_uri}/
     end
 
@@ -272,7 +274,7 @@ module OpenTox
     # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
     # include own and published
     get '/investigation/:id/isatab/:filename'  do
-      not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
+      resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # TODO: returns text/plain content type for tab separated files
       send_file file, :type => File.new(file).mime_type if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
     end
@@ -299,12 +301,13 @@ module OpenTox
           end
           isa2rdf
         end
-        set_flag(RDF::TB.isPublished, (params[:published] ? true : false)) if params[:file] || (!params[:file] && params[:published])
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false)) if params[:file] || (!params[:file] && params[:summarySearchable])
+        set_flag(RDF::TB.isPublished, (params[:published] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
@@ -324,6 +327,7 @@ module OpenTox
           $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
         end
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
@@ -336,6 +340,7 @@ module OpenTox
         isa2rdf
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
+      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
