@@ -210,38 +210,42 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
-      params[:id] = SecureRandom.uuid
-      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-      bad_request_error "No file uploaded." unless params[:file]
-      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      if params[:file]
-        if params[:file][:type] == "application/zip"
-          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
+      if OpenTox::Authorization.is_token_valid(@subjectid)
+        params[:id] = SecureRandom.uuid
+        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+        bad_request_error "No file uploaded." unless params[:file]
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+        if params[:file]
+          if params[:file][:type] == "application/zip"
+            bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
+          end
         end
-      end
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
-        prepare_upload
-        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
-        case params[:file][:type]
-        when "application/vnd.ms-excel"
-          extract_xls
-        when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          extract_xls
-        when 'application/zip'
-          extract_zip
-        #when  'text/tab-separated-values' # do nothing, file is already in tmp
+        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
+          prepare_upload
+          OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
+          case params[:file][:type]
+          when "application/vnd.ms-excel"
+            extract_xls
+          when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            extract_xls
+          when 'application/zip'
+            extract_zip
+          #when  'text/tab-separated-values' # do nothing, file is already in tmp
+          end
+          isa2rdf
+          set_flag(RDF::TB.isPublished, false, "boolean")
+          set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
+          #set_flag(RDF.Type, RDF::OT.Investigation)
+          create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
+          create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+          investigation_uri
         end
-        isa2rdf
-        set_flag(RDF::TB.isPublished, false, "boolean")
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
-        #set_flag(RDF.Type, RDF::OT.Investigation)
-        create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
-        create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        investigation_uri
+        # TODO send notification to UI
+        response['Content-Type'] = 'text/uri-list'
+        halt 202,task.uri+"\n"
+      else
+        bad_request_error "not authorized"
       end
-      # TODO send notification to UI
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
     end
 
     # Get an investigation representation
@@ -290,59 +294,71 @@ module OpenTox
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     # @return [text/uri-list] Task URI
     put '/investigation/:id' do
-      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
-        if params[:file]
-          prepare_upload
-          case params[:file][:type]
-          when 'application/zip'
-            extract_zip
+      if is_pi?(@subjectid)
+        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
+        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
+          if params[:file]
+            prepare_upload
+            case params[:file][:type]
+            when 'application/zip'
+              extract_zip
+            end
+            isa2rdf
           end
-          isa2rdf
+          set_flag(RDF::TB.isPublished, (params[:published] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
+          set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
+          create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
+          create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+          investigation_uri
         end
-        set_flag(RDF::TB.isPublished, (params[:published] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
-        create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
-        create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        investigation_uri
+        # TODO send notification to UI
+        response['Content-Type'] = 'text/uri-list'
+        halt 202,task.uri+"\n"
+      else
+        bad_request_error "not authorized"
       end
-      # TODO send notification to UI
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
     end
 
     # Delete an investigation
     delete '/investigation/:id' do
-      FileUtils.remove_entry dir
-      # git commit
-      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
-      # updata RDF
-      FourStore.delete investigation_uri
-      if @subjectid and !File.exists?(dir) and investigation_uri
-        begin
-          res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
-        rescue
-          $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
+      if is_pi?(@subjectid)
+        FileUtils.remove_entry dir
+        # git commit
+        `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+        # updata RDF
+        FourStore.delete investigation_uri
+        if @subjectid and !File.exists?(dir) and investigation_uri
+          begin
+            res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
+            $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
+          rescue
+            $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
+          end
         end
+        # TODO send notification to UI
+        response['Content-Type'] = 'text/plain'
+        "Investigation #{params[:id]} deleted"
+      else
+        bad_request_error "not authorized"
       end
-      # TODO send notification to UI
-      response['Content-Type'] = 'text/plain'
-      "Investigation #{params[:id]} deleted"
     end
 
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
-        prepare_upload
-        File.delete File.join(tmp,params[:filename])
-        isa2rdf
-        "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
+      if is_pi?(@subjectid)
+        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+          prepare_upload
+          File.delete File.join(tmp,params[:filename])
+          isa2rdf
+          "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
+        end
+        # TODO send notification to UI
+        response['Content-Type'] = 'text/uri-list'
+        halt 202,task.uri+"\n"
+      else
+        bad_request_error "not authorized"
       end
-      # TODO send notification to UI
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
     end
 
   end
