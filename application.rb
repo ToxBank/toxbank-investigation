@@ -202,9 +202,10 @@ module OpenTox
         #set_flag(RDF.Type, RDF::OT.Investigation)
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        # TODO send notification to UI
+        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
-      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
@@ -266,9 +267,10 @@ module OpenTox
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        # TODO send notification to UI
+        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
-      # TODO send notification to UI
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
@@ -289,6 +291,7 @@ module OpenTox
         end
       end
       # TODO send notification to UI
+      # OpenTox::RestClientWrapper.delete "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
@@ -301,7 +304,8 @@ module OpenTox
         isa2rdf
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
-      # TODO send notification to UI
+      # TODO send notification to UI (TO CHECK: if files will be indexed?)
+      # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
