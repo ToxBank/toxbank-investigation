@@ -158,16 +158,16 @@ module OpenTox
       def protected!(subjectid)
         if env["session"]
           unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
-            flash[:notice] = "You don't have access to this section: "
+            unauthorized_error "You don't have access to this section: #{subjectid}"
             redirect back
         end
         elsif !env["session"] && subjectid
           unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
             $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
-            raise OpenTox::NotAuthorizedError.new "Not authorized"
+            unauthorized_error "Not authorized: #{subjectid}"
           end
         else
-          raise OpenTox::NotAuthorizedError.new "Not authorized" unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
+          unauthorized_error "Not authorized: #{subjectid}" unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
         end
       end
 
@@ -313,7 +313,7 @@ module OpenTox
         response['Content-Type'] = 'text/uri-list'
         halt 202,task.uri+"\n"
       else
-        bad_request_error "not authorized"
+        unauthorized_error "not authorized: #{investigation_uri}"
       end
     end
 
@@ -337,7 +337,7 @@ module OpenTox
         response['Content-Type'] = 'text/plain'
         "Investigation #{params[:id]} deleted"
       else
-        bad_request_error "not authorized"
+        unauthorized_error "not authorized: #{investigation_uri}"
       end
     end
 
@@ -354,7 +354,7 @@ module OpenTox
         response['Content-Type'] = 'text/uri-list'
         halt 202,task.uri+"\n"
       else
-        bad_request_error "not authorized"
+        unauthorized_error "not authorized: #{investigation_uri}"
       end
     end
 
