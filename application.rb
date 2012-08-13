@@ -156,19 +156,19 @@ module OpenTox
       end
 
       def protected!(subjectid)
-        if env["session"]
-          unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
-            unauthorized_error "You don't have access to this section: #{subjectid}"
-            redirect back
-        end
-        elsif !env["session"] && subjectid
-          unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
+        if !env["session"] && subjectid
+          unless authorized?(subjectid) || getmeta
             $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
             unauthorized_error "Not authorized: #{subjectid}"
           end
         else
           unauthorized_error "Not authorized: #{subjectid}" unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
         end
+      end
+      
+      def getmeta
+        # only for GET
+        OpenTox::Authorization.is_token_valid(subjectid)
       end
 
       def qlist
