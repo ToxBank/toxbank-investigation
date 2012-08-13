@@ -167,7 +167,8 @@ module OpenTox
       end
       
       def getmeta
-        # only for GET
+        # only for GET  
+        return false if request.env['REQUEST_METHOD'] != "GET"
         OpenTox::Authorization.is_token_valid(subjectid)
       end
 
