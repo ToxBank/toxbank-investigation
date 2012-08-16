@@ -139,42 +139,47 @@ module OpenTox
         FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
       end
 
-      def is_pi?(subjectid)
-        $logger.debug "uri owner: #{OpenTox::Authorization.get_uri_owner(investigation_uri, subjectid)}"
-        $logger.debug "user name: #{OpenTox::Authorization.get_user(subjectid)}"
-        OpenTox::Authorization.get_uri_owner(investigation_uri, subjectid) == OpenTox::Authorization.get_user(subjectid) ? true : false
-      end
-
-      def qfilter(flag, uri=nil)
-        if uri == nil
-          qfilter = FourStore.query "SELECT ?s FROM <#{investigation_uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
-          qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '')
-        else
-          qfilter = FourStore.query "SELECT ?s FROM <#{uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
-          qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '')
-        end
+      def qfilter(flag, uri)
+        qfilter = FourStore.query "SELECT ?s FROM <#{uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
+        $logger.debug "result:#{qfilter}"
+        qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '')
       end
 
       def protected!(subjectid)
         if !env["session"] && subjectid
-          unless authorized?(subjectid) || getmeta
+          #$logger.debug "authorized?: #{authorized?(subjectid)}\n"
+          unless authorized?(subjectid) || get_permission
+            $logger.debug ">-get_permission failed"
             $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
-            unauthorized_error "Not authorized: #{subjectid}"
+            unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
           end
         else
-          unauthorized_error "Not authorized: #{subjectid}" unless authorized?(subjectid) || OpenTox::Authorization.is_token_valid(subjectid)
+          unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
         end
       end
       
-      def getmeta
-        # only for GET  
+      def get_permission
+        # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
-        OpenTox::Authorization.is_token_valid(subjectid)
+        #$logger.debug "long request uri:#{request.env['REQUEST_URI']}"
+        if request.env['REQUEST_URI'] =~ /metadata/
+          ruri = request.env['REQUEST_URI'].chomp("/metadata")
+          #$logger.debug "\nruri 1: #{ruri}"
+          #$logger.debug "\nsearchable?: #{qfilter("isSummarySearchable", to(ruri)).strip}"
+          return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
+          return false
+        else
+          ruri = request.env['REQUEST_URI'].gsub(/\/isatab\/.*/,'')
+          #$logger.debug "\nruri 2: #{ruri}"
+          #$logger.debug "\npublished?: #{qfilter("isPublished", to(ruri)).strip}\n"
+          return true if qfilter("isPublished", to(ruri)) =~ /#{to(ruri)}/
+          return false
+        end
       end
 
       def qlist
         list = FourStore.list(to("/investigation"), "text/uri-list")
-        list.split.keep_if{|v| v =~ %r{#{$investigation[:uri]}} && (OpenTox::Authorization.get_uri_owner(v, @subjectid) == OpenTox::Authorization.get_user(@subjectid) || qfilter("isSummarySearchable") || qfilter("isPublished", v))}.join("\n")
+        list.split.keep_if{|v| v =~ /#{$investigation[:uri]}/ || qfilter("isSummarySearchable", v)}.join("\n")
       end
 
     end
@@ -186,25 +191,12 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
-    # Query all investigations or get a list of all investigations
-    # Requests with a query parameter will perform a SPARQL query on all investigations
-    # @return [application/sparql-results+json] Query result
+    # uri-list of all investigations
     # @return [text/uri-list] List of investigations
     # include own, published and metadata from searchable
     get '/investigation/?' do
-      if params[:query] 
-        # sparql over own and published investigations
-        # include metadata if searchable
-        qlist if OpenTox::Authorization.is_token_valid(@subjectid)
-        @u = []
-        qlist.split.each{|u| @u << res = qfilter("isSummarySearchable", u) ? FourStore.query(params[:query].gsub(/WHERE \{/i, "FROM <#{u}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. "), @accept) : FourStore.query(params[:query].gsub(/WHERE/i, "FROM <#{u}> WHERE"), @accept) }
-        $logger.debug "@u:\n@accept:#{@accept}"
-        @u
-      else
-        # returns uri-list, include searchable investigations
-        response['Content-Type'] = 'text/uri-list'
-        qlist if OpenTox::Authorization.is_token_valid(@subjectid)
-      end
+      response['Content-Type'] = 'text/uri-list'
+      qlist
     end
 
     # Create a new investigation from ISA-TAB files
@@ -261,7 +253,7 @@ module OpenTox
       when "application/zip"
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       else
-        FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
+        FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept
       end
     end
 
@@ -269,7 +261,7 @@ module OpenTox
     # include own, pulished and searchable
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept if is_pi?(@subjectid) || qfilter("isSummarySearchable") =~ /#{investigation_uri}/ || qfilter("isPublished") =~ /#{investigation_uri}/
+      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept
     end
 
     # Get a study, assay, data representation
@@ -279,13 +271,13 @@ module OpenTox
     get '/investigation/:id/isatab/:filename'  do
       resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # TODO: returns text/plain content type for tab separated files
-      send_file file, :type => File.new(file).mime_type if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
+      send_file file, :type => File.new(file).mime_type
     end
 
     # Get RDF for an investigation resource
     # include own and published
     get '/investigation/:id/:resource' do
-      FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept if is_pi?(@subjectid) || qfilter("isPublished") =~ /#{investigation_uri}/
+      FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
     end
 
     # Add studies, assays or data to an investigation
@@ -293,54 +285,43 @@ module OpenTox
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     # @return [text/uri-list] Task URI
     put '/investigation/:id' do
-      if is_pi?(@subjectid)
-        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
-        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
-          if params[:file]
-            prepare_upload
-            case params[:file][:type]
-            when 'application/zip'
-              extract_zip
-            end
-            isa2rdf
+      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
+        if params[:file]
+          prepare_upload
+          case params[:file][:type]
+          when 'application/zip'
+            extract_zip
           end
-          set_flag(RDF::TB.isPublished, (params[:published] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
-          set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
-          create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
-          create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-          # TODO send notification to UI
-          # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-          investigation_uri
+          isa2rdf
         end
-        response['Content-Type'] = 'text/uri-list'
-        halt 202,task.uri+"\n"
-      else
-        unauthorized_error "not authorized: #{investigation_uri}"
+        set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
+        create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
+        create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
+        # TODO send notification to UI
+        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        investigation_uri
       end
+      response['Content-Type'] = 'text/uri-list'
+      halt 202,task.uri+"\n"
     end
 
     # Delete an investigation
     delete '/investigation/:id' do
-      if is_pi?(@subjectid)
-        FileUtils.remove_entry dir
-        # git commit
-        `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
-        # updata RDF
-        FourStore.delete investigation_uri
-        if @subjectid and !File.exists?(dir) and investigation_uri
-          begin
-            res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-            $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
-          rescue
-            $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
-          end
+      FileUtils.remove_entry dir
+      # git commit
+      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+      # updata RDF
+      FourStore.delete investigation_uri
+      if @subjectid and !File.exists?(dir) and investigation_uri
+        begin
+          res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
+          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
+        rescue
+          $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
         end
-        # TODO send notification to UI
-        response['Content-Type'] = 'text/plain'
-        "Investigation #{params[:id]} deleted"
-      else
-        unauthorized_error "not authorized: #{investigation_uri}"
       end
       # TODO send notification to UI
       # OpenTox::RestClientWrapper.delete "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
