@@ -141,13 +141,11 @@ module OpenTox
 
       def qfilter(flag, uri)
         qfilter = FourStore.query "SELECT ?s FROM <#{uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
-        $logger.debug "result:#{qfilter}"
-        qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '')
+        qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '').strip
       end
 
       def protected!(subjectid)
         if !env["session"] && subjectid
-          #$logger.debug "authorized?: #{authorized?(subjectid)}\n"
           unless authorized?(subjectid) || get_permission
             $logger.debug ">-get_permission failed"
             $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
@@ -161,17 +159,12 @@ module OpenTox
       def get_permission
         # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
-        #$logger.debug "long request uri:#{request.env['REQUEST_URI']}"
         if request.env['REQUEST_URI'] =~ /metadata/
           ruri = request.env['REQUEST_URI'].chomp("/metadata")
-          #$logger.debug "\nruri 1: #{ruri}"
-          #$logger.debug "\nsearchable?: #{qfilter("isSummarySearchable", to(ruri)).strip}"
           return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
           return false
         else
           ruri = request.env['REQUEST_URI'].gsub(/\/isatab\/.*/,'')
-          #$logger.debug "\nruri 2: #{ruri}"
-          #$logger.debug "\npublished?: #{qfilter("isPublished", to(ruri)).strip}\n"
           return true if qfilter("isPublished", to(ruri)) =~ /#{to(ruri)}/
           return false
         end
@@ -193,9 +186,10 @@ module OpenTox
 
     # uri-list of all investigations
     # @return [text/uri-list] List of investigations
-    # include own, published and metadata from searchable
+    # include own and searchable
+    # TODO handle published for uri-list
     get '/investigation/?' do
-      response['Content-Type'] = 'text/uri-list'
+      bad_request_error "Mime type #{@accept} not supported here. Please expect data as text/uri-list." unless @accept.to_s == "text/uri-list"
       qlist
     end
 
