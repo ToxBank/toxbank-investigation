@@ -229,8 +229,9 @@ module OpenTox
         # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
+      # do not exit with halt, the task takes care of it
+      #response['Content-Type'] = 'text/uri-list'
+      #halt 202,task.uri+"\n"
     end
 
     # Get an investigation representation
@@ -295,11 +296,13 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
+        # send it within task for correct error handling
         # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
+      # do not exit with halt, the task takes care of it
+      #response['Content-Type'] = 'text/uri-list'
+      #halt 202,task.uri+"\n"
     end
 
     # Delete an investigation
@@ -330,18 +333,19 @@ module OpenTox
           prepare_upload
           File.delete File.join(tmp,params[:filename])
           isa2rdf
+          # TODO send notification to UI
+          # better to send it in the task, do not exit by halt
+          # send it within task for correct error handling
+          # TODO send notification to UI (TO CHECK: if files will be indexed?)
+          # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
           "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
         end
-        # TODO send notification to UI
-        response['Content-Type'] = 'text/uri-list'
-        halt 202,task.uri+"\n"
       else
         unauthorized_error "not authorized: #{investigation_uri}"
       end
-      # TODO send notification to UI (TO CHECK: if files will be indexed?)
-      # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
+      # do not exit with halt, the task takes care of it
+      #response['Content-Type'] = 'text/uri-list'
+      #halt 202,task.uri+"\n"
     end
 
   end
