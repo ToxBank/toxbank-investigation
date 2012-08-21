@@ -221,7 +221,7 @@ module OpenTox
         end
         isa2rdf
         set_flag(RDF::TB.isPublished, false, "boolean")
-        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable] ? true : false), "boolean")
+        set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean")
         #set_flag(RDF.Type, RDF::OT.Investigation)
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
