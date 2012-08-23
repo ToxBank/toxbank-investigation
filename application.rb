@@ -172,7 +172,8 @@ module OpenTox
 
       def qlist
         list = FourStore.list(to("/investigation"), "text/uri-list")
-        list.split.keep_if{|v| v =~ /#{$investigation[:uri]}/ || qfilter("isSummarySearchable", v)}.join("\n")
+        service_uri = to("/investigation")
+        list.split.keep_if{|v| v =~ /#{service_uri}/}.join("\n")# show all, ignore flags
       end
 
     end
@@ -325,17 +326,13 @@ module OpenTox
 
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
-      if is_pi?(@subjectid)
-        task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
-          prepare_upload
-          File.delete File.join(tmp,params[:filename])
-          isa2rdf
-          # TODO send notification to UI (TO CHECK: if files will be indexed?)
-          # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-          "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
-        end
-      else
-        unauthorized_error "not authorized: #{investigation_uri}"
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+        prepare_upload
+        File.delete File.join(tmp,params[:filename])
+        isa2rdf
+        # TODO send notification to UI (TO CHECK: if files will be indexed?)
+        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
