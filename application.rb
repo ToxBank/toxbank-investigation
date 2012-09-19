@@ -172,6 +172,7 @@ module OpenTox
 
       def qlist
         list = FourStore.list(to("/investigation"), "text/uri-list")
+        #list = FourStore.list "text/uri-list"
         service_uri = to("/investigation")
         list.split.keep_if{|v| v =~ /#{service_uri}/}.join("\n")# show all, ignore flags
       end
@@ -187,8 +188,7 @@ module OpenTox
 
     # uri-list of all investigations
     # @return [text/uri-list] List of investigations
-    # include own and searchable
-    # TODO handle published for uri-list
+    # @note return all investigations, ignoring flags
     get '/investigation/?' do
       bad_request_error "Mime type #{@accept} not supported here. Please expect data as text/uri-list." unless @accept.to_s == "text/uri-list"
       qlist
@@ -235,8 +235,8 @@ module OpenTox
     end
 
     # Get an investigation representation
-    # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json
-    # @return [text/tab-separated-values, text/uri-list, application/zip, application/sparql-results+json] Investigation in the requested format
+    # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml
+    # @return [text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml] Investigation in the requested format
     # include own and published
     get '/investigation/:id' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
@@ -252,7 +252,9 @@ module OpenTox
       end
     end
 
-    # Get investigation metadata in RDF
+    # Get investigation metadata
+    # @param [Header] Accept: one of text/plain, text/turtle, application/rdf+xml
+    # @return [text/plain, text/turtle, application/rdf+xml]
     # include own, pulished and searchable
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
@@ -260,9 +262,9 @@ module OpenTox
     end
 
     # Get a study, assay, data representation
-    # @param [Header] one of text/tab-separated-values, application/sparql-results+json
+    # @param [Header] Accept: one of text/tab-separated-values, application/sparql-results+json
     # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
-    # include own and published
+    # @note include own and published
     get '/investigation/:id/isatab/:filename'  do
       resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # TODO: returns text/plain content type for tab separated files
@@ -270,7 +272,9 @@ module OpenTox
     end
 
     # Get RDF for an investigation resource
-    # include own and published
+    # @param [Header] Accept: one of text/plain, text/turtle, application/rdf+xml
+    # @return [text/plain, text/turtle, application/rdf+xml]
+    # @note include own and published
     get '/investigation/:id/:resource' do
       FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
     end
