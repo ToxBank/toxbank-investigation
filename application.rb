@@ -171,8 +171,7 @@ module OpenTox
       end
 
       def qlist
-        list = FourStore.list(to("/investigation"), "text/uri-list")
-        #list = FourStore.list "text/uri-list"
+        list = FourStore.list "text/uri-list"
         service_uri = to("/investigation")
         list.split.keep_if{|v| v =~ /#{service_uri}/}.join("\n")# show all, ignore flags
       end
