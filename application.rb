@@ -190,7 +190,7 @@ module OpenTox
     # include own and searchable
     # TODO handle published for uri-list
     get '/investigation/?' do
-      bad_request_error "Mime type #{@accept} not supported here. Please expect data as text/uri-list." unless @accept.to_s == "text/uri-list"
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list." unless @accept.to_s == "text/uri-list"
       qlist
     end
 
@@ -291,6 +291,7 @@ module OpenTox
           end
           isa2rdf
         end
+        #@todo only true or false, else do nothing
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
