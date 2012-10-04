@@ -169,19 +169,10 @@ module OpenTox
           ruri = request.env['REQUEST_URI'].chomp("/metadata")
           return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
           return false
-        # Get request check for owner
-        elsif
-          ruri = request.env['REQUEST_URI'].gsub(/\/isatab\/.*/,'')
-          $logger.debug "####################{OpenTox::Authorization.get_uri_owner(ruri, @subjectid)}"
-          $logger.debug "+++++++++++++++++++#{OpenTox::Authorization.get_user(@subjectid)}"
-          return true if OpenTox::Authorization.get_uri_owner(ruri, @subjectid) == OpenTox::Authorization.get_user(@subjectid)
-          return false
-        # GET request check for policy and flag
-        elsif
+        # Get request with policy and flag check 
+        elsif request.env['REQUEST_URI'] != /metadata/
           ruri = request.env['REQUEST_URI'].gsub(/\/isatab\/.*/,'')
           return true if OpenTox::Authorization.authorize(ruri, "GET", @subjectid) && qfilter("isPublished", to(ruri)) =~ /#{to(ruri)}/
-          return false
-        else
           return false
         end
       end
