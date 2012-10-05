@@ -1,16 +1,18 @@
 require 'opentox-server'
 require "#{File.dirname(__FILE__)}/tbaccount.rb"
-require "#{File.dirname(__FILE__)}/pirewriter.rb"
+require "#{File.dirname(__FILE__)}/util.rb"
 
 module OpenTox
   class Application < Service
 
     helpers do
 
+      # @return investigation[:id] with full investigation service uri  
       def investigation_uri
         to("/investigation/#{params[:id]}") # new in Sinatra, replaces url_for
       end
 
+      # @return uri-list of files in invetigation[:id] folder
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
@@ -19,6 +21,7 @@ module OpenTox
         uris.compact.sort.join("\n") + "\n"
       end
 
+      # @return investigation dir path
       def dir
         File.join File.dirname(File.expand_path __FILE__), "investigation", params[:id].to_s
       end
@@ -35,6 +38,7 @@ module OpenTox
         "#{params[:id]}.n3"
       end
 
+      # @note copies investigation files in tmp folder 
       def prepare_upload
         # remove stale directories from failed tests
         #stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
@@ -156,16 +160,19 @@ module OpenTox
         end
       end
       
+      # @note manage Get requests with policies and flags
       def get_permission
         # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
+        # GET request without policy check
         if request.env['REQUEST_URI'] =~ /metadata/
           ruri = request.env['REQUEST_URI'].chomp("/metadata")
           return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
           return false
-        else
+        # Get request with policy and flag check 
+        elsif request.env['REQUEST_URI'] != /metadata/
           ruri = request.env['REQUEST_URI'].gsub(/\/isatab\/.*/,'')
-          return true if qfilter("isPublished", to(ruri)) =~ /#{to(ruri)}/
+          return true if OpenTox::Authorization.authorize(ruri, "GET", @subjectid) && qfilter("isPublished", to(ruri)) =~ /#{to(ruri)}/
           return false
         end
       end
