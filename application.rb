@@ -150,10 +150,12 @@ module OpenTox
 
       def protected!(subjectid)
         if !env["session"] && subjectid
-          unless (authorized?(subjectid) && request.env['REQUEST_METHOD'] != "GET") || get_permission
-            $logger.debug ">-get_permission failed"
-            $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
-            unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
+          unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
+            unless (authorized?(subjectid) && request.env['REQUEST_METHOD'] != "GET") || get_permission
+              $logger.debug ">-get_permission failed"
+              $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
+              unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
+            end
           end
         else
           unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
@@ -174,7 +176,7 @@ module OpenTox
         # Get request with policy and flag check 
         else
           ruri = clean_uri(to(request.env['REQUEST_URI']))
-          return true if OpenTox::Authorization.authorize(ruri, "GET", @subjectid) && qfilter("isPublished", ruri) =~ /#{ruri}/
+          return true if OpenTox::Authorization.authorized?(ruri, "GET", @subjectid) && qfilter("isPublished", ruri) =~ /#{ruri}/
           return false
         end
       end
