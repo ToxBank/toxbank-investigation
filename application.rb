@@ -166,20 +166,19 @@ module OpenTox
       def get_permission
         # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
-        return true if ruri == $investigation[:uri]
+        uri = to(request.env['REQUEST_URI'])
+        curi = clean_uri(uri)
+        return true if uri == $investigation[:uri]
         # GET request without policy check
-        if OpenTox::Authorization.uri_owner?(clean_uri(to(request.env['REQUEST_URI'])), @subjectid)
+        if OpenTox::Authorization.uri_owner?(curi, @subjectid)
           return true
         elsif request.env['REQUEST_URI'] =~ /metadata/
-          ruri = request.env['REQUEST_URI'].chomp("/metadata")
-          return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
-          return false
+          return true if qfilter("isSummarySearchable", uri) =~ /#{ruri.chomp("/metadata")}/
         # Get request with policy and flag check 
         else
-          ruri = clean_uri(to(request.env['REQUEST_URI']))
-          return true if OpenTox::Authorization.authorized?(ruri, "GET", @subjectid) && qfilter("isPublished", ruri) =~ /#{ruri}/
-          return false
+          return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
         end
+        return false
       end
 
       def qlist
