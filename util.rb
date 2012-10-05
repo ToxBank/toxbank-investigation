@@ -13,3 +13,24 @@ def replace_pi subjectid
     $logger.error "can not replace Principal Investigator to user: #{user} with subjectid: #{subjectid}"
   end
 end
+
+def request_ssl3 uri, type="get"
+  url = URI.parse(uri)
+  case type
+  when "get"
+    req = Net::HTTP::Get.new(url.path)
+  when "delete"
+    req = Net::HTTP::Delete.new(url.path)
+  when "put"
+    req = Net::HTTP::Put.new(url.path)
+  end
+  sock = Net::HTTP.new(url.host, 443)
+  sock.use_ssl = true
+  sock.ssl_version="SSLv3"
+  sock.start do |http|
+    @response = http.request(req)
+  end
+  return @response
+end
+
+

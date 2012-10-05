@@ -1,6 +1,6 @@
 require 'opentox-server'
 require "#{File.dirname(__FILE__)}/tbaccount.rb"
-require "#{File.dirname(__FILE__)}/pirewriter.rb"
+require "#{File.dirname(__FILE__)}/util.rb"
 
 module OpenTox
   class Application < Service
