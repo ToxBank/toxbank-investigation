@@ -1,3 +1,4 @@
+# replaces pi uri with owner uri (use uri prefix)  
 def replace_pi subjectid
   begin
     user = OpenTox::Authorization.get_user(subjectid)
@@ -14,7 +15,9 @@ def replace_pi subjectid
   end
 end
 
-def request_ssl3 uri, type="get"
+# workaround for SSLv3 requests
+# @see http://stackoverflow.com/questions/6821051/ruby-ssl-error-sslv3-alert-unexpected-message
+def request_ssl3 uri, type="get", subjectid
   url = URI.parse(uri)
   case type
   when "get"
