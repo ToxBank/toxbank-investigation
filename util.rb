@@ -14,7 +14,7 @@ def replace_pi subjectid
   end
 end
 
-def request_ssl3 uri, type="get"
+def request_ssl3 uri, type="get", subjectid
   url = URI.parse(uri)
   case type
   when "get"
