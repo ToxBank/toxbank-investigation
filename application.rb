@@ -150,7 +150,7 @@ module OpenTox
 
       def protected!(subjectid)
         if !env["session"] && subjectid
-          unless authorized?(subjectid) || get_permission
+          unless (authorized?(subjectid) && request.env['REQUEST_METHOD'] != "GET") || get_permission
             $logger.debug ">-get_permission failed"
             $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
             unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
@@ -165,14 +165,16 @@ module OpenTox
         # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
         # GET request without policy check
-        if request.env['REQUEST_URI'] =~ /metadata/
+        if OpenTox::Authorization.uri_owner?(clean_uri(to(request.env['REQUEST_URI'])), @subjectid)
+          return true
+        elsif request.env['REQUEST_URI'] =~ /metadata/
           ruri = request.env['REQUEST_URI'].chomp("/metadata")
           return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
           return false
         # Get request with policy and flag check 
-        elsif request.env['REQUEST_URI'] != /metadata/
-          ruri = request.env['REQUEST_URI'].gsub(/\/isatab\/.*/,'')
-          return true if OpenTox::Authorization.authorize(ruri, "GET", @subjectid) && qfilter("isPublished", to(ruri)) =~ /#{to(ruri)}/
+        else
+          ruri = clean_uri(to(request.env['REQUEST_URI']))
+          return true if OpenTox::Authorization.authorize(ruri, "GET", @subjectid) && qfilter("isPublished", ruri) =~ /#{ruri}/
           return false
         end
       end
