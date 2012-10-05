@@ -151,7 +151,7 @@ module OpenTox
       def protected!(subjectid)
         if !env["session"] && subjectid
           unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
-            unless (authorized?(subjectid) && request.env['REQUEST_METHOD'] != "GET") || get_permission
+            unless (request.env['REQUEST_METHOD'] != "GET" ? authorized?(subjectid) : get_permission)
               $logger.debug ">-get_permission failed"
               $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
               unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
@@ -166,6 +166,7 @@ module OpenTox
       def get_permission
         # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
+        return true if ruri == $investigation[:uri]
         # GET request without policy check
         if OpenTox::Authorization.uri_owner?(clean_uri(to(request.env['REQUEST_URI'])), @subjectid)
           return true
