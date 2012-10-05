@@ -173,7 +173,7 @@ module OpenTox
         if OpenTox::Authorization.uri_owner?(curi, @subjectid)
           return true
         elsif request.env['REQUEST_URI'] =~ /metadata/
-          return true if qfilter("isSummarySearchable", uri) =~ /#{uri.chomp("/metadata")}/
+          return true if qfilter("isSummarySearchable", uri.chomp("/metadata")) =~ /#{uri.chomp("/metadata")}/
         # Get request with policy and flag check 
         else
           return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
