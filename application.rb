@@ -150,10 +150,12 @@ module OpenTox
 
       def protected!(subjectid)
         if !env["session"] && subjectid
-          unless (authorized?(subjectid) && request.env['REQUEST_METHOD'] != "GET") || get_permission
-            $logger.debug ">-get_permission failed"
-            $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
-            unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
+          unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
+            unless (request.env['REQUEST_METHOD'] != "GET" ? authorized?(subjectid) : get_permission)
+              $logger.debug ">-get_permission failed"
+              $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
+              unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
+            end
           end
         else
           unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
@@ -164,19 +166,19 @@ module OpenTox
       def get_permission
         # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
+        uri = to(request.env['REQUEST_URI'])
+        curi = clean_uri(uri)
+        return true if uri == $investigation[:uri]
         # GET request without policy check
-        if OpenTox::Authorization.uri_owner?(clean_uri(to(request.env['REQUEST_URI'])), @subjectid)
+        if OpenTox::Authorization.uri_owner?(curi, @subjectid)
           return true
         elsif request.env['REQUEST_URI'] =~ /metadata/
-          ruri = request.env['REQUEST_URI'].chomp("/metadata")
-          return true if qfilter("isSummarySearchable", to(ruri)) =~ /#{to(ruri)}/
-          return false
+          return true if qfilter("isSummarySearchable", uri.chomp("/metadata")) =~ /#{uri.chomp("/metadata")}/
         # Get request with policy and flag check 
         else
-          ruri = clean_uri(to(request.env['REQUEST_URI']))
-          return true if OpenTox::Authorization.authorize(ruri, "GET", @subjectid) && qfilter("isPublished", ruri) =~ /#{ruri}/
-          return false
+          return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
         end
+        return false
       end
 
       def qlist
@@ -198,7 +200,7 @@ module OpenTox
     # @return [text/uri-list] List of investigations
     # @note return all investigations, ignoring flags
     get '/investigation/?' do
-      bad_request_error "Mime type #{@accept} not supported here. Please expect data as text/uri-list." unless @accept.to_s == "text/uri-list"
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list." unless @accept.to_s == "text/uri-list"
       qlist
     end
 
@@ -303,6 +305,7 @@ module OpenTox
           end
           isa2rdf
         end
+        #@todo only true or false, else do nothing
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
