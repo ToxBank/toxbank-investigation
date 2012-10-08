@@ -19,13 +19,14 @@ end
 # @see http://stackoverflow.com/questions/6821051/ruby-ssl-error-sslv3-alert-unexpected-message
 def request_ssl3 uri, type="get", subjectid
   url = URI.parse(uri)
+  fullurl = "#{url.path}?#{url.query}"
   case type
   when "get"
-    req = Net::HTTP::Get.new(url.path)
+    req = Net::HTTP::Get.new(fullurl)
   when "delete"
-    req = Net::HTTP::Delete.new(url.path)
+    req = Net::HTTP::Delete.new(fullurl)
   when "put"
-    req = Net::HTTP::Put.new(url.path)
+    req = Net::HTTP::Put.new(fullurl)
   end
   sock = Net::HTTP.new(url.host, 443)
   sock.use_ssl = true

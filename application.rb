@@ -143,8 +143,8 @@ module OpenTox
         FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
       end
 
-      # returns value of related flag
-      # @return [String] value as string
+      # returns uri if related flag is set to "true"
+      # @return [String] uri as string
       def qfilter(flag, uri)
         qfilter = FourStore.query "SELECT ?s FROM <#{uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
         qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '').strip
@@ -175,7 +175,7 @@ module OpenTox
         if OpenTox::Authorization.uri_owner?(curi, @subjectid)
           return true
         elsif request.env['REQUEST_URI'] =~ /metadata/
-          return true if qfilter("isSummarySearchable", uri.chomp("/metadata")) =~ /#{uri.chomp("/metadata")}/
+          return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
         # Get request with policy and flag check 
         else
           return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
