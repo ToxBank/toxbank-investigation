@@ -171,6 +171,7 @@ module OpenTox
         uri = to(request.env['REQUEST_URI'])
         curi = clean_uri(uri)
         return true if uri == $investigation[:uri]
+        return true if OpenTox::Authorization.get_user(@subjectid) == "protocol_service"
         # GET request without policy check
         if OpenTox::Authorization.uri_owner?(curi, @subjectid)
           return true
@@ -198,14 +199,27 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
-    # uri-list of all investigations
-    # @return [text/uri-list] List of investigations
+    # uri-list of all investigations or user uris
+    # @return [text/uri-list, application/rdf+xml] List of investigations
     # @note return all investigations, ignoring flags
     get '/investigation/?' do
-      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list." unless @accept.to_s == "text/uri-list"
-      qlist
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml")
+      case @accept
+      when "text/uri-list"
+        qlist
+      else
+        # return rdf uri-list of users investigations
+        if request.env['HTTP_USER']
+          FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>.} 
+          WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}> }", @accept
+        else
+          # return rdf uri-list of all investigation uris
+          FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>.}
+          WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>.}", @accept
+        end
+      end
     end
-
+    
     # Create a new investigation from ISA-TAB files
     # @param [Header] Content-type: multipart/form-data
     # @param file Zipped investigation files in ISA-TAB format
@@ -270,7 +284,16 @@ module OpenTox
     # include own, pulished and searchable
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> WHERE { ?s <#{RDF.type}> <http://onto.toxbank.net/isa/Investigation>. ?s ?p ?o .  } ", @accept
+      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> 
+      WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>. ?s ?p ?o .  } ", @accept
+    end
+
+    # Get investigation protocol uri
+    get '/investigation/:id/protocol' do
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      FourStore.query "CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.} 
+      FROM <#{investigation_uri}> 
+      WHERE {<#{investigation_uri}/> <#{RDF::ISA}hasStudy> ?study. ?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}", @accept
     end
 
     # Get a study, assay, data representation
