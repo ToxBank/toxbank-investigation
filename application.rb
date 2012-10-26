@@ -199,6 +199,10 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
+    # head request
+    head '/investigation/?' do
+    end
+    
     # uri-list of all investigations or user uris
     # @return [text/uri-list, application/rdf+xml] List of investigations
     # @note return all investigations, ignoring flags
@@ -319,6 +323,7 @@ module OpenTox
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     # @return [text/uri-list] Task URI
     put '/investigation/:id' do
+      $logger.debug "PUT request: #{request.env}"
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
