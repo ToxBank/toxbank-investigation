@@ -64,6 +64,7 @@ module OpenTox
 
       def extract_xls
         # use Excelx.new instead of Excel.new if your file is a .xlsx
+        $logger.debug "\n#{params.inspect}\n"
         xls = Excel.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xls$/)
         xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
         xls.sheets.each_with_index do |sh, idx|
@@ -193,6 +194,7 @@ module OpenTox
     end
 
     before do
+      $logger.debug "WHO: #{OpenTox::Authorization.get_user(@subjectid)}, request method: #{request.env['REQUEST_METHOD']}, type: #{request.env['CONTENT_TYPE']}\n\nhole request env: #{request.env}\n\nparams inspect: #{params.inspect}\n\n"
       resource_not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
       parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
@@ -323,8 +325,6 @@ module OpenTox
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     # @return [text/uri-list] Task URI
     put '/investigation/:id' do
-      $logger.debug "\n\nPUT request: #{request.env}\n"
-      $logger.debug "PUT params: #{params.inspect}\n\n"
       mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
       bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
