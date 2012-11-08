@@ -100,7 +100,7 @@ module OpenTox
       #{get_permissions(type)}
     </Rule>
     <Subjects name="subjects_name" description="">
-      <Subject name="subject_name" type="#{self.ldap_type}" includeType="inclusive">
+      <Subject name="#{self.account}" type="#{self.ldap_type}" includeType="inclusive">
         <AttributeValuePair>
           <Attribute name="Values"/>
           <Value>#{self.ldap_dn}</Value>
@@ -137,7 +137,7 @@ module OpenTox
     # @param [String, String] URI,subjectid URI to create a policy for, subjectid
     def self.create_pi_policy uri, subjectid
       user = get_user(subjectid)
-      piuri = RestClientWrapper.get("http://toxbanktest1.opentox.org:8080/toxbank/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
+      piuri = RestClientWrapper.get("#{RDF::TBU.to_s}?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
       piaccount = TBAccount.new(piuri, subjectid)
       piaccount.send_policy(uri, "all")
     end
