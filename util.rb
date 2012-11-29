@@ -15,8 +15,9 @@ def replace_pi subjectid
   end
 end
 
-# workaround for SSLv3 requests
+# workaround for SSLv3 requests with cert
 # @see http://stackoverflow.com/questions/6821051/ruby-ssl-error-sslv3-alert-unexpected-message
+# @see http://stackoverflow.com/questions/2507902/how-to-validate-ssl-certificate-chain-in-ruby-with-net-http
 def request_ssl3 uri, type="get", subjectid
   url = URI.parse(uri)
   fullurl = "#{url.path}?#{url.query}"
@@ -31,6 +32,7 @@ def request_ssl3 uri, type="get", subjectid
   sock = Net::HTTP.new(url.host, 443)
   sock.use_ssl = true
   sock.ssl_version="SSLv3"
+  sock.verify_mode = OpenSSL::SSL::VERIFY_NONE
   sock.start do |http|
     @response = http.request(req)
   end
