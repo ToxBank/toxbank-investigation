@@ -117,6 +117,9 @@ module OpenTox
       piuri = RestClientWrapper.get("http://toxbanktest1.opentox.org:8080/toxbank/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
       piaccount = TBAccount.new(piuri, subjectid)
       piaccount.send_policy(uri, "all")
+      pigroup_uri = "http://toxbanktest1.opentox.org:8080/toxbank/organisation/G382"
+      pigroup = TBAccount.new(pigroup_uri, subjectid)
+      pigroup.send_policy(uri, "read")
     end
 
     # resets all investigation policies exept pi policy
