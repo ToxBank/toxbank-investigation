@@ -3,9 +3,9 @@ module OpenTox
   # define RDF vocabularies
   # use 'RDF' as 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' prefix
   RDF::TB   = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
-  RDF::TBU  = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/user/"
-  RDF::TBO  = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/organisation/"
-  RDF::TBPT = RDF::Vocabulary.new "http://toxbanktest1.opentox.org:8080/toxbank/project/"
+  RDF::TBU  = RDF::Vocabulary.new "#{$user_service}/toxbank/user/"
+  RDF::TBO  = RDF::Vocabulary.new "#{$user_service}/toxbank/organisation/"
+  RDF::TBPT = RDF::Vocabulary.new "#{$user_service}/toxbank/project/"
   RDF::OWL = RDF::Vocabulary.new "http://www.w3.org/2002/07/owl#"
   RDF::ISA = RDF::Vocabulary.new "http://onto.toxbank.net/isa/"
 
