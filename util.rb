@@ -2,7 +2,7 @@
 def replace_pi subjectid
   begin
     user = OpenTox::Authorization.get_user(subjectid)
-    accounturi = OpenTox::RestClientWrapper.get("http://toxbanktest1.opentox.org:8080/toxbank/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
+    accounturi = OpenTox::RestClientWrapper.get("$user_service[:uri]/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
     account = OpenTox::TBAccount.new(accounturi, subjectid)
     investigation_file = Dir["#{tmp}/i_*vestigation.txt"]
     investigation_file.each do |inv_file|
