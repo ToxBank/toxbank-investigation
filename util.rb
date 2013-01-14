@@ -18,7 +18,7 @@ end
 # workaround for SSLv3 requests with cert
 # @see http://stackoverflow.com/questions/6821051/ruby-ssl-error-sslv3-alert-unexpected-message
 # @see http://stackoverflow.com/questions/2507902/how-to-validate-ssl-certificate-chain-in-ruby-with-net-http
-def request_ssl3 uri, type="get", subjectid
+def request_ssl3 uri, type="get", subjectid=nil
   url = URI.parse(uri)
   fullurl = "#{url.path}?#{url.query}"
   case type
@@ -29,6 +29,7 @@ def request_ssl3 uri, type="get", subjectid
   when "put"
     req = Net::HTTP::Put.new(fullurl)
   end
+  req['subjectid'] = subjectid if subjectid
   sock = Net::HTTP.new(url.host, 443)
   sock.use_ssl = true
   sock.ssl_version="SSLv3"
