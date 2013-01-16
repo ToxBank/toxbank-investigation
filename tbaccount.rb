@@ -89,7 +89,7 @@ module OpenTox
     end
 
     def get mime_type="application/rdf+xml", subjectid=nil
-       response = `curl -Lk -X GET -i -H "Accept:#{mime_type}" -H "subjectid:#{$pi[:subjectid]}" #{$user_service[:uri]}`.chomp
+       response = `curl -Lk -X GET -i -H "Accept:#{mime_type}" -H "subjectid:#{$pi[:subjectid]}" #{@uri}`.chomp
        parse_rdfxml response if mime_type == "application/rdf+xml"
     end
 
