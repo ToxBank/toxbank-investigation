@@ -88,6 +88,11 @@ module OpenTox
       self[RDF::TB.hasAccount]
     end
 
+    def get mime_type="application/rdf+xml"
+       response = `curl -Lk -X GET -H "Accept:#{mime_type}" -H "subjectid:#{@subjectid}" #{@uri}`.chomp
+       parse_rdfxml response if mime_type == "application/rdf+xml"
+    end
+
     # creates policy
     def policy uri, type="read"
       return <<-EOS
