@@ -142,7 +142,8 @@ module OpenTox
     # @param [String, String] URI,subjectid URI to create a policy for, subjectid
     def self.create_pi_policy uri, subjectid
       user = get_user(subjectid)
-      piuri = RestClientWrapper.get("#{RDF::TBU.to_s}?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
+      #piuri = RestClientWrapper.get("#{RDF::TBU.to_s}?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
+      piuri =`curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{RDF::TBU.to_s}?username=guest`.chomp.sub("\n","")
       piaccount = TBAccount.new(piuri, subjectid)
       piaccount.send_policy(uri, "all")
     end
