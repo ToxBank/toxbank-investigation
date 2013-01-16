@@ -3,7 +3,7 @@ def replace_pi subjectid
   begin
     user = OpenTox::Authorization.get_user(subjectid)
     #accounturi = OpenTox::RestClientWrapper.get("#{$user_service[:uri]}/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
-    accounturi = `curl -Lk -X GET -i -H "Accept:text/uri-list" -H "subjectid:#{$pi[:subjectid]}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
+    accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{$pi[:subjectid]}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
     account = OpenTox::TBAccount.new(accounturi, subjectid)
     investigation_file = Dir["#{tmp}/i_*vestigation.txt"]
     investigation_file.each do |inv_file|
