@@ -87,7 +87,7 @@ module OpenTox
 
       def isa2rdf
         begin # isa2rdf returns correct exit code
-          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.3-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} &> #{File.join tmp,'log'}`
+          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.3-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} &> #{File.join tmp,'log'}`
         rescue
           log = File.read File.join(tmp,"log")
           FileUtils.remove_entry dir
@@ -261,7 +261,7 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
-        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -344,7 +344,7 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
-        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -367,7 +367,7 @@ module OpenTox
         end
       end
       # TODO send notification to UI
-      # OpenTox::RestClientWrapper.delete "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      # OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
@@ -379,7 +379,7 @@ module OpenTox
         File.delete File.join(tmp,params[:filename])
         isa2rdf
         # TODO send notification to UI (TO CHECK: if files will be indexed?)
-        # OpenTox::RestClientWrapper.put "https://www.leadscope.com/dev-toxbank-search/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
       response['Content-Type'] = 'text/uri-list'

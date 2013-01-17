@@ -52,12 +52,23 @@ then
   echo "Configuration $config exists. Please check if the settings are correct."
 else
   echo "Creating configuration"
+  echo -n "Please enter the URI of your investigation service (e.G.: https://myinvestigation.com/investigation ): "
+  read investigation_uri
+  echo -n "Please enter your 4store URI (e.G.: https://my4store.com/ ): "
+  read 4store_uri
   echo -n "Please enter your 4store username: "
   read user
   echo -n "Please enter your 4store password: "
   read pass
-
-  sed -e "s/ USER/ '$user'/;s/ PASS/ '$pass'/" config/production.rb > $config
+  echo -n "Please enter the user service URI: "
+  read user_service
+  echo -n "Please enter the search service URI: "
+  read search_service
+  echo -n "Please enter the task service URI: "
+  read task_service
+ 
+  $search_service[:uri]
+  sed -e "s/ USER/ '$user'/;s/ PASS/ '$pass'/;s/ 4STORE_URI/ '$4store_uri'/;s/ USER_SERVICE/ '$user_service'/;s/ SEARCH_SERVICE/ '$search_service'/;s/ TASK_URI/ '$task_service'/;s/ INVESTIGATION_URI/ '$investigation_uri'/" config/production.rb > $config
   echo "Configuration $config created. Please check if the settings are correct."
 fi
 
