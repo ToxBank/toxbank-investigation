@@ -261,7 +261,11 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
-        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        begin
+          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        rescue
+          $logger.warn "Can not index #{investigation_uri} at search service #{$search_service[:uri]} ."
+        end
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -344,7 +348,11 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
-        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        begin
+          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        rescue
+          $logger.warn "Can not index #{investigation_uri} at search service #{$search_service[:uri]} ."
+        end
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -367,7 +375,11 @@ module OpenTox
         end
       end
       # TODO send notification to UI
-      # OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      begin
+        OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      rescue
+          $logger.warn "Can not remove #{investigation_uri} from index at search service #{$search_service[:uri]} ."
+        end
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
@@ -380,6 +392,7 @@ module OpenTox
         isa2rdf
         # TODO send notification to UI (TO CHECK: if files will be indexed?)
         # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
       response['Content-Type'] = 'text/uri-list'
