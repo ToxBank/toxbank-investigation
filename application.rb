@@ -98,7 +98,8 @@ module OpenTox
         # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
-        `echo '\n: <#{RDF::DC.modified}> "#{DateTime.now}" .' >> #{File.join tmp,n3}`
+        time = Time.new
+        `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
         #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
