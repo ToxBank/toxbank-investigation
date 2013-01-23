@@ -127,7 +127,7 @@ module OpenTox
           #uriarray = uristring.split(",")
           uriarray = uristring if uristring.class == Array
           uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
-
+          return 0 if uriarray.size < 1
           uriarray.each do |u|
             tbaccount = OpenTox::TBAccount.new(u, @subjectid)
             policyfile.puts tbaccount.get_policy(investigation_uri)
