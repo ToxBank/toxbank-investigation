@@ -123,7 +123,10 @@ module OpenTox
         begin
           filename = File.join(dir, "#{ldaptype}_policies")
           policyfile = File.open(filename,"w")
-          uriarray = uristring.split(",")
+          #uriarray = uristring.split(",")
+          uriarray = uristring if uristring.class == Array
+          uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
+
           uriarray.each do |u|
             tbaccount = OpenTox::TBAccount.new(u, @subjectid)
             policyfile.puts tbaccount.get_policy(investigation_uri)
@@ -261,11 +264,7 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
-        begin
-          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        rescue
-          $logger.warn "Can not index #{investigation_uri} at search service #{$search_service[:uri]} ."
-        end
+        OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -348,11 +347,7 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # TODO send notification to UI
-        begin
-          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        rescue
-          $logger.warn "Can not index #{investigation_uri} at search service #{$search_service[:uri]} ."
-        end
+        OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -367,19 +362,11 @@ module OpenTox
       # updata RDF
       FourStore.delete investigation_uri
       if @subjectid and !File.exists?(dir) and investigation_uri
-        begin
-          res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
-        rescue
-          $logger.warn "Policy delete error for Investigation URI: #{investigation_uri}"
-        end
+        res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
+        $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
       end
       # TODO send notification to UI
-      begin
-        OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-      rescue
-          $logger.warn "Can not remove #{investigation_uri} from index at search service #{$search_service[:uri]} ."
-        end
+      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
