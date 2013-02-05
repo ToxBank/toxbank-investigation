@@ -237,16 +237,11 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
-      params[:id] = SecureRandom.uuid
-      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-      bad_request_error "No file uploaded." unless params[:file]
-      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-      if params[:file]
-        if params[:file][:type] == "application/zip"
-          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
-        end
-      end
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file][:filename]}: Uploading, validating and converting to RDF") do
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF") do
+        params[:id] = SecureRandom.uuid
+        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+        bad_request_error "No file uploaded." unless params[:file]
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
         prepare_upload
         OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
         case params[:file][:type]
@@ -255,6 +250,7 @@ module OpenTox
         when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           extract_xls
         when 'application/zip'
+          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
           extract_zip
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
@@ -264,7 +260,7 @@ module OpenTox
         #set_flag(RDF.Type, RDF::OT.Investigation)
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        # TODO send notification to UI
+        # send notification to UI
         OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
@@ -331,9 +327,10 @@ module OpenTox
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     # @return [text/uri-list] Task URI
     put '/investigation/:id' do
-      mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-      bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
+        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
+        bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
         if params[:file]
           prepare_upload
           case params[:file][:type]
@@ -342,12 +339,11 @@ module OpenTox
           end
           isa2rdf
         end
-        #@todo only true or false, else do nothing
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        # TODO send notification to UI
+        # send notification to UI
         OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         investigation_uri
       end
