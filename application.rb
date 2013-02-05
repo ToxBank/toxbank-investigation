@@ -110,7 +110,7 @@ module OpenTox
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
         c_length = File.size(File.join dir,n3)
-        RestClient.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), {:content_type => "application/x-turtle", :content_length => c_length} # content-type not very consistent in 4store
+        OpenTox::RestClientWrapper.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), {:content_type => "application/x-turtle", :content_length => c_length} # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         # git commit
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
