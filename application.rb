@@ -1,4 +1,5 @@
 require 'roo'
+require 'json'
 require 'opentox-server'
 require "#{File.dirname(__FILE__)}/tbaccount.rb"
 require "#{File.dirname(__FILE__)}/util.rb"
@@ -99,7 +100,7 @@ module OpenTox
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
         time = Time.new
-        `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
+        `echo '\n: <#{RDF::DC.modified}> "#{Time.now.to_i}" .' >> #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
         #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
@@ -212,22 +213,23 @@ module OpenTox
     end
     
     # uri-list of all investigations or user uris
-    # @return [text/uri-list, application/rdf+xml] List of investigations
+    # @return [text/uri-list, application/rdf+xml, application/json] List of investigations
     # @note return all investigations, ignoring flags
     get '/investigation/?' do
-      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml")
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
       case @accept
       when "text/uri-list"
         qlist
       else
-        # return rdf uri-list of users investigations
-        if request.env['HTTP_USER']
-          FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>.} 
-          WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}> }", @accept
-        else
-          # return rdf uri-list of all investigation uris
-          FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>.}
-          WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>.}", @accept
+        # return uri-list of users investigations
+        # rdf+xml
+        if (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
+          FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
+          WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
+        # application/json
+        # for UI
+        elsif (@accept == "application/json" && request.env['HTTP_USER'])
+          FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
         end
       end
     end
