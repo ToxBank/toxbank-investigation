@@ -40,6 +40,14 @@ module OpenTox
         "#{params[:id]}.n3"
       end
 
+      def service_time timestring
+        $logger.debug "timestring from graph: #{timestring} "
+        newtime = Time.parse(timestring)
+        $logger.debug "new time object parsed: #{newtime}"
+        $logger.debug "timestamp: #{newtime.to_i}"
+        newtime.to_i
+      end
+
       # @note copies investigation files in tmp folder 
       def prepare_upload
         # remove stale directories from failed tests
@@ -100,7 +108,9 @@ module OpenTox
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
         time = Time.new
-        `echo '\n: <#{RDF::DC.modified}> "#{Time.now.to_i}" .' >> #{File.join tmp,n3}`
+        #$logger.debug "timestamp at upload befor parsed: #{time.to_i}"
+        #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,n3}`
+        `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
         #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
@@ -229,7 +239,8 @@ module OpenTox
         # application/json
         # for UI
         elsif (@accept == "application/json" && request.env['HTTP_USER'])
-          FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
+          response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
+          response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
         end
       end
     end
