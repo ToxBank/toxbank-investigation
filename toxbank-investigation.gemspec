@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
 
   # specify any dependencies here; for example:
   s.add_runtime_dependency "opentox-server"
-  s.add_runtime_dependency 'roo'
+  s.add_runtime_dependency "roo", "=1.10.1" #lock 1.10.2 does not work
 
   # external requirements
   ["git", "zip", "java", "curl", "wget"].each{|r| s.requirements << r}
