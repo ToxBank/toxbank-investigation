@@ -104,15 +104,12 @@ module OpenTox
         end
         # rewrite default prefix
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
-        # add owl:sameAs to identify investigation later
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
         time = Time.new
-        #$logger.debug "timestamp at upload befor parsed: #{time.to_i}"
         #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,n3}`
         `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
         `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
-        #`echo "\n: owl:sameAs #{investigation_id} ." >>  #{File.join tmp,n3}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -120,8 +117,7 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        c_length = File.size(File.join dir,n3)
-        OpenTox::RestClientWrapper.put File.join(FourStore.four_store_uri,"data",investigation_uri), File.read(File.join(dir,n3)), {:content_type => "application/x-turtle", :content_length => c_length} # content-type not very consistent in 4store
+        FourStore.put investigation_uri, File.read(File.join(dir,n3)), "text/turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         # git commit
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
@@ -263,8 +259,12 @@ module OpenTox
         when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           extract_xls
         when 'application/zip'
-          bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
-          extract_zip
+          if `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
+            extract_zip
+          else
+            FileUtils.remove_dir dir
+            bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri
+          end
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
