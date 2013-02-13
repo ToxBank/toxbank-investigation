@@ -95,13 +95,9 @@ module OpenTox
       end
 
       def isa2rdf
-        begin # isa2rdf returns correct exit code
-          `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.4-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} &> #{File.join tmp,'log'}`
-        rescue
-          log = File.read File.join(tmp,"log")
-          FileUtils.remove_entry dir
-          bad_request_error "ISA-TAB validation failed:\n#{log}", investigation_uri
-        end
+        # isa2rdf returns correct exit code but error in task
+        # TODO delete dir if task catches error, pass error to block
+        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.4-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
         # rewrite default prefix
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
@@ -263,7 +259,7 @@ module OpenTox
             extract_zip
           else
             FileUtils.remove_dir dir
-            bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri
+            bad_request_error "The zip #{params[:file][:filename]} contains no investigation file."
           end
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
