@@ -14,7 +14,7 @@ module OpenTox
         to("/investigation/#{params[:id]}") # new in Sinatra, replaces url_for
       end
 
-      # @return uri-list of files in invetigation[:id] folder
+      # @return uri-list of files in investigation[:id] folder
       def uri_list 
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
@@ -150,10 +150,9 @@ module OpenTox
       end
 
       def create_policy ldaptype, uristring
-        begin
+        #begin
           filename = File.join(dir, "#{ldaptype}_policies")
           policyfile = File.open(filename,"w")
-          #uriarray = uristring.split(",")
           uriarray = uristring if uristring.class == Array
           uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
           return 0 if uriarray.size < 1
@@ -168,9 +167,9 @@ module OpenTox
           Authorization.reset_policies investigation_uri, ldaptype, @subjectid
           ret = Authorization.create_policy(File.read(policyfile), @subjectid)
           File.delete policyfile if ret
-        rescue
-          $logger.warn "create policies error for Investigation URI: #{investigation_uri} for user/group uris: #{uristring}"
-        end
+        #rescue
+        #  $logger.warn "create policies error for Investigation URI: #{investigation_uri} for user/group uris: #{uristring}"
+        #end
       end
 
       def set_flag flag, value, type = ""

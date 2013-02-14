@@ -11,16 +11,6 @@ module OpenTox
 
   CLASSES << "TBAccount"
 
-=begin
-  # TODO: this should not be necessary, class in initialized below
-  # add new OpenTox class
-  c = Class.new do
-    include OpenTox
-    #extend OpenTox::ClassMethods
-  end
-  OpenTox.const_set "TBAccount",c
-=end
-
   # Get rdf representation for a user, organisation or project from the ToxBank service 
   # @see http://api.toxbank.net/index.php/User ToxBank API User
   # @see http://api.toxbank.net/index.php/Organisation ToxBank API Organisation
@@ -134,7 +124,7 @@ module OpenTox
 
   end
 
-  # ToxBank-investigation specific extension to OpenTox::Authorization in opentox-client 
+  # ToxBank-investigation specific extension to OpenTox::Authorization in opentox-client
   # @see http://rubydoc.info/gems/opentox-client/frames opentox-client documentation
   module Authorization
 
@@ -148,7 +138,7 @@ module OpenTox
       piaccount.send_policy(uri, "all")
     end
 
-    # Delete all policies for Users or Groups of an investigation except the policy of the PI (Principal Investigator) user. 
+    # Delete all policies for Users or Groups of an investigation except the policy of the subjectid-owner.
     # @param [String, String, String] URI,LDAPtype,subjectid URI to protect, LDAPUsers or LDAPGroups, subjectid
     def self.reset_policies uri, type, subjectid
       policies = self.list_uri_policies(uri, subjectid)
