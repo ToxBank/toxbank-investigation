@@ -48,6 +48,13 @@ module OpenTox
         newtime.to_i
       end
 
+      def delete_investigation_policy
+        if @subjectid and !File.exists?(dir) and investigation_uri
+          res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
+          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
+        end
+      end
+
       # @note copies investigation files in tmp folder 
       def prepare_upload
         # remove stale directories from failed tests
@@ -74,24 +81,43 @@ module OpenTox
 
       def extract_xls
         # use Excelx.new instead of Excel.new if your file is a .xlsx
+        # TODO delete dir if task catches error, e.g. password locked, pass error to block
         $logger.debug "\n#{params.inspect}\n"
-        xls = Excel.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xls$/)
-        xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
-        xls.sheets.each_with_index do |sh, idx|
-          name = sh.to_s
-          xls.default_sheet = xls.sheets[idx]
-          1.upto(xls.last_row) do |ro|
-            1.upto(xls.last_column) do |co|
-              unless (co == xls.last_column)
-                File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-              else
-                File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+        if params[:file][:filename].match(/.xls$/)
+          xls = Excel.new(File.join(tmp, params[:file][:filename]))
+          xls.sheets.each_with_index do |sh, idx|
+            name = sh.to_s
+            xls.default_sheet = xls.sheets[idx]
+            1.upto(xls.last_row) do |ro|
+              1.upto(xls.last_column) do |co|
+                unless (co == xls.last_column)
+                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+                else
+                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+                end
               end
             end
-          end
-        end   
-      rescue
-        bad_request_error "Could not parse spreadsheet #{params[:file][:filename]}"
+          end   
+        elsif params[:file][:filename].match(/.xlsx$/)
+          xls = Excelx.new(File.join(tmp, params[:file][:filename]))
+          xls.sheets.each_with_index do |sh, idx|
+            name = sh.to_s
+            xls.default_sheet = xls.sheets[idx]
+            1.upto(xls.last_row) do |ro|
+              1.upto(xls.last_column) do |co|
+                unless (co == xls.last_column)
+                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
+                else
+                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
+                end
+              end
+            end
+          end   
+        else
+          FileUtils.remove_entry dir
+          delete_investigation_policy
+          bad_request_error "Could not parse spreadsheet #{params[:file][:filename]}"
+        end
       end
 
       def isa2rdf
@@ -229,7 +255,6 @@ module OpenTox
           FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
           WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
         # application/json
-        # for UI
         elsif (@accept == "application/json" && request.env['HTTP_USER'])
           response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
           response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
@@ -258,7 +283,8 @@ module OpenTox
           if `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
             extract_zip
           else
-            FileUtils.remove_dir dir
+            FileUtils.remove_entry dir
+            delete_investigation_policy
             bad_request_error "The zip #{params[:file][:filename]} contains no investigation file."
           end
         #when  'text/tab-separated-values' # do nothing, file is already in tmp
@@ -367,10 +393,7 @@ module OpenTox
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       # updata RDF
       FourStore.delete investigation_uri
-      if @subjectid and !File.exists?(dir) and investigation_uri
-        res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-        $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
-      end
+      delete_investigation_policy
       # TODO send notification to UI
       OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       response['Content-Type'] = 'text/plain'
