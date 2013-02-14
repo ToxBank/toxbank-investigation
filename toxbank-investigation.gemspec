@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.name        = "toxbank-investigation"
   s.version     = File.read("./VERSION")
   s.authors     = ["Christoph Helma","Denis Gebele","Micha Rautenberg"]
-  s.email       = ["helma@in-silico.ch","gebele@in-silico.ch","rautenenberg@in-silico.ch"]
+  s.email       = ["helma@in-silico.ch","gebele@in-silico.ch","rautenberg@in-silico.ch"]
   s.homepage    = "http://github.com/ToxBank/toxbank-investigation"
   s.summary     = %q{Toxbank investigation service}
   s.description = %q{Toxbank investigation service}
@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.files         = `git ls-files`.split("\n")
   s.required_ruby_version = '>= 1.9.2'
 
-  # specify any dependencies here; for example:
+  # specify any dependencies here:
   s.add_runtime_dependency "opentox-server"
   s.add_runtime_dependency "roo", "=1.10.1" #lock 1.10.2 does not work
 

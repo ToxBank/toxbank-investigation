@@ -2,7 +2,7 @@
 # Main ToxBank-investigation install script
 # Author: Christoph Helma, Andreas Maunz, Denis Gebele.
 
-ISA2RDF=isa2rdf-0.0.3-SNAPSHOT.jar
+ISA2RDF=isa2rdf-0.0.4-SNAPSHOT.jar
 
 echo
 echo "This script will setup and configure the toxbank-investigation service."
@@ -21,7 +21,7 @@ cd java
 if [ ! -f $ISA2RDF ]
 then
   echo "Installing isa2rdf"
-  wget -v "https://github.com/downloads/ToxBank/isa2rdf/$ISA2RDF"
+  wget -v "https://www.ideaconsult.net/downloads/ISAcreator.SEURAT/$ISA2RDF"
 fi
 cd $TB_HOME
 
