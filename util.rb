@@ -1,4 +1,5 @@
-# replaces pi uri with owner uri (use uri prefix)  
+# replaces pi uri with owner uri (use uri prefix) in i_*vestigation.txt file
+# @param [String] subjectid
 def replace_pi subjectid
   begin
     user = OpenTox::Authorization.get_user(subjectid)
@@ -16,31 +17,7 @@ def replace_pi subjectid
   end
 end
 
-# workaround for SSLv3 requests with cert
-# @see http://stackoverflow.com/questions/6821051/ruby-ssl-error-sslv3-alert-unexpected-message
-# @see http://stackoverflow.com/questions/2507902/how-to-validate-ssl-certificate-chain-in-ruby-with-net-http
-def request_ssl3 uri, type="get", subjectid=nil
-  url = URI.parse(uri)
-  fullurl = "#{url.path}?#{url.query}"
-  case type
-  when "get"
-    req = Net::HTTP::Get.new(fullurl)
-  when "delete"
-    req = Net::HTTP::Delete.new(fullurl)
-  when "put"
-    req = Net::HTTP::Put.new(fullurl)
-  end
-  req['subjectid'] = subjectid if subjectid
-  sock = Net::HTTP.new(url.host, 443)
-  sock.use_ssl = true
-  sock.ssl_version="SSLv3"
-  sock.verify_mode = OpenSSL::SSL::VERIFY_NONE
-  sock.start do |http|
-    @response = http.request(req)
-  end
-  return @response
-end
-
+# monkey-patch for Rack::Utils.normalize_params. Enables multiple request params with the same name.
 # For an explanation, see post at http://xampl.com/so/2009/12/16/rubyrack-and-multiple-value-request-param-pain-�~@~T-part-one/
 module Rack
   module Utils
