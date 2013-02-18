@@ -219,8 +219,8 @@ module OpenTox
         return false
       end
 
-      def qlist
-        list = FourStore.list "text/uri-list"
+      def qlist mime_type
+        list = FourStore.list mime_type
         service_uri = to("/investigation")
         list.split.keep_if{|v| v =~ /#{service_uri}/}.join("\n")# show all, ignore flags
       end
@@ -244,20 +244,17 @@ module OpenTox
     # @note return all investigations, ignoring flags
     get '/investigation/?' do
       bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
-      case @accept
-      when "text/uri-list"
-        qlist
+      if (@accept == "text/uri-list" || @accept == "application/rdf+xml") && !request.env['HTTP_USER']
+        qlist @accept
+      elsif (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
+        FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
+        WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
+      # application/json
+      elsif (@accept == "application/json" && request.env['HTTP_USER'])
+        response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
+        response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
       else
-        # return uri-list of users investigations
-        # rdf+xml
-        if (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
-          FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
-          WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
-        # application/json
-        elsif (@accept == "application/json" && request.env['HTTP_USER'])
-          response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
-          response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
-        end
+        bad_request_error "Mime type #{@accept} not supported with user #{request.env['HTTP_USER']}."
       end
     end
     
