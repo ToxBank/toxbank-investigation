@@ -138,7 +138,7 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        FourStore.put investigation_uri, File.read(File.join(dir,n3)), "text/turtle" # content-type not very consistent in 4store
+        FourStore.put investigation_uri, File.read(File.join(dir,n3)), "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         # git commit
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
