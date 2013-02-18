@@ -387,14 +387,13 @@ module OpenTox
 
     # Delete an investigation
     delete '/investigation/:id' do
+      uri2delete = investigation_uri
       FileUtils.remove_entry dir
-      # git commit
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
-      # updata RDF
-      FourStore.delete investigation_uri
+      FourStore.delete uri2delete
       delete_investigation_policy
       # TODO send notification to UI
-      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(uri2delete)}",{},{:subjectid => @subjectid}
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
