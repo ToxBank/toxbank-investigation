@@ -295,7 +295,11 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # send notification to UI
-        OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        $logger.debug "params on POST: #{params.inspect}"
+        case params[:summarySearchable]
+        when "true"
+          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        end
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -378,13 +382,12 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # send notification to UI
-        uri = to(request.env['REQUEST_URI'])
-        curi = clean_uri(uri)
-        $logger.debug "\n #{curi}\n"
-        if qfilter("isSummarySearchable", curi) =~ /#{curi}/
+        $logger.debug "\nsummarySearchable on PUT: #{params[:summarySearchable]}\n"
+        case params[:summarySearchable]
+        when "true"
           $logger.debug "update to search_index\n"
           OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        else
+        when "false"
           $logger.debug "delete from search_index\n"
           OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         end
