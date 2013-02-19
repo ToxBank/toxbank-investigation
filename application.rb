@@ -195,7 +195,7 @@ module OpenTox
             end
           end
         else
-          unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
+          unauthorized_error "Not authorized: #{request.env['REQUEST_URI']} for user: #{OpenTox::Authorization.get_user(subjectid)}"
         end
       end
       
@@ -210,7 +210,7 @@ module OpenTox
         # GET request without policy check
         if OpenTox::Authorization.uri_owner?(curi, @subjectid)
           return true
-        elsif request.env['REQUEST_URI'] =~ /metadata/
+        elsif (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
           return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
         # Get request with policy and flag check 
         else
