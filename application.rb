@@ -127,6 +127,8 @@ module OpenTox
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
+        # fix for import error using '=' shorthand for <http://www.w3.org/2002/07/owl#sameAs>
+        `sed -i 's;=;<http://www.w3.org/2002/07/owl#sameAs>;' #{File.join tmp,n3}`
         time = Time.new
         #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,n3}`
         `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
