@@ -127,6 +127,8 @@ module OpenTox
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
+        # fix for import error using '=' shorthand for <http://www.w3.org/2002/07/owl#sameAs>
+        `sed -i 's;=;<http://www.w3.org/2002/07/owl#sameAs>;' #{File.join tmp,n3}`
         time = Time.new
         #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,n3}`
         `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
@@ -292,7 +294,11 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # send notification to UI
-        OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        $logger.debug "params on POST: #{params.inspect}"
+        case params[:summarySearchable]
+        when "true"
+          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        end
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -375,13 +381,12 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         # send notification to UI
-        uri = to(request.env['REQUEST_URI'])
-        curi = clean_uri(uri)
-        $logger.debug "\n #{curi}\n"
-        if qfilter("isSummarySearchable", curi) =~ /#{curi}/
+        $logger.debug "\nsummarySearchable on PUT: #{params[:summarySearchable]}\n"
+        case params[:summarySearchable]
+        when "true"
           $logger.debug "update to search_index\n"
           OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        else
+        when "false"
           $logger.debug "delete from search_index\n"
           OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         end
