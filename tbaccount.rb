@@ -24,6 +24,24 @@ module OpenTox
   class TBAccount
     include OpenTox
 
+    # Search a user URI in the user service
+    # @param [String,String]username,subjectid
+    # @return [String]userURI
+    def self.search_user user, subjectid
+      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
+      return result if !result.match("Not Found")
+      false
+    end
+
+    # Search a project URI in the user service
+    # @param [String,String]projectname,subjectid
+    # @return [String]userURI
+    def self.search_project project, subjectid
+      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/project?search=#{user}`.chomp.sub("\n","")
+      return result if !result.match("Not Found")
+      false
+    end
+
     # Get hasAccount value of a user,organisation or project from ToxBank service
     # @return [String] username
     def account
