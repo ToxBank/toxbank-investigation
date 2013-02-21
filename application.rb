@@ -371,7 +371,7 @@ module OpenTox
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-
+        curi = clean_uri(uri)
         if params[:published] == "true" && qfilter("isSummarySearchable", curi) =~ /#{curi}/
           $logger.debug "update to search_index\n"
           OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
