@@ -293,12 +293,6 @@ module OpenTox
         #set_flag(RDF.Type, RDF::OT.Investigation)
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        # send notification to UI
-        $logger.debug "params on POST: #{params.inspect}"
-        case params[:summarySearchable]
-        when "true"
-          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        end
         investigation_uri
       end
       response['Content-Type'] = 'text/uri-list'
@@ -370,23 +364,18 @@ module OpenTox
         bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt') if params[:file]
         if params[:file]
           prepare_upload
-          case params[:file][:type]
-          when 'application/zip'
-            extract_zip
-          end
+          extract_zip if params[:file][:type] == 'application/zip'
           isa2rdf
         end
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
-        # send notification to UI
-        $logger.debug "\nsummarySearchable on PUT: #{params[:summarySearchable]}\n"
-        case params[:summarySearchable]
-        when "true"
+
+        if params[:published] == "true" && qfilter("isSummarySearchable", curi) =~ /#{curi}/
           $logger.debug "update to search_index\n"
           OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        when "false"
+        else
           $logger.debug "delete from search_index\n"
           OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         end
