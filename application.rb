@@ -122,7 +122,7 @@ module OpenTox
       def isa2rdf
         # isa2rdf returns correct exit code but error in task
         # TODO delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-0.0.4-SNAPSHOT.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
+        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.4.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
         # rewrite default prefix
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
         investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
@@ -191,8 +191,7 @@ module OpenTox
         if !env["session"] && subjectid
           unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
             unless (request.env['REQUEST_METHOD'] != "GET" ? authorized?(subjectid) : get_permission)
-              $logger.debug ">-get_permission failed"
-              $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
+              $logger.debug "URI not authorized for GET: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
               unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
             end
           end
@@ -203,21 +202,16 @@ module OpenTox
       
       # @note manage Get requests with policies and flags
       def get_permission
-        # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
         uri = to(request.env['REQUEST_URI'])
         curi = clean_uri(uri)
         return true if uri == $investigation[:uri]
         return true if OpenTox::Authorization.get_user(@subjectid) == "protocol_service"
-        # GET request without policy check
-        if OpenTox::Authorization.uri_owner?(curi, @subjectid)
-          return true
-        elsif (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
+        return true if OpenTox::Authorization.uri_owner?(curi, @subjectid)
+        if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
           return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
-        # Get request with policy and flag check 
-        else
-          return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
         end
+        return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
         return false
       end
 

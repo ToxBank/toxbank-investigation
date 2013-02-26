@@ -9,7 +9,9 @@ def replace_pi subjectid
     investigation_file = Dir["#{tmp}/i_*vestigation.txt"]
     investigation_file.each do |inv_file|
       text = File.read(inv_file, :encoding => "BINARY")
-      replace = text.gsub!(/TBU:U\d+/, account.ns_uri)
+      #replace = text.gsub!(/TBU:U\d+/, account.ns_uri)
+      replace = text.gsub!(/Comment \[Principal Investigator URI\]\t"TBU:U\d+"/ , "Comment \[Principal Investigator URI\]\t\"#{account.ns_uri}\"")
+      replace = text.gsub!(/Comment \[Owner URI\]\t"TBU:U\d+"/ , "Comment \[Principal Investigator URI\]\t\"#{account.ns_uri}\"")
       File.open(inv_file, "wb") { |file| file.puts replace } if replace
     end
   rescue
