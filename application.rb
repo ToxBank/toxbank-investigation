@@ -40,17 +40,12 @@ module OpenTox
       end
 
       def service_time timestring
-        $logger.debug "timestring from graph: #{timestring} "
-        newtime = Time.parse(timestring)
-        $logger.debug "new time object parsed: #{newtime}"
-        $logger.debug "timestamp: #{newtime.to_i}"
-        newtime.to_i
+        Time.parse(timestring).to_i
       end
 
       def delete_investigation_policy
         if @subjectid and !File.exists?(dir) and investigation_uri
           res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
         end
       end
 
