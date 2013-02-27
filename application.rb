@@ -127,10 +127,7 @@ module OpenTox
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
         investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}/>;g' #{File.join tmp,nt}`
-        # fix for import error using '=' shorthand for <http://www.w3.org/2002/07/owl#sameAs>
-        #`sed -i 's;=;<http://www.w3.org/2002/07/owl#sameAs>;' #{File.join tmp,nt}`
         time = Time.new
-        #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,nt}`
         `echo '\n<#{investigation_uri}/> <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
         `echo "\n<#{investigation_uri}/> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
