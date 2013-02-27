@@ -131,7 +131,6 @@ module OpenTox
       end
 
       def create_policy ldaptype, uristring
-        #begin
           filename = File.join(dir, "#{ldaptype}_policies")
           policyfile = File.open(filename,"w")
           uriarray = uristring if uristring.class == Array
@@ -148,9 +147,6 @@ module OpenTox
           Authorization.reset_policies investigation_uri, ldaptype, @subjectid
           ret = Authorization.create_policy(File.read(policyfile), @subjectid)
           File.delete policyfile if ret
-        #rescue
-        #  $logger.warn "create policies error for Investigation URI: #{investigation_uri} for user/group uris: #{uristring}"
-        #end
       end
 
       def set_flag flag, value, type = ""
@@ -225,12 +221,11 @@ module OpenTox
       elsif (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
         FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
         WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
-      # application/json
       elsif (@accept == "application/json" && request.env['HTTP_USER'])
         response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
         response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
       else
-        bad_request_error "Mime type #{@accept} not supported with user #{request.env['HTTP_USER']}."
+        bad_request_error "Mime type: '#{@accept}' not supported with user: '#{request.env['HTTP_USER']}'."
       end
     end
     
@@ -259,7 +254,6 @@ module OpenTox
             delete_investigation_policy
             bad_request_error "The zip #{params[:file][:filename]} contains no investigation file."
           end
-        #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
         set_flag(RDF::TB.isPublished, false, "boolean")
@@ -343,15 +337,15 @@ module OpenTox
         end
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
-        FourStore.update "WITH <#{investigation_uri}>  DELETE { <#{investigation_uri}/> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}/> <#{RDF::DC.modified}> ?o}; INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
+        FourStore.update "WITH <#{investigation_uri}>
+                          DELETE { <#{investigation_uri}/> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}/> <#{RDF::DC.modified}> ?o};
+                          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
         if params[:published] == "true" && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-          $logger.debug "update to search_index\n"
           OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         else
-          $logger.debug "delete from search_index\n"
           OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         end
         investigation_uri
@@ -362,7 +356,6 @@ module OpenTox
 
     # Delete an investigation
     delete '/investigation/:id' do
-      # TODO send notification to UI
       OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       FileUtils.remove_entry dir
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
