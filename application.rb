@@ -76,9 +76,9 @@ module OpenTox
       def extract_xls
         # use Excelx.new instead of Excel.new if your file is a .xlsx
         # TODO delete dir if task catches error, e.g. password locked, pass error to block
-        $logger.debug "\n#{params.inspect}\n"
-        if params[:file][:filename].match(/.xls$/)
-          xls = Excel.new(File.join(tmp, params[:file][:filename]))
+        if params[:file][:filename].match(/\.xls$|\.xlsx$/)
+          xls = Excel.new(File.join(tmp, params[:file][:filename]))  if params[:file][:filename].match(/.xls$/)
+          xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
           xls.sheets.each_with_index do |sh, idx|
             name = sh.to_s
             xls.default_sheet = xls.sheets[idx]
@@ -91,22 +91,7 @@ module OpenTox
                 end
               end
             end
-          end   
-        elsif params[:file][:filename].match(/.xlsx$/)
-          xls = Excelx.new(File.join(tmp, params[:file][:filename]))
-          xls.sheets.each_with_index do |sh, idx|
-            name = sh.to_s
-            xls.default_sheet = xls.sheets[idx]
-            1.upto(xls.last_row) do |ro|
-              1.upto(xls.last_column) do |co|
-                unless (co == xls.last_column)
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-                else
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
-                end
-              end
-            end
-          end   
+          end
         else
           FileUtils.remove_entry dir
           delete_investigation_policy
