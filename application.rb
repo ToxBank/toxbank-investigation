@@ -155,6 +155,12 @@ module OpenTox
         FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
       end
 
+      # add or delete investigation_uri from search index at UI
+      # @params[Boolean] true=add, false=delete
+      def set_index inout=false
+        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      end
+
       # returns uri if related flag is set to "true"
       # @return [String] uri as string
       def qfilter(flag, uri)
