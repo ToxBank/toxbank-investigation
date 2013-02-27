@@ -131,11 +131,11 @@ module OpenTox
       end
 
       def create_policy ldaptype, uristring
-          filename = File.join(dir, "#{ldaptype}_policies")
-          policyfile = File.open(filename,"w")
-          uriarray = uristring if uristring.class == Array
-          uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
-          return 0 if uriarray.size < 1
+        filename = File.join(dir, "#{ldaptype}_policies")
+        policyfile = File.open(filename,"w")
+        uriarray = uristring if uristring.class == Array
+        uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
+        if uriarray.size > 0
           uriarray.each do |u|
             tbaccount = OpenTox::TBAccount.new(u, @subjectid)
             policyfile.puts tbaccount.get_policy(investigation_uri)
@@ -147,6 +147,9 @@ module OpenTox
           Authorization.reset_policies investigation_uri, ldaptype, @subjectid
           ret = Authorization.create_policy(File.read(policyfile), @subjectid)
           File.delete policyfile if ret
+        else
+          Authorization.reset_policies investigation_uri, ldaptype, @subjectid
+        end
       end
 
       def set_flag flag, value, type = ""
