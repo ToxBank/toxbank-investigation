@@ -40,17 +40,12 @@ module OpenTox
       end
 
       def service_time timestring
-        $logger.debug "timestring from graph: #{timestring} "
-        newtime = Time.parse(timestring)
-        $logger.debug "new time object parsed: #{newtime}"
-        $logger.debug "timestamp: #{newtime.to_i}"
-        newtime.to_i
+        Time.parse(timestring).to_i
       end
 
       def delete_investigation_policy
         if @subjectid and !File.exists?(dir) and investigation_uri
           res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
         end
       end
 
@@ -81,9 +76,9 @@ module OpenTox
       def extract_xls
         # use Excelx.new instead of Excel.new if your file is a .xlsx
         # TODO delete dir if task catches error, e.g. password locked, pass error to block
-        $logger.debug "\n#{params.inspect}\n"
-        if params[:file][:filename].match(/.xls$/)
-          xls = Excel.new(File.join(tmp, params[:file][:filename]))
+        if params[:file][:filename].match(/\.xls$|\.xlsx$/)
+          xls = Excel.new(File.join(tmp, params[:file][:filename]))  if params[:file][:filename].match(/.xls$/)
+          xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
           xls.sheets.each_with_index do |sh, idx|
             name = sh.to_s
             xls.default_sheet = xls.sheets[idx]
@@ -96,22 +91,7 @@ module OpenTox
                 end
               end
             end
-          end   
-        elsif params[:file][:filename].match(/.xlsx$/)
-          xls = Excelx.new(File.join(tmp, params[:file][:filename]))
-          xls.sheets.each_with_index do |sh, idx|
-            name = sh.to_s
-            xls.default_sheet = xls.sheets[idx]
-            1.upto(xls.last_row) do |ro|
-              1.upto(xls.last_column) do |co|
-                unless (co == xls.last_column)
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-                else
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
-                end
-              end
-            end
-          end   
+          end
         else
           FileUtils.remove_entry dir
           delete_investigation_policy
@@ -148,7 +128,6 @@ module OpenTox
       end
 
       def create_policy ldaptype, uristring
-        #begin
           filename = File.join(dir, "#{ldaptype}_policies")
           policyfile = File.open(filename,"w")
           uriarray = uristring if uristring.class == Array
@@ -165,9 +144,6 @@ module OpenTox
           Authorization.reset_policies investigation_uri, ldaptype, @subjectid
           ret = Authorization.create_policy(File.read(policyfile), @subjectid)
           File.delete policyfile if ret
-        #rescue
-        #  $logger.warn "create policies error for Investigation URI: #{investigation_uri} for user/group uris: #{uristring}"
-        #end
       end
 
       def set_flag flag, value, type = ""
@@ -188,8 +164,7 @@ module OpenTox
         if !env["session"] && subjectid
           unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
             unless (request.env['REQUEST_METHOD'] != "GET" ? authorized?(subjectid) : get_permission)
-              $logger.debug ">-get_permission failed"
-              $logger.debug "URI not authorized: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
+              $logger.debug "URI not authorized for GET: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
               unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
             end
           end
@@ -200,21 +175,16 @@ module OpenTox
       
       # @note manage Get requests with policies and flags
       def get_permission
-        # only for GET
         return false if request.env['REQUEST_METHOD'] != "GET"
         uri = to(request.env['REQUEST_URI'])
         curi = clean_uri(uri)
         return true if uri == $investigation[:uri]
         return true if OpenTox::Authorization.get_user(@subjectid) == "protocol_service"
-        # GET request without policy check
-        if OpenTox::Authorization.uri_owner?(curi, @subjectid)
-          return true
-        elsif (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
+        return true if OpenTox::Authorization.uri_owner?(curi, @subjectid)
+        if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
           return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
-        # Get request with policy and flag check 
-        else
-          return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
         end
+        return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
         return false
       end
 
@@ -248,12 +218,11 @@ module OpenTox
       elsif (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
         FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
         WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
-      # application/json
       elsif (@accept == "application/json" && request.env['HTTP_USER'])
         response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
         response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
       else
-        bad_request_error "Mime type #{@accept} not supported with user #{request.env['HTTP_USER']}."
+        bad_request_error "Mime type: '#{@accept}' not supported with user: '#{request.env['HTTP_USER']}'."
       end
     end
     
@@ -282,7 +251,6 @@ module OpenTox
             delete_investigation_policy
             bad_request_error "The zip #{params[:file][:filename]} contains no investigation file."
           end
-        #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
         set_flag(RDF::TB.isPublished, false, "boolean")
@@ -366,15 +334,15 @@ module OpenTox
         end
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
-        FourStore.update "WITH <#{investigation_uri}>  DELETE { <#{investigation_uri}/> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}/> <#{RDF::DC.modified}> ?o}; INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
+        FourStore.update "WITH <#{investigation_uri}>
+                          DELETE { <#{investigation_uri}/> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}/> <#{RDF::DC.modified}> ?o};
+                          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
         if params[:published] == "true" && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-          $logger.debug "update to search_index\n"
           OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         else
-          $logger.debug "delete from search_index\n"
           OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         end
         investigation_uri
@@ -385,7 +353,6 @@ module OpenTox
 
     # Delete an investigation
     delete '/investigation/:id' do
-      # TODO send notification to UI
       OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       FileUtils.remove_entry dir
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
