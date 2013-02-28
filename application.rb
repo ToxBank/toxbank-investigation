@@ -128,11 +128,11 @@ module OpenTox
       end
 
       def create_policy ldaptype, uristring
-          filename = File.join(dir, "#{ldaptype}_policies")
-          policyfile = File.open(filename,"w")
-          uriarray = uristring if uristring.class == Array
-          uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
-          return 0 if uriarray.size < 1
+        filename = File.join(dir, "#{ldaptype}_policies")
+        policyfile = File.open(filename,"w")
+        uriarray = uristring if uristring.class == Array
+        uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
+        if uriarray.size > 0
           uriarray.each do |u|
             tbaccount = OpenTox::TBAccount.new(u, @subjectid)
             policyfile.puts tbaccount.get_policy(investigation_uri)
@@ -144,12 +144,21 @@ module OpenTox
           Authorization.reset_policies investigation_uri, ldaptype, @subjectid
           ret = Authorization.create_policy(File.read(policyfile), @subjectid)
           File.delete policyfile if ret
+        else
+          Authorization.reset_policies investigation_uri, ldaptype, @subjectid
+        end
       end
 
       def set_flag flag, value, type = ""
         flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
         FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"#{flagtype}}}"
         FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
+      end
+
+      # add or delete investigation_uri from search index at UI
+      # @params[Boolean] true=add, false=delete
+      def set_index inout=false
+        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       end
 
       # returns uri if related flag is set to "true"
@@ -340,10 +349,12 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
-        if params[:published] == "true" && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
+          #OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+          set_index true
         else
-          OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+          #OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+          set_index false
         end
         investigation_uri
       end
@@ -353,7 +364,8 @@ module OpenTox
 
     # Delete an investigation
     delete '/investigation/:id' do
-      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      #OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      set_index false
       FileUtils.remove_entry dir
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
       FourStore.delete investigation_uri
@@ -369,6 +381,7 @@ module OpenTox
         File.delete File.join(tmp,params[:filename])
         isa2rdf
         # TODO send notification to UI (TO CHECK: if files will be indexed?)
+        set_index true if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
         # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
         
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
