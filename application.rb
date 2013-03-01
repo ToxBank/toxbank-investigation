@@ -4,8 +4,10 @@ require "#{File.dirname(__FILE__)}/tbaccount.rb"
 require "#{File.dirname(__FILE__)}/util.rb"
 
 module OpenTox
+  # full API description for ToxBank investigation service see:  
+  # @see http://api.toxbank.net/index.php/Investigation ToxBank API Investigation
   class Application < Service
-
+  
     helpers do
 
       # @return investigation[:id] with full investigation service uri  
@@ -353,10 +355,8 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
         if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-          #OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
           set_index true
         else
-          #OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
           set_index false
         end
         investigation_uri
@@ -367,7 +367,6 @@ module OpenTox
 
     # Delete an investigation
     delete '/investigation/:id' do
-      #OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       set_index false
       FileUtils.remove_entry dir
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
@@ -383,10 +382,7 @@ module OpenTox
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
-        # TODO send notification to UI (TO CHECK: if files will be indexed?)
         set_index true if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
       response['Content-Type'] = 'text/uri-list'
