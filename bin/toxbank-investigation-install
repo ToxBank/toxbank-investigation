@@ -2,7 +2,7 @@
 # Main ToxBank-investigation install script
 # Author: Christoph Helma, Andreas Maunz, Denis Gebele.
 
-ISA2RDF=isa2rdf-0.0.3-SNAPSHOT.jar
+ISA2RDF=isa2rdf-cli-0.0.4.jar
 
 echo
 echo "This script will setup and configure the toxbank-investigation service."
@@ -21,7 +21,7 @@ cd java
 if [ ! -f $ISA2RDF ]
 then
   echo "Installing isa2rdf"
-  wget -v "https://github.com/downloads/ToxBank/isa2rdf/$ISA2RDF"
+  wget -v "https://www.ideaconsult.net/downloads/ISAcreator.SEURAT/$ISA2RDF"
 fi
 cd $TB_HOME
 
@@ -32,6 +32,8 @@ then
   git init
   echo "*/*.zip" > .gitignore
   echo "*/tmp" >> .gitignore
+  echo "user_policies" >> .gitignore
+  echo "group_policies" >> .gitignore
   git add .gitignore
   git commit -am "Initial commit: .gitignore added"
 fi
@@ -39,23 +41,34 @@ cd $TB_HOME
 
 echo "Installing configuration files"
 
-mkdir -p "$HOME/.opentox/config/toxbank-investigation" 
+mkdir -p "$HOME/.opentox/config" 
 mkdir -p "$HOME/.opentox/log" 
 mkdir -p "$HOME/.opentox/tmp" 
 
-config="$HOME/.opentox/config/toxbank-investigation/production.rb" 
+config="$HOME/.opentox/config/investigation.rb" 
 
 if [ -f $config ]
 then
   echo "Configuration $config exists. Please check if the settings are correct."
 else
   echo "Creating configuration"
+  echo -n "Please enter the URI of your investigation service (e.G.: https://myinvestigation.com/investigation ): "
+  read investigation_uri
+  echo -n "Please enter your 4store URI (e.G.: https://my4store.com/ ): "
+  read 4store_uri
   echo -n "Please enter your 4store username: "
   read user
   echo -n "Please enter your 4store password: "
   read pass
-
-  sed -e "s/ USER/ '$user'/;s/ PASS/ '$pass'/" config/production.rb > $config
+  echo -n "Please enter the user service URI: "
+  read user_service
+  echo -n "Please enter the search service URI: "
+  read search_service
+  echo -n "Please enter the task service URI: "
+  read task_service
+ 
+  $search_service[:uri]
+  sed -e "s/ USER/ '$user'/;s/ PASS/ '$pass'/;s/ 4STORE_URI/ '$4store_uri'/;s/ USER_SERVICE/ '$user_service'/;s/ SEARCH_SERVICE/ '$search_service'/;s/ TASK_URI/ '$task_service'/;s/ INVESTIGATION_URI/ '$investigation_uri'/" config/production.rb > $config
   echo "Configuration $config created. Please check if the settings are correct."
 fi
 
