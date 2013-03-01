@@ -35,8 +35,8 @@ module OpenTox
         File.join dir, params[:filename]
       end
 
-      def n3
-        "#{params[:id]}.n3"
+      def nt
+        "#{params[:id]}.nt"
       end
 
       def service_time timestring
@@ -102,17 +102,14 @@ module OpenTox
       def isa2rdf
         # isa2rdf returns correct exit code but error in task
         # TODO delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.4.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
+        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.4.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
         # rewrite default prefix
-        `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
-        investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
-        `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
-        # fix for import error using '=' shorthand for <http://www.w3.org/2002/07/owl#sameAs>
-        `sed -i 's;=;<http://www.w3.org/2002/07/owl#sameAs>;' #{File.join tmp,n3}`
+        `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
+        investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
+        `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}/>;g' #{File.join tmp,nt}`
         time = Time.new
-        #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,n3}`
-        `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
-        `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
+        `echo '\n<#{investigation_uri}/> <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
+        `echo "\n<#{investigation_uri}/> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -120,7 +117,7 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        FourStore.put investigation_uri, File.read(File.join(dir,n3)), "application/x-turtle" # content-type not very consistent in 4store
+        FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         # git commit
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
