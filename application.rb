@@ -233,6 +233,9 @@ module OpenTox
       elsif (@accept == "application/json" && request.env['HTTP_USER'])
         response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
         response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
+      elsif (@accept == "text/uri-list" && request.env['HTTP_USER'])
+        result = FourStore.query "SELECT ?uri WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
+        result.split("\n").collect{|u| u.sub(/(\/)+$/,'')}.join("\n")
       else
         bad_request_error "Mime type: '#{@accept}' not supported with user: '#{request.env['HTTP_USER']}'."
       end
