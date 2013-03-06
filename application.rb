@@ -369,7 +369,7 @@ module OpenTox
     delete '/investigation/:id' do
       set_index false
       FileUtils.remove_entry dir
-      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user(@subjectid)}"`
       FourStore.delete investigation_uri
       delete_investigation_policy
       response['Content-Type'] = 'text/plain'
