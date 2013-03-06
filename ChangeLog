@@ -1,7 +1,17 @@
+v1.0.0beta 2013-03
+- add nt format for data processing isa2rdf => nt => 4store
+- add indexing for UI (add and remove investigation URIs on $search_service[:uri]
+- always return task URI on POST and PUT request
+- overhaul of publication workflow
+- json support for user uri list
+- isa2rdf to version 0.0.4 (isa2rdf-cli-0.0.4.jar)
+- remove policies if allowReadBy(Group/User) contains empty string
+- update RDF::DC.modified when changing data in PUT request
+
 v0.0.4alpha 2012-12
 -Fix version number 0.0.4alpha in alpha test branch
 
-v0.0.4 2012-07-
+v0.0.4 2012-07
 - Address and IDs changed
   - Service URI https://INVESTIGATIONSERVICE is now https://INVESTIGATIONSERVICE/investigation
   - IDs changed to UUIDs e.G.: https://INVESTIGATIONSERVICE/123 changed to https://INVESTIGATIONSERVICE/investigation/1f6d584a-53aa-4c59-bae3-8c7ac9cb82ff
