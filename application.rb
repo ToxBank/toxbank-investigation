@@ -125,7 +125,7 @@ module OpenTox
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
         ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
-        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user(@subjectid)}"`
         investigation_uri
       end
 
