@@ -51,7 +51,7 @@ module OpenTox
         end
       end
 
-      # @note copies investigation files in tmp folder 
+      # @note copies investigation files in tmp folder
       def prepare_upload
         # remove stale directories from failed tests
         #stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
@@ -376,9 +376,10 @@ module OpenTox
       "Investigation #{params[:id]} deleted"
     end
 
+=begin
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:filename]} from investigation #{params[:id]}.") do
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
@@ -388,6 +389,6 @@ module OpenTox
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
-
+=end
   end
 end
