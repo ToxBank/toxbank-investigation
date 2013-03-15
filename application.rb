@@ -139,7 +139,7 @@ module OpenTox
     get '/investigation/:id/isatab/:filename'  do
       resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # @todo return text/plain content type for tab separated files
-      send_file file, :type => File.new(file).mime_type
+      send_file file, :type => ["text/tab-separated-values", "application/sparql-results+json"].include?(@accept) ? @accept : File.new(file).mime_type
     end
 
     # Get RDF for an investigation resource
