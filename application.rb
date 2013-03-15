@@ -9,9 +9,21 @@ module OpenTox
   # @see http://api.toxbank.net/index.php/Investigation ToxBank API Investigation
   class Application < Service
 
-    # define helpers with a block
     helpers do
       include Helpers
+      # overwrite opentox-server method for toxbank use
+      def protected!(subjectid)
+        if !env["session"] && subjectid
+          unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
+            unless (request.env['REQUEST_METHOD'] != "GET" ? authorized?(subjectid) : get_permission)
+              $logger.debug "URI not authorized for GET: clean: " + clean_uri("#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']}").sub("http://","https://").to_s + " full: #{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}#{request.env['REQUEST_URI']} with request: #{request.env['REQUEST_METHOD']}"
+              unauthorized_error "Not authorized: #{request.env['REQUEST_URI']}"
+            end
+          end
+        else
+          unauthorized_error "Not authorized: #{request.env['REQUEST_URI']} for user: #{OpenTox::Authorization.get_user(subjectid)}"
+        end
+      end
     end
 
     before do
