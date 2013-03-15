@@ -191,6 +191,27 @@ module Helpers
     service_uri = to("/investigation")
     list.split.keep_if{|v| v =~ /#{service_uri}/}.join("\n")# show all, ignore flags
   end
+
+  # replaces pi uri with owner uri (use uri prefix) in i_*vestigation.txt file
+  # @param [String] subjectid
+  def replace_pi subjectid
+    begin
+      user = OpenTox::Authorization.get_user(subjectid)
+      #accounturi = OpenTox::RestClientWrapper.get("#{$user_service[:uri]}/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
+      accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
+      account = OpenTox::TBAccount.new(accounturi, subjectid)
+      investigation_file = Dir["#{tmp}/i_*vestigation.txt"]
+      investigation_file.each do |inv_file|
+        text = File.read(inv_file, :encoding => "BINARY")
+        #replace = text.gsub!(/TBU:U\d+/, account.ns_uri)
+        replace = text.gsub!(/Comment \[Principal Investigator URI\]\t"TBU:U\d+"/ , "Comment \[Owner URI\]\t\"#{account.ns_uri}\"")
+        replace = text.gsub!(/Comment \[Owner URI\]\t"TBU:U\d+"/ , "Comment \[Owner URI\]\t\"#{account.ns_uri}\"")
+        File.open(inv_file, "wb") { |file| file.puts replace } if replace
+      end
+    rescue
+      $logger.error "can not replace Principal Investigator to user: #{user} with subjectid: #{subjectid}"
+    end
+  end
 end
 end
 end
