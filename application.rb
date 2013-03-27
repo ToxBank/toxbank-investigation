@@ -4,8 +4,10 @@ require "#{File.dirname(__FILE__)}/tbaccount.rb"
 require "#{File.dirname(__FILE__)}/util.rb"
 
 module OpenTox
+  # full API description for ToxBank investigation service see:  
+  # @see http://api.toxbank.net/index.php/Investigation ToxBank API Investigation
   class Application < Service
-
+  
     helpers do
 
       # @return investigation[:id] with full investigation service uri  
@@ -35,26 +37,21 @@ module OpenTox
         File.join dir, params[:filename]
       end
 
-      def n3
-        "#{params[:id]}.n3"
+      def nt
+        "#{params[:id]}.nt"
       end
 
       def service_time timestring
-        $logger.debug "timestring from graph: #{timestring} "
-        newtime = Time.parse(timestring)
-        $logger.debug "new time object parsed: #{newtime}"
-        $logger.debug "timestamp: #{newtime.to_i}"
-        newtime.to_i
+        Time.parse(timestring).to_i
       end
 
       def delete_investigation_policy
         if @subjectid and !File.exists?(dir) and investigation_uri
           res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
-          $logger.debug "Policy deleted for Investigation URI: #{investigation_uri} with result: #{res}"
         end
       end
 
-      # @note copies investigation files in tmp folder 
+      # @note copies investigation files in tmp folder
       def prepare_upload
         # remove stale directories from failed tests
         #stale_files = `cd #{File.dirname(__FILE__)}/investigation && git ls-files --others --exclude-standard --directory`.chomp
@@ -81,9 +78,9 @@ module OpenTox
       def extract_xls
         # use Excelx.new instead of Excel.new if your file is a .xlsx
         # TODO delete dir if task catches error, e.g. password locked, pass error to block
-        $logger.debug "\n#{params.inspect}\n"
-        if params[:file][:filename].match(/.xls$/)
-          xls = Excel.new(File.join(tmp, params[:file][:filename]))
+        if params[:file][:filename].match(/\.xls$|\.xlsx$/)
+          xls = Excel.new(File.join(tmp, params[:file][:filename]))  if params[:file][:filename].match(/.xls$/)
+          xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
           xls.sheets.each_with_index do |sh, idx|
             name = sh.to_s
             xls.default_sheet = xls.sheets[idx]
@@ -96,22 +93,7 @@ module OpenTox
                 end
               end
             end
-          end   
-        elsif params[:file][:filename].match(/.xlsx$/)
-          xls = Excelx.new(File.join(tmp, params[:file][:filename]))
-          xls.sheets.each_with_index do |sh, idx|
-            name = sh.to_s
-            xls.default_sheet = xls.sheets[idx]
-            1.upto(xls.last_row) do |ro|
-              1.upto(xls.last_column) do |co|
-                unless (co == xls.last_column)
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-                else
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
-                end
-              end
-            end
-          end   
+          end
         else
           FileUtils.remove_entry dir
           delete_investigation_policy
@@ -122,17 +104,14 @@ module OpenTox
       def isa2rdf
         # isa2rdf returns correct exit code but error in task
         # TODO delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.4.jar -d #{tmp} -o #{File.join tmp,n3} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
+        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.4.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
         # rewrite default prefix
-        `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;' #{File.join tmp,n3}`
-        investigation_id = `grep ":I[0-9]" #{File.join tmp,n3}|cut -f1 -d ' '`.strip
-        `sed -i 's;#{investigation_id};:;' #{File.join tmp,n3}`
-        # fix for import error using '=' shorthand for <http://www.w3.org/2002/07/owl#sameAs>
-        `sed -i 's;=;<http://www.w3.org/2002/07/owl#sameAs>;' #{File.join tmp,n3}`
+        `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
+        investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
+        `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}/>;g' #{File.join tmp,nt}`
         time = Time.new
-        #`echo '\n: <#{RDF::DC.modified}> "#{Time.new}" .' >> #{File.join tmp,n3}`
-        `echo '\n: <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,n3}`
-        `echo "\n: a <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,n3}`
+        `echo '\n<#{investigation_uri}/> <#{RDF::DC.modified}> "#{time.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
+        `echo "\n<#{investigation_uri}/> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         # if everything is fine move ISA-TAB files back to original dir
         FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -140,23 +119,22 @@ module OpenTox
         zipfile = File.join dir, "investigation_#{params[:id]}.zip"
         `zip -j #{zipfile} #{dir}/*.txt`
         # store RDF
-        FourStore.put investigation_uri, File.read(File.join(dir,n3)), "application/x-turtle" # content-type not very consistent in 4store
+        FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle" # content-type not very consistent in 4store
         FileUtils.remove_entry tmp  # unlocks tmp
         # git commit
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
         ['application/zip', 'application/vnd.ms-excel'].include?(params[:file][:type]) ? action = "created" : action = "modified"
-        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{request.ip}"`
+        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user(@subjectid)}"`
         investigation_uri
       end
 
       def create_policy ldaptype, uristring
-        #begin
-          filename = File.join(dir, "#{ldaptype}_policies")
-          policyfile = File.open(filename,"w")
-          uriarray = uristring if uristring.class == Array
-          uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
-          return 0 if uriarray.size < 1
+        filename = File.join(dir, "#{ldaptype}_policies")
+        policyfile = File.open(filename,"w")
+        uriarray = uristring if uristring.class == Array
+        uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
+        if uriarray.size > 0
           uriarray.each do |u|
             tbaccount = OpenTox::TBAccount.new(u, @subjectid)
             policyfile.puts tbaccount.get_policy(investigation_uri)
@@ -168,15 +146,21 @@ module OpenTox
           Authorization.reset_policies investigation_uri, ldaptype, @subjectid
           ret = Authorization.create_policy(File.read(policyfile), @subjectid)
           File.delete policyfile if ret
-        #rescue
-        #  $logger.warn "create policies error for Investigation URI: #{investigation_uri} for user/group uris: #{uristring}"
-        #end
+        else
+          Authorization.reset_policies investigation_uri, ldaptype, @subjectid
+        end
       end
 
       def set_flag flag, value, type = ""
         flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
         FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"#{flagtype}}}"
         FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
+      end
+
+      # add or delete investigation_uri from search index at UI
+      # @params[Boolean] true=add, false=delete
+      def set_index inout=false
+        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
       end
 
       # returns uri if related flag is set to "true"
@@ -245,12 +229,14 @@ module OpenTox
       elsif (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
         FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
         WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
-      # application/json
       elsif (@accept == "application/json" && request.env['HTTP_USER'])
         response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
         response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
+      elsif (@accept == "text/uri-list" && request.env['HTTP_USER'])
+        result = FourStore.query "SELECT ?uri WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
+        result.split("\n").collect{|u| u.sub(/(\/)+$/,'')}.join("\n")
       else
-        bad_request_error "Mime type #{@accept} not supported with user #{request.env['HTTP_USER']}."
+        bad_request_error "Mime type: '#{@accept}' not supported with user: '#{request.env['HTTP_USER']}'."
       end
     end
     
@@ -280,7 +266,6 @@ module OpenTox
             delete_investigation_policy
             bad_request_error "The zip #{params[:file][:filename]} contains no investigation file."
           end
-        #when  'text/tab-separated-values' # do nothing, file is already in tmp
         end
         isa2rdf
         set_flag(RDF::TB.isPublished, false, "boolean")
@@ -365,16 +350,16 @@ module OpenTox
         end
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
-        FourStore.update "WITH <#{investigation_uri}>  DELETE { <#{investigation_uri}/> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}/> <#{RDF::DC.modified}> ?o}; INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
+        FourStore.update "WITH <#{investigation_uri}>
+                          DELETE { <#{investigation_uri}/> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}/> <#{RDF::DC.modified}> ?o};
+                          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
-        if params[:published] == "true" && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-          $logger.debug "update to search_index\n"
-          OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
+          set_index true
         else
-          $logger.debug "delete from search_index\n"
-          OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+          set_index false
         end
         investigation_uri
       end
@@ -384,16 +369,16 @@ module OpenTox
 
     # Delete an investigation
     delete '/investigation/:id' do
-      # TODO send notification to UI
-      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+      set_index false
       FileUtils.remove_entry dir
-      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{request.ip}"`
+      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user(@subjectid)}"`
       FourStore.delete investigation_uri
       delete_investigation_policy
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
 
+=begin
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
@@ -401,14 +386,12 @@ module OpenTox
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
-        # TODO send notification to UI (TO CHECK: if files will be indexed?)
-        # OpenTox::RestClientWrapper.put "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
-        
+        set_index true if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
         "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
     end
-
+=end
   end
 end

@@ -37,7 +37,7 @@ module OpenTox
     # @param [String,String]projectname,subjectid
     # @return [String]userURI
     def self.search_project project, subjectid
-      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/project?search=#{user}`.chomp.sub("\n","")
+      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/project?search=#{project}`.chomp.sub("\n","")
       return result if !result.match("Not Found")
       false
     end
