@@ -259,7 +259,8 @@ module OpenTox
     # @param file Zipped investigation files in ISA-TAB format
     # @return [text/uri-list] Task URI
     post '/investigation/?' do
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF") do
+      # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
+      task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation"),@subjectid) do
         params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
         bad_request_error "No file uploaded." unless params[:file]
@@ -352,7 +353,8 @@ module OpenTox
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
     # @return [text/uri-list] Task URI
     put '/investigation/:id' do
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
+      # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
+      task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri,@subjectid) do
         mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
         bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt') if params[:file]
@@ -394,7 +396,8 @@ module OpenTox
 
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
-      task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "Deleting #{params[:file][:filename]} from investigation #{params[:id]}.") do
+      # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
+      task = OpenTox::Task.run("Deleting #{params[:file][:filename]} from investigation #{params[:id]}.",@uri,@subjectid) do
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
