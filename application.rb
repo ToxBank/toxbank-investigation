@@ -1,7 +1,7 @@
 require 'roo'
 require 'opentox-server'
-require "#{File.dirname(__FILE__)}/tbaccount.rb"
-require "#{File.dirname(__FILE__)}/util.rb"
+require_relative "tbaccount.rb"
+require_relative "util.rb"
 
 module OpenTox
   # full API description for ToxBank investigation service see:  
