@@ -5,8 +5,8 @@ require "#{File.dirname(__FILE__)}/util.rb"
 require "#{File.dirname(__FILE__)}/helpers.rb"
 
 module OpenTox
-  # full API description for ToxBank investigation service see:  
-  # @see http://api.toxbank.net/index.php/Investigation ToxBank API Investigation
+  # For full API description of the ToxBank investigation service see:
+  # {http://api.toxbank.net/index.php/Investigation ToxBank API Investigation}
   class Application < Service
 
     helpers do
@@ -34,12 +34,16 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
-    # head request
+    # head request. 
+    # @return [String] only HTTP headers.
     head '/investigation/?' do
     end
-    
+
     # list URIs of all investigations or investigations of a user
+    # @param [String,String] projectname,subjectid
     # @return [String] text/uri-list, application/rdf+xml, application/json List of investigations
+    # @raise [BadRequestError] if wrong mime-type
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations
     get '/investigation/?' do
       bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
       if (@accept == "text/uri-list" || @accept == "application/rdf+xml") && !request.env['HTTP_USER']
@@ -57,11 +61,15 @@ module OpenTox
         bad_request_error "Mime type: '#{@accept}' not supported with user: '#{request.env['HTTP_USER']}'."
       end
     end
-    
+
     # Create a new investigation from ISA-TAB files
-    # @param [Header] Content-type: multipart/form-data
-    # @param file Zipped investigation files in ISA-TAB format
-    # @return [text/uri-list] Task URI
+    # @param [Hash] header Content-type: multipart/form-data.
+    # @option header [String] :Content-type 'multipart/form-data'.
+    # @option header [String] :subjectid authorization token.
+    # @param [File] Zipped investigation files in ISA-TAB format
+    # @return [String] text/uri-list Task URI
+    # @raise [BadRequestError] without file upload and wrong mime-type
+    # @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation
     post '/investigation/?' do
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF") do
         params[:id] = SecureRandom.uuid
@@ -97,9 +105,12 @@ module OpenTox
     end
 
     # Get an investigation representation
-    # @param [Header] Accept: one of text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml
-    # @return [text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml] Investigation in the requested format
-    # include own and published
+    # @param [Hash] header
+    # @option header [String] :Content-type one of text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml.
+    # @option header [String] :subjectid authorization token.
+    # @return [String] text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml - Investigation in the requested format
+    # @raise [ResourceNotFoundError] if directory didn't exists
+    # @see http://api.toxbank.net/index.php/Investigation#Get_an_investigation_representation
     get '/investigation/:id' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       case @accept
@@ -115,49 +126,62 @@ module OpenTox
     end
 
     # Get investigation metadata
-    # @param [Header] Accept: one of text/plain, text/turtle, application/rdf+xml
-    # @return [text/plain, text/turtle, application/rdf+xml]
-    # include own, pulished and searchable
+    # @param [Hash] header
+    # @option header [String] :Accept one of text/plain, text/turtle, application/rdf+xml.
+    # @option header [String] :subjectid authorization token.
+    # @return [String] text/plain, text/turtle, application/rdf+xml.
+    # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_metadata
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}> 
-      WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>. ?s ?p ?o .  } ", @accept
+      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}>
+                       WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>. ?s ?p ?o .  } ", @accept
     end
 
     # Get investigation protocol uri
+    # @raise [ResourceNotFoundError] if file do not exist
+    # @return [String] text/plain, text/turtle, application/rdf+xml
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_protocol_uri_associated_with_a_Study
     get '/investigation/:id/protocol' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.} 
-      FROM <#{investigation_uri}> 
-      WHERE {<#{investigation_uri}/> <#{RDF::ISA}hasStudy> ?study. ?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}", @accept
+      FourStore.query "CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}
+                       FROM <#{investigation_uri}>
+                       WHERE {<#{investigation_uri}/> <#{RDF::ISA}hasStudy> ?study.
+                       ?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}", @accept
     end
 
     # Get a study, assay, data representation
-    # @param [Header] Accept: one of text/tab-separated-values, application/sparql-results+json
-    # @return [text/tab-separated-values, application/sparql-results+json] Study, assay, data representation in ISA-TAB or RDF format
-    # @note include own and published
+    # @param [Hash] header
+    # @option header [String] :Accept one of text/tab-separated-values, application/sparql-results+json.
+    # @option header [String] :subjectid authorization token.
+    # @return [String] of mime-type [text/tab-separated-values, application/sparql-results+json] - Study, assay, data representation in ISA-TAB or RDF format.
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_study.2C_assay_or_data_representation
     get '/investigation/:id/isatab/:filename'  do
       resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # @todo return text/plain content type for tab separated files
-      send_file file, :type => ["text/tab-separated-values", "application/sparql-results+json"].include?(@accept) ? @accept : File.new(file).mime_type
+      send_file file, :type => File.new(file).mime_type
     end
 
     # Get RDF for an investigation resource
-    # @param [Header] Accept: one of text/plain, text/turtle, application/rdf+xml
-    # @return [text/plain, text/turtle, application/rdf+xml]
+    # @param [Hash] header
+    # @option header [String] :Accept one of text/plain, text/turtle, application/rdf+xml.
+    # @option header [String] :subjectid authorization token.
+    # @return [String] text/plain, text/turtle, application/rdf+xml
     # @note include own and published
     get '/investigation/:id/:resource' do
       FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
     end
 
     # Add studies, assays or data to an investigation
-    # @param [Header] Content-type: multipart/form-data
+    # @param [Hash] header
+    # @option header [String] :Content-type multipart/form-data.
+    # @option header [String] :subjectid authorization token.
     # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
-    # @return [text/uri-list] Task URI
+    # @return [String] text/uri-list Task URI
+    # @see http://api.toxbank.net/index.php/Investigation#Add.2Fupdate_studies.2C_assays_or_data_to_an_investigation
     put '/investigation/:id' do
       task = OpenTox::Task.create($task[:uri], @subjectid, RDF::DC.description => "#{investigation_uri}: Add studies, assays or data.") do
         mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file] 
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
         bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt') if params[:file]
         if params[:file]
           prepare_upload
@@ -184,6 +208,10 @@ module OpenTox
     end
 
     # Delete an investigation
+    # @param [Hash] header
+    # @option header [String] :subjectid authorization token.
+    # @return [String] status message and HTTP code
+    # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation
     delete '/investigation/:id' do
       set_index false
       FileUtils.remove_entry dir
