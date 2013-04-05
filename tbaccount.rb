@@ -97,8 +97,15 @@ module OpenTox
     end
 
     def get mime_type="application/rdf+xml"
-       response = `curl -Lk -X GET -H "Accept:#{mime_type}" -H "subjectid:#{@subjectid}" #{@uri}`.chomp
-       parse_rdfxml response if mime_type == "application/rdf+xml"
+      response = `curl -Lk -X GET -H "Accept:#{mime_type}" -H "subjectid:#{@subjectid}" #{@uri}`.chomp
+      parse_rdfxml response if mime_type == "application/rdf+xml"
+      metadata
+    end
+
+    # Object metadata
+    # @return [Hash] Object metadata
+    def metadata
+      @metadata = @rdf.to_hash[RDF::URI.new(@uri)].inject({}) { |h, (predicate, values)| h[predicate] = values.collect{|v| v.to_s}; h }
     end
 
     # creates policy
