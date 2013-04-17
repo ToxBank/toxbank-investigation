@@ -97,7 +97,9 @@ module OpenTox
         end
       end
 
-      # ISA-TAB to RDF conversion
+      # ISA-TAB to RDF conversion.
+      # Preprocess and parse isa-tab files with java isa2rdf
+      # @see https://github.com/ToxBank/isa2rdf
       def isa2rdf
         # @note isa2rdf returns correct exit code but error in task
         # @todo delete dir if task catches error, pass error to block
