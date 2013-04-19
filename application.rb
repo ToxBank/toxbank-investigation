@@ -48,8 +48,10 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations
     get '/investigation/?' do
       bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
-      if (@accept == "text/uri-list" || @accept == "application/rdf+xml") && !request.env['HTTP_USER']
+      if (@accept == "text/uri-list" && !request.env['HTTP_USER'])
         qlist @accept
+      elsif (@accept == "application/rdf+xml" && !request.env['HTTP_USER'])
+        FourStore.query "CONSTRUCT {?s ?p ?o} WHERE { GRAPH ?g { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>; ?p ?o. ?s ?p ?o} }", @accept
       elsif (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
         FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
         WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
