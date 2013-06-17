@@ -26,8 +26,9 @@ module OpenTox
     include OpenTox
 
     # Search a user URI in the user service
-    # @param [String,String]username,subjectid
-    # @return [String]userURI
+    # @param user [String] username
+    # @param subjectid [String]
+    # @return [String] userURI
     def self.search_user user, subjectid
       result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
       return result if !result.match("Not Found")
@@ -35,7 +36,8 @@ module OpenTox
     end
 
     # Search a project URI in the user service
-    # @param [String,String]projectname,subjectid
+    # @param project [String] projectname
+    # @param [String] subjectid
     # @return [String]userURI
     def self.search_project project, subjectid
       result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/project?search=#{project}`.chomp.sub("\n","")
@@ -62,7 +64,8 @@ module OpenTox
     end
 
     # GET policy XML 
-    # @param [String,String] URI,Type URI to protect, Access-rights < "all", "readwrite", "read" (default) >
+    # @param uri [String] URI
+    # @param type [String] Type URI to protect, Access-rights < "all", "readwrite", "read" (default) >
     # @return [String] policy in XML 
     def get_policy uri, type="read"
       policy(uri, type)
@@ -155,7 +158,8 @@ module OpenTox
   module Authorization
 
     # Create policy for PI-user (owner of subjectid)
-    # @param [String, String] URI,subjectid URI to create a policy for, subjectid
+    # @param uri [String] URI to create a policy for
+    # @param subjectid [String]
     def self.create_pi_policy uri, subjectid
       user = get_user(subjectid)
       #piuri = RestClientWrapper.get("#{RDF::TBU.to_s}?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
@@ -165,7 +169,9 @@ module OpenTox
     end
 
     # Delete all policies for Users or Groups of an investigation except the policy of the subjectid-owner.
-    # @param [String, String, String] URI,LDAPtype,subjectid URI to protect, LDAPUsers or LDAPGroups, subjectid
+    # @param uri [String] URI
+    # @param type [String] LDAP type: LDAPUsers or LDAPGroups
+    # @param subjectid [String]
     def self.reset_policies uri, type, subjectid
       policies = self.list_uri_policies(uri, subjectid)
       user = get_user(subjectid)

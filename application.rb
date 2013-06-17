@@ -1,6 +1,5 @@
 require 'roo'
 require 'opentox-server'
-
 require_relative "tbaccount.rb"
 require_relative "util.rb"
 require_relative "helper.rb"
@@ -14,6 +13,7 @@ module OpenTox
     helpers do
       include Helpers
       # overwrite opentox-server method for toxbank use
+      # @see {http://api.toxbank.net/index.php/Investigation#Security Investigation Security}
       def protected!(subjectid)
         if !env["session"] && subjectid
           unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
@@ -36,7 +36,7 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
-    # head request. 
+    # Head request.
     # @return [String] only HTTP headers.
     head '/investigation/?' do
     end
@@ -218,7 +218,7 @@ module OpenTox
     # @param [Hash] header
     # @option header [String] :subjectid authorization token.
     # @return [String] status message and HTTP code
-    # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation
+    # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation API Delete an investigation
     delete '/investigation/:id' do
       set_index false
       FileUtils.remove_entry dir
