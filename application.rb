@@ -13,7 +13,7 @@ module OpenTox
     helpers do
       include Helpers
       # overwrite opentox-server method for toxbank use
-      # @see {http://api.toxbank.net/index.php/Investigation#Security Investigation Security}
+      # @see {http://api.toxbank.net/index.php/Investigation#Security API: Investigation Security}
       def protected!(subjectid)
         if !env["session"] && subjectid
           unless !$aa[:uri] or $aa[:free_request].include?(env['REQUEST_METHOD'].to_sym)
@@ -36,16 +36,22 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
+    # @method head_all
+    # @overload head "/investigation/?"
     # Head request.
     # @return [String] only HTTP headers.
     head '/investigation/?' do
     end
 
-    # list URIs of all investigations or investigations of a user
-    # @param [String,String] projectname,subjectid
-    # @return [String] text/uri-list, application/rdf+xml, application/json List of investigations
+    # @method get_all
+    # @overload get "/investigation/?"
+    # List URIs of all investigations or investigations of a user.
+    # @param header [hash]
+    #   * Accept [String] <text/uri-list, application/rdf+xml, application/json>
+    #   * subjectid [String] authorization token
+    # @return [String] text/uri-list, application/rdf+xml, application/json List of investigations.
     # @raise [BadRequestError] if wrong mime-type
-    # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations API: Get a list of investigations
     get '/investigation/?' do
       bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
       if (@accept == "text/uri-list" && !request.env['HTTP_USER'])
@@ -67,14 +73,16 @@ module OpenTox
       end
     end
 
-    # Create a new investigation from ISA-TAB files
-    # @param [Hash] header Content-type: multipart/form-data.
-    # @option header [String] :Content-type 'multipart/form-data'.
-    # @option header [String] :subjectid authorization token.
-    # @param [File] Zipped investigation files in ISA-TAB format
-    # @return [String] text/uri-list Task URI
-    # @raise [BadRequestError] without file upload and wrong mime-type
-    # @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation
+    # @method post_investigation
+    # @overload post "/investigation/?"
+    # Create a new investigation from ISA-TAB files.
+    # @param header [Hash]
+    #   * Accept [String] <'multipart/form-data'>
+    #   * subjectid [String] authorization token
+    # @param [File] Zipped investigation files in ISA-TAB format.
+    # @return [String] text/uri-list Task URI.
+    # @raise [BadRequestError] without file upload and wrong mime-type.
+    # @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation API: Create an investigation
     post '/investigation/?' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation"),@subjectid) do
@@ -110,13 +118,15 @@ module OpenTox
       halt 202,task.uri+"\n"
     end
 
-    # Get an investigation representation
+    # @method get_id
+    # @overload get "/investigation/:id"
+    # Get an investigation representation.
     # @param [Hash] header
-    # @option header [String] :Content-type one of text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml.
-    # @option header [String] :subjectid authorization token.
-    # @return [String] text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml - Investigation in the requested format
+    #   * Accept [String] <text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml>
+    #   * subjectid [String] authorization token
+    # @return [String] text/tab-separated-values, text/uri-list, application/zip, application/rdf+xml - Investigation in the requested format.
     # @raise [ResourceNotFoundError] if directory didn't exists
-    # @see http://api.toxbank.net/index.php/Investigation#Get_an_investigation_representation
+    # @see http://api.toxbank.net/index.php/Investigation#Get_an_investigation_representation API: Get an investigation representation
     get '/investigation/:id' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       case @accept
@@ -131,22 +141,26 @@ module OpenTox
       end
     end
 
-    # Get investigation metadata
+    # @method get_metadata
+    # @overload get "/investigation/:id/metadata"
+    # Get investigation metadata.
     # @param [Hash] header
-    # @option header [String] :Accept one of text/plain, text/turtle, application/rdf+xml.
-    # @option header [String] :subjectid authorization token.
+    #   * Accept [String] <text/plain, text/turtle, application/rdf+xml>
+    #   * subjectid [String] authorization token
     # @return [String] text/plain, text/turtle, application/rdf+xml.
-    # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_metadata
+    # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_metadata API: Get investigation metadata
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}>
                        WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>. ?s ?p ?o .  } ", @accept
     end
 
+    # @method get_protocol
+    # @overload get "/investigation/:id/protocol"
     # Get investigation protocol uri
     # @raise [ResourceNotFoundError] if file do not exist
     # @return [String] text/plain, text/turtle, application/rdf+xml
-    # @see http://api.toxbank.net/index.php/Investigation#Get_a_protocol_uri_associated_with_a_Study
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_protocol_uri_associated_with_a_Study API: Get a protocol uri associated with a
     get '/investigation/:id/protocol' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       FourStore.query "CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}
@@ -155,35 +169,45 @@ module OpenTox
                        ?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}", @accept
     end
 
+    # @method get_file
+    # @overload get "/investigation/:id/:filename"
     # Get a study, assay, data representation
     # @param [Hash] header
-    # @option header [String] :Accept one of text/tab-separated-values, application/sparql-results+json.
-    # @option header [String] :subjectid authorization token.
+    #   * Accept [String] <text/tab-separated-values, application/sparql-results+json>
+    #   * subjectid [String] authorization token
     # @return [String] of mime-type [text/tab-separated-values, application/sparql-results+json] - Study, assay, data representation in ISA-TAB or RDF format.
-    # @see http://api.toxbank.net/index.php/Investigation#Get_a_study.2C_assay_or_data_representation
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_study.2C_assay_or_data_representation API: Get a study, assay or data representation
     get '/investigation/:id/isatab/:filename'  do
       resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # @todo return text/plain content type for tab separated files
       send_file file, :type => File.new(file).mime_type
     end
 
+    # @method get_resource
+    # @overload get "/investigation/:id/:recource"
     # Get RDF for an investigation resource
     # @param [Hash] header
-    # @option header [String] :Accept one of text/plain, text/turtle, application/rdf+xml.
-    # @option header [String] :subjectid authorization token.
+    #   * Accept [String] <text/plain, text/turtle, application/rdf+xml>
+    #   * subjectid [String] authorization token
     # @return [String] text/plain, text/turtle, application/rdf+xml
-    # @note include own and published
+    # @note Result includes your own and published investigations.
     get '/investigation/:id/:resource' do
       FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
     end
 
-    # Add studies, assays or data to an investigation
-    # @param [Hash] header
-    # @option header [String] :Content-type multipart/form-data.
-    # @option header [String] :subjectid authorization token.
-    # @param file Study, assay and data file (zip archive of ISA-TAB files or individual ISA-TAB files)
+    # @method put_id
+    # @overload put "/investigation/:id"
+    # Add studies, assays or data to an investigation. Send as *Content-type* multipart/form-data
+    # @param [Hash] header * subjectid [String] authorization token
+    # @param [Hash] params
+    #   * allowReadByUser [String] one or multiple userservice-URIs (User)
+    #   * allowReadByGroup [String] one or multiple userservice-URIs (Organisations, Projects)
+    #   * summarySearchable [String] true/false (default is false)
+    #   * published true/false [String] (default is false)
+    # @param [File] Zipped investigation files in ISA-TAB format.
     # @return [String] text/uri-list Task URI
-    # @see http://api.toxbank.net/index.php/Investigation#Add.2Fupdate_studies.2C_assays_or_data_to_an_investigation
+    # @see http://api.toxbank.net/index.php/Investigation#Add.2Fupdate_studies.2C_assays_or_data_to_an_investigation API: Add/update studies, assays or data to an investigation
+    # @see http://api.toxbank.net/index.php/User API: User service
     put '/investigation/:id' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri,@subjectid) do
@@ -214,11 +238,12 @@ module OpenTox
       halt 202,task.uri+"\n"
     end
 
+    # @method delete_id
+    # @overload delete "/investigation/:id"
     # Delete an investigation
-    # @param [Hash] header
-    # @option header [String] :subjectid authorization token.
+    # @param [Hash] header * subjectid [String] authorization token
     # @return [String] status message and HTTP code
-    # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation API Delete an investigation
+    # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation API: Delete an investigation
     delete '/investigation/:id' do
       set_index false
       FileUtils.remove_entry dir
