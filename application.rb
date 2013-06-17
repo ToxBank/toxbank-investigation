@@ -102,7 +102,7 @@ module OpenTox
       def isa2rdf
         # isa2rdf returns correct exit code but error in task
         # TODO delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.4.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
+        `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.5.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
         # rewrite default prefix
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
         investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
@@ -229,7 +229,7 @@ module OpenTox
         WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
       elsif (@accept == "application/json" && request.env['HTTP_USER'])
         response = FourStore.query "SELECT ?uri ?updated WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
-        response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3})/){|t| service_time t}
+        response.gsub(/(\d{2}\s[a-zA-Z]{3}\s\d{4}\s\d{2}\:\d{2}\:\d{2}\s[A-Z]{3,4})/){|t| service_time t}
       elsif (@accept == "text/uri-list" && request.env['HTTP_USER'])
         result = FourStore.query "SELECT ?uri WHERE {?uri <#{RDF::TB}hasOwner> <#{request.env["HTTP_USER"]}>; <#{RDF::DC.modified}> ?updated}", @accept
         result.split("\n").collect{|u| u.sub(/(\/)+$/,'')}.join("\n")
