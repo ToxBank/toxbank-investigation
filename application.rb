@@ -85,7 +85,7 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation API: Create an investigation
     post '/investigation/?' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
-      task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation"),@subjectid) do
+      task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
         params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
         bad_request_error "No file uploaded." unless params[:file]
@@ -210,7 +210,7 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/User API: User service
     put '/investigation/:id' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
-      task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri,@subjectid) do
+      task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri) do
         mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
         bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt') if params[:file]
