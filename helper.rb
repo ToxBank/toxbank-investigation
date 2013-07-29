@@ -45,8 +45,8 @@ module OpenTox
 
       # deletes all policies of an investigation
       def delete_investigation_policy
-        if @subjectid and !File.exists?(dir) and investigation_uri
-          res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri, @subjectid)
+        if RestClientWrapper.subjectid and !File.exists?(dir) and investigation_uri
+          res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri)
         end
       end
 
@@ -67,7 +67,7 @@ module OpenTox
           `mv #{d}/* #{tmp}`
           `rmdir #{d}`
         end
-        replace_pi @subjectid
+        replace_pi
       end
 
       # process Excel file
@@ -117,7 +117,7 @@ module OpenTox
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
-        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user(@subjectid)}"`
+        `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user}"`
         investigation_uri
       end
 
@@ -132,18 +132,18 @@ module OpenTox
         uriarray = uristring.gsub(/[\[\]\"]/ , "").split(",") if uristring.class == String
         if uriarray.size > 0
           uriarray.each do |u|
-            tbaccount = OpenTox::TBAccount.new(u, @subjectid)
+            tbaccount = OpenTox::TBAccount.new(u)
             policyfile.puts tbaccount.get_policy(investigation_uri)
           end
           policyfile.close
           policytext = File.read filename
           replace = policytext.gsub!("</Policies>\n<!DOCTYPE Policies PUBLIC \"-//Sun Java System Access Manager7.1 2006Q3 Admin CLI DTD//EN\" \"jar://com/sun/identity/policy/policyAdmin.dtd\">\n<Policies>\n", "")
           File.open(filename, "w") { |file| file.puts replace } if replace
-          Authorization.reset_policies investigation_uri, ldaptype, @subjectid
-          ret = Authorization.create_policy(File.read(policyfile), @subjectid)
+          Authorization.reset_policies investigation_uri, ldaptype
+          ret = Authorization.create_policy(File.read(policyfile))
           File.delete policyfile if ret
         else
-          Authorization.reset_policies investigation_uri, ldaptype, @subjectid
+          Authorization.reset_policies investigation_uri, ldaptype
         end
       end
 
@@ -160,7 +160,7 @@ module OpenTox
       # add or delete investigation_uri from search index at UI
       # @param inout [Boolean] true=add, false=delete
       def set_index inout=false
-        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => @subjectid}
+        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => RestClientWrapper.subjectid}
       end
 
       # return uri if related flag is set to "true".
@@ -177,12 +177,12 @@ module OpenTox
         uri = to(request.env['REQUEST_URI'])
         curi = clean_uri(uri)
         return true if uri == $investigation[:uri]
-        return true if OpenTox::Authorization.get_user(@subjectid) == "protocol_service"
-        return true if OpenTox::Authorization.uri_owner?(curi, @subjectid)
+        return true if OpenTox::Authorization.get_user == "protocol_service"
+        return true if OpenTox::Authorization.uri_owner?(curi)
         if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
           return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
         end
-        return true if OpenTox::Authorization.authorized?(curi, "GET", @subjectid) && qfilter("isPublished", curi) =~ /#{curi}/
+        return true if OpenTox::Authorization.authorized?(curi, "GET") && qfilter("isPublished", curi) =~ /#{curi}/
         return false
       end
 
@@ -194,13 +194,12 @@ module OpenTox
       end
 
       # replaces pi uri with owner uri (use uri prefix) in i_*vestigation.txt file.
-      # @param [String] subjectid
-      def replace_pi subjectid
+      def replace_pi
         begin
-          user = OpenTox::Authorization.get_user(subjectid)
+          user = OpenTox::Authorization.get_user
           #accounturi = OpenTox::RestClientWrapper.get("#{$user_service[:uri]}/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
-          accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
-          account = OpenTox::TBAccount.new(accounturi, subjectid)
+          accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
+          account = OpenTox::TBAccount.new(accounturi)
           investigation_file = Dir["#{tmp}/i_*vestigation.txt"]
           investigation_file.each do |inv_file|
             text = File.read(inv_file, :encoding => "BINARY")
@@ -210,7 +209,7 @@ module OpenTox
             File.open(inv_file, "wb") { |file| file.puts replace } if replace
           end
         rescue
-          $logger.error "can not replace Principal Investigator to user: #{user} with subjectid: #{subjectid}"
+          $logger.error "can not replace Principal Investigator to user: #{user} with subjectid: #{RestClientWrapper.subjectid}"
         end
       end
     end

@@ -23,13 +23,13 @@ module OpenTox
             end
           end
         else
-          unauthorized_error "Not authorized: #{request.env['REQUEST_URI']} for user: #{OpenTox::Authorization.get_user(subjectid)}"
+          unauthorized_error "Not authorized: #{request.env['REQUEST_URI']} for user: #{OpenTox::Authorization.get_user}"
         end
       end
     end
 
     before do
-      $logger.debug "WHO: #{OpenTox::Authorization.get_user(@subjectid)}, request method: #{request.env['REQUEST_METHOD']}, type: #{request.env['CONTENT_TYPE']}\n\nhole request env: #{request.env}\n\nparams inspect: #{params.inspect}\n\n"
+      $logger.debug "WHO: #{OpenTox::Authorization.get_user}, request method: #{request.env['REQUEST_METHOD']}, type: #{request.env['CONTENT_TYPE']}\n\nhole request env: #{request.env}\n\nparams inspect: #{params.inspect}\n\n"
       resource_not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
       parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
@@ -91,7 +91,7 @@ module OpenTox
         bad_request_error "No file uploaded." unless params[:file]
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
         prepare_upload
-        OpenTox::Authorization.create_pi_policy(investigation_uri, @subjectid)
+        OpenTox::Authorization.create_pi_policy(investigation_uri)
         case params[:file][:type]
         when "application/vnd.ms-excel"
           extract_xls
@@ -247,7 +247,7 @@ module OpenTox
     delete '/investigation/:id' do
       set_index false
       FileUtils.remove_entry dir
-      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user(@subjectid)}"`
+      `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user}"`
       FourStore.delete investigation_uri
       delete_investigation_policy
       response['Content-Type'] = 'text/plain'
@@ -257,8 +257,8 @@ module OpenTox
 =begin
     # Delete an individual study, assay or data file
     delete '/investigation/:id/:filename'  do
-      # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
-      task = OpenTox::Task.run("Deleting #{params[:file][:filename]} from investigation #{params[:id]}.",@uri,@subjectid) do
+      # CH: Task.create is now Task.run(description,creator_uri) to avoid method clashes
+      task = OpenTox::Task.run("Deleting #{params[:file][:filename]} from investigation #{params[:id]}.",@uri) do
         prepare_upload
         File.delete File.join(tmp,params[:filename])
         isa2rdf
