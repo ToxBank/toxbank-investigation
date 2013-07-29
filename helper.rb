@@ -160,7 +160,7 @@ module OpenTox
       # add or delete investigation_uri from search index at UI
       # @param inout [Boolean] true=add, false=delete
       def set_index inout=false
-        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => RestClientWrapper.subjectid}
+        OpenTox::RestClientWrapper.method(inout ? "put" : "delete").call "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape(investigation_uri)}",{},{:subjectid => OpenTox::RestClientWrapper.subjectid}
       end
 
       # return uri if related flag is set to "true".
