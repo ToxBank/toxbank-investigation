@@ -106,9 +106,9 @@ module OpenTox
         `cd #{File.dirname(__FILE__)}/java && java -jar isa2rdf-cli-0.0.6.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
         investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
-        `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}/>;g' #{File.join tmp,nt}`
-        `echo '\n<#{investigation_uri}/> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
-        `echo "\n<#{investigation_uri}/> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
+        `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
+        `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
+        `echo "\n<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
@@ -153,8 +153,8 @@ module OpenTox
       # @param [String]type boolean
       def set_flag flag, value, type = ""
         flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
-        OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{!value}\"#{flagtype}}}"
-        OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}/> <#{flag}> \"#{value}\"#{flagtype}}}"
+        OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{!value}\"#{flagtype}}}"
+        OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype}}}"
       end
 
       # add or delete investigation_uri from search index at UI
