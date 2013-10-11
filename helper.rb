@@ -107,7 +107,7 @@ module OpenTox
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
         investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
-        `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
+        # `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
         `echo "\n<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
         FileUtils.rm Dir[File.join(tmp,"*.zip")]
         FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -155,6 +155,12 @@ module OpenTox
         flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
         OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{!value}\"#{flagtype}}}"
         OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype}}}"
+      end
+
+      def set_modified
+        OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
+        DELETE { <#{investigation_uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o};
+        INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
       end
 
       # add or delete investigation_uri from search index at UI
