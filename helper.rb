@@ -103,7 +103,13 @@ module OpenTox
       def isa2rdf
         # @note isa2rdf returns correct exit code but error in task
         # @todo delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-0.0.7.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
+        begin
+          `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-0.0.7.jar -d #{tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} `#&> #{File.join tmp,'log'}`
+        rescue
+          FileUtils.remove_entry dir
+          delete_investigation_policy
+          bad_request_error "Could not parse isatab file in #{params[:file][:filename]}."
+        end
         `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
         investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
         `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
