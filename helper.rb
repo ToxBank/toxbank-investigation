@@ -162,6 +162,9 @@ module OpenTox
         flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
         OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{!value}\"#{flagtype}}}"
         OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype}}}"
+        flagsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{uri}> <#{RDF::TB}isPublished> ?o} FROM <#{uri}> WHERE {<#{uri}> <#{RDF::TB}isPublished> ?o }", "text/plain"
+        # save flag to file in case of restore or transport backend
+        File.open(File.join(dir, 'flag.nt'), 'w') {|f| f.write(flagsave) }
       end
 
       def set_modified
