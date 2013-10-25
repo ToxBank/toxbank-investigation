@@ -155,22 +155,25 @@ module OpenTox
       end
 
       # switch boolean flags in triple store
-      # @param [String]flag e.G.: isPublished, isSummarySearchable
+      # @param [String]flag e.G.: RDF::TB.isPublished, RDF::TB.isSummarySearchable
       # @param [Boolean]value
       # @param [String]type boolean
       def set_flag flag, value, type = ""
         flagtype = type == "boolean" ? "^^<#{RDF::XSD.boolean}>" : ""
         OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{!value}\"#{flagtype}}}"
         OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype}}}"
-        flagsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{uri}> <#{RDF::TB}isPublished> ?o} FROM <#{uri}> WHERE {<#{uri}> <#{RDF::TB}isPublished> ?o }", "text/plain"
         # save flag to file in case of restore or transport backend
-        File.open(File.join(dir, 'flag.nt'), 'w') {|f| f.write(flagsave) }
+        flagsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{flag}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{flag}> ?o }", "text/plain"
+        File.open(File.join(dir, "#{flag.to_s.split("/").last}.nt"), 'w') {|f| f.write(flagsave) }
       end
 
       def set_modified
         OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
         DELETE { <#{investigation_uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o};
         INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
+        # save last modified to file in case of restore or transport backend
+        modsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{RDF::DC.modified}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o }", "text/plain"
+        File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
       end
 
       # add or delete investigation_uri from search index at UI
