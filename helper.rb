@@ -165,6 +165,14 @@ module OpenTox
         # save flag to file in case of restore or transport backend
         flagsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{flag}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{flag}> ?o }", "text/plain"
         File.open(File.join(dir, "#{flag.to_s.split("/").last}.nt"), 'w') {|f| f.write(flagsave) }
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
+        request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
+        if newfiles != ""
+          `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
+          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+        else
+          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{params[:id]}/#{flag.to_s.split("/").last}.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
+        end
       end
 
       def set_modified
@@ -174,6 +182,14 @@ module OpenTox
         # save last modified to file in case of restore or transport backend
         modsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{RDF::DC.modified}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o }", "text/plain"
         File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
+        request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
+        if newfiles != ""
+          `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
+          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+        else
+          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{params[:id]}/modified.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
+        end
       end
 
       # add or delete investigation_uri from search index at UI
