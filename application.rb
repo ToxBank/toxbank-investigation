@@ -87,9 +87,9 @@ module OpenTox
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
         params[:id] = SecureRandom.uuid
-        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
+        mime_types = ['application/zip','text/tab-separated-values']
         bad_request_error "No file uploaded." unless params[:file]
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
         prepare_upload
         OpenTox::Authorization.create_pi_policy(investigation_uri)
         case params[:file][:type]
