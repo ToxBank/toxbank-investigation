@@ -57,7 +57,7 @@ module OpenTox
       if (@accept == "text/uri-list" && !request.env['HTTP_USER'])
         qlist @accept
       elsif (@accept == "application/rdf+xml" && !request.env['HTTP_USER'])
-        FourStore.query "CONSTRUCT {?s ?p ?o} WHERE { GRAPH ?g { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>; ?p ?o. ?s ?p ?o} }", @accept
+        FourStore.query "CONSTRUCT {?s <#{RDF.type}> <#{RDF::ISA}Investigation> } WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>.}", @accept
       elsif (@accept == "application/rdf+xml" && request.env['HTTP_USER'])
         FourStore.query "CONSTRUCT {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation> }
         WHERE {?investigation <#{RDF.type}> <#{RDF::ISA}Investigation>. ?investigation <#{RDF::TB}hasOwner> <#{request.env['HTTP_USER']}>}", @accept
