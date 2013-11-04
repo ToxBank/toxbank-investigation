@@ -212,8 +212,8 @@ module OpenTox
     put '/investigation/:id' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri) do
-        mime_types = ['application/zip','text/tab-separated-values', 'application/vnd.ms-excel']
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip), Excel file (application/vnd.ms-excel) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
+        mime_types = ['application/zip','text/tab-separated-values']
+        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
         bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt') if params[:file]
         if params[:file]
           prepare_upload
