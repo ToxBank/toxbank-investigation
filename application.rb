@@ -1,4 +1,4 @@
-require 'roo'
+#require 'roo'
 require 'opentox-server'
 require_relative "tbaccount.rb"
 require_relative "util.rb"
@@ -93,10 +93,10 @@ module OpenTox
         prepare_upload
         OpenTox::Authorization.create_pi_policy(investigation_uri)
         case params[:file][:type]
-        when "application/vnd.ms-excel"
-          extract_xls
-        when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          extract_xls
+        #when "application/vnd.ms-excel"
+        #  extract_xls
+        #when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        #  extract_xls
         when 'application/zip'
           if `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
             extract_zip

@@ -69,7 +69,7 @@ module OpenTox
         end
         replace_pi
       end
-
+=begin
       # process Excel file
       def extract_xls
         # use Excelx.new instead of Excel.new if your file is a .xlsx
@@ -96,7 +96,7 @@ module OpenTox
           bad_request_error "Could not parse spreadsheet #{params[:file][:filename]}"
         end
       end
-
+=end
       # ISA-TAB to RDF conversion.
       # Preprocess and parse isa-tab files with java isa2rdf
       # @see https://github.com/ToxBank/isa2rdf
