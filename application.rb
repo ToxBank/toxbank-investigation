@@ -1,4 +1,3 @@
-#require 'roo'
 require 'opentox-server'
 require_relative "tbaccount.rb"
 require_relative "util.rb"
