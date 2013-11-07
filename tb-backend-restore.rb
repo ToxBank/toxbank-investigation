@@ -2,8 +2,7 @@
 # Description: ruby script to restore a destroyed 4store backend from locally stored toxbank-investigation files
 # Date: 07/Nov/2013
 
-SERVICE = "investigation"
-SERVICE_URI = "https://service_uri_here/#{SERVICE}/" # add the service uri
+SERVICE = "investigation" # for service config file
 require File.join '../opentox-client/lib/opentox-client.rb' # maybe adjust the paths here
 require File.join '../opentox-server/lib/opentox-server.rb'
 
@@ -23,7 +22,7 @@ investigations.each_with_index do |inv, idx|
   
   puts "\n========================="
   puts "\nUploading investigation #{idx + 1} with ID #{inv}."
-  uri = SERVICE_URI + inv
+  uri = $investigation[:uri] + inv
   nt = File.join("investigation", inv, inv+".nt")
   OpenTox::Backend::FourStore.put uri, File.read(nt), "application/x-turtle"
   puts "Done."
