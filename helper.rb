@@ -123,7 +123,7 @@ module OpenTox
           newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
           `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
           request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
-          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user}"`
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user}"`
           investigation_uri
         end
       end
@@ -169,9 +169,9 @@ module OpenTox
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
           `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
-          `cd #{File.dirname(__FILE__)}/investigation && git add "#{params[:id]}/#{flag.to_s.split("/").last}.nt" && git commit -am "#{params[:id]}/#{flag.to_s.split("/").last}.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
+          `cd #{File.dirname(__FILE__)}/investigation && git add "#{params[:id]}/#{flag.to_s.split("/").last}.nt" && git commit --allow-empty -am "#{params[:id]}/#{flag.to_s.split("/").last}.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
         end
       end
 
@@ -186,9 +186,9 @@ module OpenTox
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
           `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
-          `cd #{File.dirname(__FILE__)}/investigation && git commit -am "#{params[:id]}/modified.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{params[:id]}/modified.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
         end
       end
 
