@@ -117,8 +117,16 @@ module OpenTox
           `echo "\n<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
+          #TODO if datasets.rdf intended for download add them to the zip
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
+          # add datasets.rdf
+          rdfs = File.join(dir, "*.rdf")
+          unless rdfs.blank?
+            Dir.glob(rdfs).each do |dataset|
+              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
+            end
+          end
           FileUtils.remove_entry tmp
           newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
           `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
