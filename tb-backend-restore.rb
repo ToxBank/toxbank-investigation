@@ -27,6 +27,13 @@ investigations.each_with_index do |inv, idx|
   OpenTox::Backend::FourStore.put uri, File.read(nt), "application/x-turtle"
   puts "Done."
   
+  rdfs = File.join("investigation", inv, "*.rdf")
+  Dir.glob(rdfs).each do |dataset|
+    puts "Upload Dataset #{dataset}."
+    OpenTox::Backend::FourStore.post uri, File.read(dataset), "application/x-turtle"
+    puts "Done."
+  end
+  
   puts "Upload isSummarySearchable flag."
   isSS = File.join("investigation", inv, "isSummarySearchable.nt")
   OpenTox::Backend::FourStore.post uri, File.read(isSS), "application/x-turtle"
