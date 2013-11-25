@@ -2,7 +2,7 @@
 # Main ToxBank-investigation install script
 # Author: Christoph Helma, Andreas Maunz, Denis Gebele.
 
-ISA2RDF_download="http://ambit.uni-plovdiv.bg:8083/nexus/service/local/repositories/toxbank-releases/content/net/toxbank/isa2rdf-cli/1.0.0/isa2rdf-cli-1.0.0.jar"
+ISA2RDF_download="http://ambit.uni-plovdiv.bg:8083/nexus/service/local/repositories/toxbank-snapshots/content/net/toxbank/isa2rdf-cli/1.0.0-SNAPSHOT/isa2rdf-cli-1.0.0-20131122.122111-1.jar"
 ISA2RDF=isa2rdf-cli-1.0.0.jar
 
 echo
