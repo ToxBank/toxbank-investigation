@@ -24,7 +24,7 @@ investigations.each_with_index do |inv, idx|
   if File.exist?(File.join("investigation", inv, inv+".nt"))
     puts "\n========================="
     puts "\nUploading investigation #{idx + 1} with ID #{inv}."
-    uri = $investigation[:uri] + inv
+    uri = $investigation[:uri] + '/' + inv
     nt = File.join("investigation", inv, inv+".nt")
     OpenTox::Backend::FourStore.put uri, File.read(nt), "application/x-turtle"
     puts "Done."
@@ -40,22 +40,24 @@ investigations.each_with_index do |inv, idx|
     
     puts "Upload isSummarySearchable flag."
     isSS = File.join("investigation", inv, "isSummarySearchable.nt")
-    OpenTox::Backend::FourStore.post uri, File.read(isSS), "application/x-turtle"
+    OpenTox::Backend::FourStore.post uri, File.read(isSS), "application/x-turtle" if File.exist?(isSS)
     puts "Done."
     
     puts "Upload isPublished flag."
     isP = File.join("investigation", inv, "isPublished.nt")
-    OpenTox::Backend::FourStore.post uri, File.read(isP), "application/x-turtle"
+    OpenTox::Backend::FourStore.post uri, File.read(isP), "application/x-turtle" if File.exist?(isP)
     puts "Done."
 
     puts "Update last modified date entry."
     mod = File.join("investigation", inv, "modified.nt")
-    x = IO.read(mod)
-    # delete all previous entries from OpenTox::Backend::FourStore methods and add date from file
-    OpenTox::Backend::FourStore.update "WITH <#{uri}>
-    DELETE { <#{uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{uri}> <#{RDF::DC.modified}> ?o};
-    INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::DC.modified}> #{x.split(">").last.strip}}}"
-    puts "Done.\n"
+    if File.exist?(mod)
+      x = IO.read(mod)
+      # delete all previous entries from OpenTox::Backend::FourStore methods and add date from file
+      OpenTox::Backend::FourStore.update "WITH <#{uri}>
+      DELETE { <#{uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{uri}> <#{RDF::DC.modified}> ?o};
+      INSERT DATA { GRAPH <#{uri}> {<#{uri}> <#{RDF::DC.modified}> #{x.split(">").last.strip}}}"
+      puts "Done.\n"
+    end
   else
     broken_investigations << "#{File.join("investigation", inv)}\n"
   end
