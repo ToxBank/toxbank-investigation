@@ -62,6 +62,7 @@ investigations.each_with_index do |inv, idx|
 
 end
 
+puts "Following broken investigations will be deleted."
 puts broken_investigations
 
 if broken_investigations != ""
