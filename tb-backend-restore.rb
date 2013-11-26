@@ -31,9 +31,11 @@ investigations.each_with_index do |inv, idx|
     
     rdfs = File.join("investigation", inv, "*.rdf")
     Dir.glob(rdfs).each do |dataset|
-      puts "Upload Dataset #{dataset}."
-      OpenTox::Backend::FourStore.post uri, File.read(dataset), "application/x-turtle"
-      puts "Done."
+      unless File.zero?(dataset)
+        puts "Upload Dataset #{dataset}."
+        OpenTox::Backend::FourStore.post uri, File.read(dataset), "application/x-turtle"
+        puts "Done."
+      end
     end
     
     puts "Upload isSummarySearchable flag."
@@ -61,3 +63,9 @@ investigations.each_with_index do |inv, idx|
 end
 
 puts broken_investigations
+
+broken_investigations.split("\n").each do |broken|
+  `rm -rf #{broken}`
+  `git commit -am "removed broken investigation"`
+end
+
