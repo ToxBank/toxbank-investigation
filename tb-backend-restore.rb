@@ -62,13 +62,14 @@ investigations.each_with_index do |inv, idx|
 
 end
 
-puts "Following broken investigations will be deleted."
+puts "\nList of broken investigations, stored in 'broken_investigations' file.\n"
 puts broken_investigations
-
+File.open('broken_investigations', 'w') { |file| file.write(broken_investigations) }
+=begin
 if broken_investigations != ""
   broken_investigations.split("\n").each do |broken|
     `rm -rf #{broken}`
     `git commit -am 'removed broken investigation'`
   end
 end
-
+=end
