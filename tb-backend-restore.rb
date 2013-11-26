@@ -26,26 +26,26 @@ investigations.each_with_index do |inv, idx|
     puts "\nUploading investigation #{idx + 1} with ID #{inv}."
     uri = $investigation[:uri] + '/' + inv
     nt = File.join("investigation", inv, inv+".nt")
-    OpenTox::Backend::FourStore.put uri, File.read(nt), "application/x-turtle"
+    OpenTox::Backend::FourStore.put uri, File.read(nt), "text/plain"
     puts "Done."
     
     rdfs = File.join("investigation", inv, "*.rdf")
     Dir.glob(rdfs).each do |dataset|
       unless File.zero?(dataset)
         puts "Upload Dataset #{dataset}."
-        OpenTox::Backend::FourStore.post uri, File.read(dataset), "application/x-turtle"
+        OpenTox::Backend::FourStore.post uri, File.read(dataset), "application/rdf+xml"
         puts "Done."
       end
     end
     
     puts "Upload isSummarySearchable flag."
     isSS = File.join("investigation", inv, "isSummarySearchable.nt")
-    OpenTox::Backend::FourStore.post uri, File.read(isSS), "application/x-turtle" if File.exist?(isSS)
+    OpenTox::Backend::FourStore.post uri, File.read(isSS), "text/plain" if File.exist?(isSS)
     puts "Done."
     
     puts "Upload isPublished flag."
     isP = File.join("investigation", inv, "isPublished.nt")
-    OpenTox::Backend::FourStore.post uri, File.read(isP), "application/x-turtle" if File.exist?(isP)
+    OpenTox::Backend::FourStore.post uri, File.read(isP), "text/plain" if File.exist?(isP)
     puts "Done."
 
     puts "Update last modified date entry."
