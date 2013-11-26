@@ -64,8 +64,10 @@ end
 
 puts broken_investigations
 
-broken_investigations.split("\n").each do |broken|
-  `rm -rf #{broken}`
-  `git commit -am "removed broken investigation"`
+if broken_investigations != ""
+  broken_investigations.split("\n").each do |broken|
+    `rm -rf #{broken}`
+    `git commit -am 'removed broken investigation'`
+  end
 end
 
