@@ -15,7 +15,7 @@ module OpenTox
         uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.delete_if{|u| u.match(/_policies$/)}
-        uris.delete_if{|u| u.match(/log|modified|published|searchable/i)}
+        uris.delete_if{|u| u.match(/^log$|^modified\.nt$|^isPublished\.nt$|^isSummarySearchable\.nt$/)}
         uris.compact.sort.join("\n") + "\n"
       end
 
