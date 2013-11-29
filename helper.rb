@@ -256,6 +256,16 @@ module OpenTox
           $logger.error "can not replace Principal Investigator to user: #{user} with subjectid: #{RestClientWrapper.subjectid}"
         end
       end
+
+      # get SPARQL template hash of temlatename => templatefile
+      # @param type [String] template subdirectory
+      def get_templates type=""
+        templates = {}
+        filenames = Dir[File.join File.dirname(File.expand_path __FILE__), "template/#{type}/*.sparql".gsub("//","/")]
+        filenames.each{ |filename| templates[File.basename(filename, ".sparql")]=filename}
+        return templates
+      end
+
     end
   end
 end

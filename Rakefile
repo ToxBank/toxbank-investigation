@@ -1,7 +1,7 @@
 require "bundler/gem_tasks"
 namespace :fourstore do
 
-   desc "Restore 4store entries from investigation file directory"
+  desc "Restore 4store entries from investigation file directory"
   task :restore do
     # Author: Denis Gebele
     # Description: ruby script to restore a destroyed 4store backend from locally stored toxbank-investigation files

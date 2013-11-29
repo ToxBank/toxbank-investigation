@@ -185,7 +185,7 @@ module OpenTox
 
     # @method get_resource
     # @overload get "/investigation/:id/:recource"
-    # Get RDF for an investigation resource
+    # Get n-triples, turtle or RDF for an investigation resource
     # @param [Hash] header
     #   * Accept [String] <text/plain, text/turtle, application/rdf+xml>
     #   * subjectid [String] authorization token
@@ -193,6 +193,19 @@ module OpenTox
     # @note Result includes your own and published investigations.
     get '/investigation/:id/:resource' do
       FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
+    end
+
+    # @method get_sparql
+    # @overload get "/investigation/:id/sparql/:templatename"
+    # Get n-triples, turtle or RDF for an investigation resource
+    # @param [Hash] header
+    #   * Accept [String] <text/plain, text/turtle, application/rdf+xml>
+    #   * subjectid [String] authorization token
+    # @return [String] text/plain, text/turtle, application/rdf+xml
+    # @note Result includes your own and published investigations.
+    get '/investigation/:id/sparql/:templatename' do
+      templates = get_templates "investigation"
+      resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? params[:templatename]
     end
 
     # @method put_id
