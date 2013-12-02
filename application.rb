@@ -204,8 +204,9 @@ module OpenTox
     # @return [String] sparql-results+xml, json, uri-list, html
     get '/investigation/:id/sparql/:templatename' do
       templates = get_templates "investigation"
-      resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? params[:templatename]
-      sparqlstring = File.read(templates[params[:templatename]])
+      templatename = params[:templatename].underscore
+      resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
+      sparqlstring = File.read(templates[templatename])
       values = { :investigation_uri => investigation_uri }
       sparqlstring = sparqlstring % values
       FourStore.query sparqlstring, @accept
