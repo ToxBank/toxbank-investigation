@@ -9,7 +9,7 @@ prefix tb:    <http://onto.toxbank.net/api/>
 
 
 SELECT distinct ?study ?propname ?value ?ontouri WHERE {
- <https://services.toxbank.net/investigation/02d910d9-a3bb-4275-8ae0-dc2b3a1555fe/> isa:hasStudy ?study.
+ <%{investigation_uri}> isa:hasStudy ?study.
  ?node isa:hasStudy ?study.
  ?node rdf:type isa:MaterialNode.
  ?node isa:hasMaterial ?sample.
