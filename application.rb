@@ -197,12 +197,11 @@ module OpenTox
 
     # @method get_sparql
     # @overload get "/investigation/:id/sparql/:templatename"
-    # Get n-triples, turtle or RDF for an investigation resource
+    # Get data by predefined SPARQL templates for an investigation resource
     # @param [Hash] header
-    #   * Accept [String] <text/plain, text/turtle, application/rdf+xml>
+    #   * Accept [String] <application/sparql-results+xml, application/json, text/uri-list, text/html>
     #   * subjectid [String] authorization token
-    # @return [String] text/plain, text/turtle, application/rdf+xml
-    # @note Result includes your own and published investigations.
+    # @return [String] sparql-results+xml, json, uri-list, html
     get '/investigation/:id/sparql/:templatename' do
       templates = get_templates "investigation"
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? params[:templatename]
