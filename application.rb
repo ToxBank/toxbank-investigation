@@ -118,6 +118,27 @@ module OpenTox
       halt 202,task.uri+"\n"
     end
 
+    # @method get_sparql
+    # @overload get "/investigation/:id/sparql/:templatename"
+    # Get data by predefined SPARQL templates for an investigation resource
+    # @param [Hash] header
+    #   * Accept [String] <application/sparql-results+xml, application/json, text/uri-list, text/html>
+    #   * subjectid [String] authorization token
+    # @return [String] sparql-results+xml, json, uri-list, html
+    get '/investigation/sparql/:templatename' do
+      templates = get_templates ""
+      templatename = params[:templatename].underscore
+      resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
+      case templatename
+      when /_and_/
+        return FourStore.query File.read(templates[templatename]) , @accept
+      else
+        not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
+      end
+      #sparqlstring = File.read(templates[templatename]) % { :investigation_uri => investigation_uri }
+      #FourStore.query sparqlstring, @accept
+    end
+
     # @method get_id
     # @overload get "/investigation/:id"
     # Get an investigation representation.
@@ -195,7 +216,7 @@ module OpenTox
       FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
     end
 
-    # @method get_sparql
+    # @method get_investigation_sparql
     # @overload get "/investigation/:id/sparql/:templatename"
     # Get data by predefined SPARQL templates for an investigation resource
     # @param [Hash] header
