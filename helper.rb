@@ -125,7 +125,7 @@ module OpenTox
           rdfs = File.join(dir, "*.rdf")
           unless rdfs.blank?
             Dir.glob(rdfs).each do |dataset|
-              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle" unless File.zero?(dataset)
+              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/rdf+xml" unless File.zero?(dataset)
             end
           end
           FileUtils.remove_entry tmp
