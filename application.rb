@@ -138,7 +138,7 @@ module OpenTox
         factorValues = factorValues.gsub(/[\[\]\"]/ , "").split(",") if factorValues.class == String
         fVArr = []
         factorValues.each do |factorValue|
-          fVArr << "{ ?factorValue isa:hasOntologyTerm  <#{factorValue.gsub("'","").strip)}> }"
+          fVArr << "{ ?factorValue isa:hasOntologyTerm  <#{factorValue.gsub("'","").strip}> }"
         end
         fVString = fVArr.join(" UNION ")
         sparqlstring = File.read(templates[templatename]) % { :factorValues => fVString }
