@@ -1,17 +1,21 @@
 #Investigation service query
-#Retrieves investigation URI containing any of the factor value URI (e.g. two compound URIs)
+#Retrieves protocol URI containing any of the factor value URI (e.g. two compound URIs)
 #
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX isa:   <http://onto.toxbank.net/isa/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
-PREFIX tb:    <http://onto.toxbank.net/api/>
+PREFIX tb:    <http://onto.toxbank.net/api/> 
 
-SELECT DISTINCT ?inv ?factorname ?value ?published ?searchable WHERE {
+SELECT DISTINCT ?protocol ?label ?factorname ?value ?published ?searchable WHERE {
  ?inv rdf:type isa:Investigation.
  ?inv isa:hasStudy ?study.
  ?inv tb:isPublished ?published.
  ?inv tb:isSummarySearchable ?searchable.
+ ?study isa:hasProtocol ?protocol.
+ OPTIONAL {
+ ?protocol rdfs:label ?label.
+ }
  ?node isa:hasStudy ?study.
  ?node rdf:type isa:MaterialNode.
  ?node isa:hasMaterial ?sample.
@@ -20,7 +24,7 @@ SELECT DISTINCT ?inv ?factorname ?value ?published ?searchable WHERE {
    %{factorValues}
  }.
  ?factorValue isa:hasValue  ?value.
- ?factorValue isa:hasFactor ?factor.
+ ?factorValue isa:hasFactor ?factor. 
  ?factor dcterms:title ?factorname.
  FILTER(?published = true && ?searchable = true)
-} ORDER BY ?inv
+} ORDER BY ?factorValue 

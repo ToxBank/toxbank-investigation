@@ -132,6 +132,17 @@ module OpenTox
       case templatename
       when /_and_/
         return FourStore.query File.read(templates[templatename]) , @accept
+      when /_by_[a-z]+s$/
+        factorValues = params[:factorValues]
+        bad_request_error "missing parameter factorValues. Request needs one or more factorValues." if factorValues == nil
+        factorValues = factorValues.gsub(/[\[\]\"]/ , "").split(",") if factorValues.class == String
+        fVArr = []
+        factorValues.each do |factorValue|
+          fVArr << "{ ?factorValue isa:hasOntologyTerm  <#{factorValue.gsub("'","").strip)}> }"
+        end
+        fVString = fVArr.join(" UNION ")
+        sparqlstring = File.read(templates[templatename]) % { :factorValues => fVString }
+        FourStore.query sparqlstring, @accept
       else
         not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
       end
