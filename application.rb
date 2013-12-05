@@ -143,6 +143,10 @@ module OpenTox
         fVString = fVArr.join(" UNION ")
         sparqlstring = File.read(templates[templatename]) % { :factorValues => fVString }
         FourStore.query sparqlstring, @accept
+      when /_by_[a-z_]+(?<!s)$/
+        bad_request_error "missing parameter value. Request needs a value." if value == nil
+        sparqlstring = File.read(templates[templatename]) % { :value => params[:value] }
+        FourStore.query sparqlstring, @accept
       else
         not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
       end
