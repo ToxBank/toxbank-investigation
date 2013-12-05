@@ -144,7 +144,7 @@ module OpenTox
         sparqlstring = File.read(templates[templatename]) % { :factorValues => fVString }
         FourStore.query sparqlstring, @accept
       when /_by_[a-z_]+(?<!s)$/
-        bad_request_error "missing parameter value. Request needs a value." if value == nil
+        bad_request_error "missing parameter value. Request needs a value." if params[:value] == nil
         sparqlstring = File.read(templates[templatename]) % { :value => params[:value] }
         FourStore.query sparqlstring, @accept
       else
