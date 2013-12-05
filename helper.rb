@@ -223,6 +223,9 @@ module OpenTox
         return true if uri == $investigation[:uri]
         return true if OpenTox::Authorization.get_user == "protocol_service"
         return true if OpenTox::Authorization.uri_owner?(curi)
+        if (request.env['REQUEST_URI'] =~ /investigation\/sparql/ ) # give permission to user groups defined in policies
+          return true if OpenTox::Authorization.authorized?(curi, "GET")
+        end
         if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
           return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
         end
