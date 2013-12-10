@@ -134,7 +134,7 @@ module OpenTox
         return FourStore.query File.read(templates[templatename]) , @accept
       when /_by_[a-z]+s$/
         factorValues = params[:factorValues]
-        bad_request_error "missing parameter factorValues. Request needs one or more factorValues." if factorValues == nil
+        bad_request_error "missing parameter factorValues. Request needs one or more factorValues." if factorValues.blank?
         factorValues = factorValues.gsub(/[\[\]\"]/ , "").split(",") if factorValues.class == String
         fVArr = []
         factorValues.each do |factorValue|
@@ -144,7 +144,7 @@ module OpenTox
         sparqlstring = File.read(templates[templatename]) % { :factorValues => fVString }
         FourStore.query sparqlstring, @accept
       when /_by_[a-z_]+(?<!s)$/
-        bad_request_error "missing parameter value. Request needs a value." if params[:value] == nil
+        bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
         sparqlstring = File.read(templates[templatename]) % { :value => params[:value] }
         FourStore.query sparqlstring, @accept
       else
