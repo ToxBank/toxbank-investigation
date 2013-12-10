@@ -7,7 +7,7 @@ PREFIX isa:   <http://onto.toxbank.net/isa/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX tb:    <http://onto.toxbank.net/api/>
 
-SELECT DISTINCT ?inv ?factorname ?value ?published ?searchable WHERE {
+SELECT DISTINCT ?inv ?factorname ?value WHERE {
  ?inv rdf:type isa:Investigation.
  ?inv isa:hasStudy ?study.
  ?inv tb:isPublished ?published.

@@ -7,9 +7,11 @@ PREFIX isa:   <http://onto.toxbank.net/isa/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX tb:    <http://onto.toxbank.net/api/> 
 
-SELECT DISTINCT ?inv ?value ?ontoURI WHERE {
- ?inv rdf:type isa:Investigation.
- ?inv isa:hasStudy ?study.
+SELECT DISTINCT ?investigation ?value ?ontoURI WHERE {
+ ?investigation rdf:type isa:Investigation.
+ ?investigation isa:hasStudy ?study.
+ ?investigation tb:isPublished ?published.
+ ?investigation tb:isSummarySearchable ?searchable. 
  ?node isa:hasStudy ?study.
  ?node rdf:type isa:MaterialNode.
  ?node isa:hasMaterial ?sample.
@@ -18,4 +20,5 @@ SELECT DISTINCT ?inv ?value ?ontoURI WHERE {
  ?propValue isa:hasValue  ?value.
  ?propValue isa:hasProperty ?property. 
  ?property dcterms:title "%{value}".
-} ORDER BY ?inv
+ FILTER(?published = true && ?searchable = true)
+} ORDER BY ?investigation
