@@ -141,7 +141,7 @@ module OpenTox
         values.each do |value|
           VArr << "{ ?value #{genesparql ? "skos:closeMatch" : "isa:hasOntologyTerm"}  <#{value.gsub("'","").strip}> }"
         end
-        sparqlstring = File.read(templates[templatename]) % { :Values => VString.join(" UNION ") }
+        sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
 $logger.debug "mr ::: xyz ::: #{sparqlstring}"        
         FourStore.query sparqlstring, @accept
       when /_by_[a-z_]+(?<!s)$/
