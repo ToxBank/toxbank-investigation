@@ -119,8 +119,8 @@ module OpenTox
     end
 
     # @method get_sparql
-    # @overload get "/investigation/:id/sparql/:templatename"
-    # Get data by predefined SPARQL templates for an investigation resource
+    # @overload get "/investigation/sparql/:templatename"
+    # Get data by predefined SPARQL templates for investigations
     # @param [Hash] header
     #   * Accept [String] <application/sparql-results+xml, application/json, text/uri-list, text/html>
     #   * subjectid [String] authorization token
@@ -134,8 +134,8 @@ module OpenTox
         return FourStore.query File.read(templates[templatename]) , @accept
       when /_by_[a-z]+s$/
         genesparql = templatename.match(/_by_genes$/)
-        values =  genesparql ? params[:geneIdentifier] : params[:factorValues]
-        bad_request_error "missing parameter #{genesparql ? "geneIdentifier": "factorValues"}. Request needs one or multiple(separated by comma)." if values.blank?
+        values =  genesparql ? params[:geneIdentifiers] : params[:factorValues]
+        bad_request_error "missing parameter #{genesparql ? "geneIdentifiers": "factorValues"}. Request needs one or multiple(separated by comma)." if values.blank?
         values = values.gsub(/[\[\]\"]/ , "").split(",") if values.class == String
         VArr = []
         values.each do |value|
@@ -150,8 +150,6 @@ module OpenTox
       else
         not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
       end
-      #sparqlstring = File.read(templates[templatename]) % { :investigation_uri => investigation_uri }
-      #FourStore.query sparqlstring, @accept
     end
 
     # @method get_id
