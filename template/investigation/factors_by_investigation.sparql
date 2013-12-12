@@ -14,6 +14,10 @@ SELECT DISTINCT ?factorname ?value ?ontouri WHERE {
  ?sample isa:hasFactorValue ?factorValue.
  OPTIONAL {?factorValue isa:hasOntologyTerm  ?ontouri }.
  ?factorValue isa:hasValue  ?value.
+ OPTIONAL {
+  ?factorValue isa:hasUnit ?unitOnto. 
+  ?unitOnto rdfs:label ?unit.
+ }
  ?factorValue isa:hasFactor ?factor. 
  ?factor dcterms:title ?factorname.
 }
