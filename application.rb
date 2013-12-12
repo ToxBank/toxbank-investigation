@@ -134,12 +134,12 @@ module OpenTox
         return FourStore.query File.read(templates[templatename]) , @accept
       when /_by_[a-z]+s$/
         genesparql = templatename.match(/_by_genes$/)
-        values =  genesparql ? params[:geneIdentifiers] : params[:factorValues]
+        values = genesparql ? params[:geneIdentifiers] : params[:factorValues]
         bad_request_error "missing parameter #{genesparql ? "geneIdentifiers": "factorValues"}. Request needs one or multiple(separated by comma)." if values.blank?
         values = values.gsub(/[\[\]\"]/ , "").split(",") if values.class == String
         VArr = []
         values.each do |value|
-          VArr << (genesparql ? "{ ?value skos:closeMatch #{value.gsub("'","").strip} }" :  "{ ?value isa:hasOntologyTerm <#{value.gsub("'","").strip}> }")
+          VArr << (genesparql ? "{ ?value skos:closeMatch #{value.gsub("'","").strip}. }" :  "{ ?value isa:hasOntologyTerm <#{value.gsub("'","").strip}>. }")
         end
         sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
         FourStore.query sparqlstring, @accept
