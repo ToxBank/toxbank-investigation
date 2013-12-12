@@ -139,10 +139,9 @@ module OpenTox
         values = values.gsub(/[\[\]\"]/ , "").split(",") if values.class == String
         VArr = []
         values.each do |value|
-          VArr << "{ ?value #{genesparql ? "skos:closeMatch" : "isa:hasOntologyTerm"}  <#{value.gsub("'","").strip}> }"
+          VArr << (genesparql ? "{ ?value skos:closeMatch #{value.gsub("'","").strip} }" :  "{ ?value isa:hasOntologyTerm <#{value.gsub("'","").strip}> }")
         end
         sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
-$logger.debug "mr ::: xyz ::: #{sparqlstring}"        
         FourStore.query sparqlstring, @accept
       when /_by_[a-z_]+(?<!s)$/
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
