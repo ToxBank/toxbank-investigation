@@ -17,7 +17,7 @@ SELECT DISTINCT ?inv ?factorname ?value WHERE {
  ?node isa:hasMaterial ?sample.
  ?sample isa:hasFactorValue ?factorValue.
  {
-   %{factorValues}
+   %{Values}
  }.
  ?factorValue isa:hasValue  ?value.
  ?factorValue isa:hasFactor ?factor.
