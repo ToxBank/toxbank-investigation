@@ -1,5 +1,6 @@
-ToxBank investigation: Investigation service for ToxBank
-========================================================
+ToxBank Investigation
+=====================
+Investigation service for ToxBank. 
 
 Installation:
 -------------
