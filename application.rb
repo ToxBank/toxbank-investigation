@@ -147,7 +147,7 @@ module OpenTox
           end
         else
           values.each do |value|
-            VArr << (genesparql ? "{ ?value skos:closeMatch #{value.gsub("'","").strip}. }" :  "{ ?value isa:hasOntologyTerm <#{value.gsub("'","").strip}>. }")
+            VArr << (genesparql ? "{ ?dataentry skos:closeMatch #{value.gsub("'","").strip}. }" :  "{ ?value isa:hasOntologyTerm <#{value.gsub("'","").strip}>. }")
           end
         end
         sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
