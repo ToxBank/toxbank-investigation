@@ -260,13 +260,21 @@ module OpenTox
         end
       end
 
-      # get SPARQL template hash of temlatename => templatefile
+      # get SPARQL template hash of templatename => templatefile
       # @param type [String] template subdirectory
       def get_templates type=""
         templates = {}
         filenames = Dir[File.join File.dirname(File.expand_path __FILE__), "template/#{type}/*.sparql".gsub("//","/")]
         filenames.each{ |filename| templates[File.basename(filename, ".sparql")]=filename}
         return templates
+      end
+
+      # get an array of data files in an investigation
+      def get_datafiles
+        response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_by_investigation", {}, {:accept => "application/json"}
+        result = JSON.parse(response)
+        files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
+        return files.flatten
       end
 
     end
