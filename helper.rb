@@ -16,6 +16,7 @@ module OpenTox
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.delete_if{|u| u.match(/_policies$/)}
         uris.delete_if{|u| u.match(/log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$/)}
+        uris.map!{ |u| u.gsub(" ", "%20") }
         uris.compact.sort.join("\n") + "\n"
       end
 
