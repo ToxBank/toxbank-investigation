@@ -223,7 +223,8 @@ module OpenTox
     get '/investigation/:id/isatab/:filename'  do
       resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
       # @todo return text/plain content type for tab separated files
-      send_file file, :type => File.new(file).mime_type
+      filetype = (File.symlink?(file) ? File.new(File.readlink(file)).mime_type : File.new(file).mime_type)
+      send_file file, :type => filetype
     end
 
     # @method get_resource

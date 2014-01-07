@@ -129,6 +129,7 @@ module OpenTox
             end
           end
           FileUtils.remove_entry tmp
+          link_ftpfiles
           newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
           `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
           request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
@@ -275,6 +276,22 @@ module OpenTox
         result = JSON.parse(response)
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         return files.flatten
+      end
+
+      # get an array of files in ftp folder of a user
+      def get_ftpfiles
+        user = Authorization.get_user
+        return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
+        Dir.entries("/home/ftpusers/#{Authorization.get_user}").reject{|entry| entry =~ /^\.{1,2}$/}
+      end
+
+      # link files uploaded to FTP
+      def link_ftpfiles
+        tolink = (get_ftpfiles & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
+        tolink.each do |file|
+          `ln -s "/home/ftpusers/#{Authorization.get_user}/#{file}" "#{dir}/#{file}"`
+        end
+        return tolink
       end
 
     end
