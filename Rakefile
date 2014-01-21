@@ -72,14 +72,15 @@ namespace :fourstore do
     puts "\nList of broken investigations, stored in 'broken_investigations' file.\n"
     puts broken_investigations
     File.open('broken_investigations', 'w') { |file| file.write(broken_investigations) }
-    #=begin
+
     #if broken_investigations != ""
     #  broken_investigations.split("\n").each do |broken|
+    #    `cd investigation`
     #    `rm -rf #{broken}`
-    #    `git commit -am 'removed broken investigation'`
+    #    `git commit -am 'removed #{broken}'`
     #  end
     #end
-    #=end
+
 
   end
 end
