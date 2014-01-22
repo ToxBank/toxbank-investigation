@@ -16,6 +16,10 @@ PREFIX refseq:<http://onto.toxbank.net/isa/RefSeq/>
 PREFIX tb:    <http://onto.toxbank.net/api/>
 
 SELECT DISTINCT ?investigation ?datatype ?title ?valuetype ?value WHERE {
+   ?investigation rdf:type isa:Investigation.
+   ?investigation isa:hasStudy ?study.
+   ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+   ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
    ?dataentry ot:values ?fv.
    {
      %{Values}
@@ -30,9 +34,4 @@ SELECT DISTINCT ?investigation ?datatype ?title ?valuetype ?value WHERE {
    ?datanode rdf:type isa:DataNode.
    ?datanode isa:hasStudy ?study.
    ?study rdf:type isa:Study.
-   ?investigation isa:hasStudy ?study.
-   ?investigation rdf:type isa:Investigation.
-   ?investigation tb:isPublished ?published.
-   ?investigation tb:isSummarySearchable ?searchable.
-   FILTER(?published = true && ?searchable = true)
 }

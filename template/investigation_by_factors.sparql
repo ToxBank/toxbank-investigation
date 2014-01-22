@@ -10,8 +10,8 @@ PREFIX tb:    <http://onto.toxbank.net/api/>
 SELECT DISTINCT ?inv ?factorname ?value WHERE {
  ?inv rdf:type isa:Investigation.
  ?inv isa:hasStudy ?study.
- ?inv tb:isPublished ?published.
- ?inv tb:isSummarySearchable ?searchable.
+ ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+ ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
  ?node isa:hasStudy ?study.
  ?node rdf:type isa:MaterialNode.
  ?node isa:hasMaterial ?sample.
@@ -22,5 +22,4 @@ SELECT DISTINCT ?inv ?factorname ?value WHERE {
  ?factorValue isa:hasValue  ?value.
  ?factorValue isa:hasFactor ?factor.
  ?factor dcterms:title ?factorname.
- FILTER(?published = true && ?searchable = true)
 } ORDER BY ?inv
