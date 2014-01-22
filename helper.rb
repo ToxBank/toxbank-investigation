@@ -283,14 +283,17 @@ module OpenTox
       def get_ftpfiles
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
-        Dir.entries("/home/ftpusers/#{Authorization.get_user}").reject{|entry| entry =~ /^\.{1,2}$/}
+        files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
+        Hash[files.collect { |f| [File.basename(f), f] }]
+        #Dir.entries("/home/ftpusers/#{Authorization.get_user}").reject{|entry| entry =~ /^\.{1,2}$/}
       end
 
       # link files uploaded to FTP
       def link_ftpfiles
-        tolink = (get_ftpfiles & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
+        ftpfiles = get_ftpfiles
+        tolink = (ftpfiles.keys & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
-          `ln -s "/home/ftpusers/#{Authorization.get_user}/#{file}" "#{dir}/#{file}"`
+          `ln -s "/home/ftpusers/#{Authorization.get_user}/#{file}" "#{ftpfiles[file]}"`
         end
         return tolink
       end
