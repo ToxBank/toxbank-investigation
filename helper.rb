@@ -294,7 +294,7 @@ module OpenTox
         return "" if ftpfiles.empty?
         tolink = (ftpfiles.keys & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
-          `ln -s "#{ftpfiles[file]}" "#{file}"`
+          `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
         end
         return tolink
       end
