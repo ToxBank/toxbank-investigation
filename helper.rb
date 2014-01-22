@@ -229,7 +229,7 @@ module OpenTox
           return true if OpenTox::Authorization.authorized?("#{$investigation[:uri]}/sparql", "GET")
         end
         if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
-          return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/
+          return true if qfilter("isSummarySearchable", curi) =~ /#{curi}/ && qfilter("isPublished", curi) =~ /#{curi}/
         end
         return true if OpenTox::Authorization.authorized?(curi, "GET") && qfilter("isPublished", curi) =~ /#{curi}/
         return false
