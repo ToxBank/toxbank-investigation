@@ -1,13 +1,16 @@
 PREFIX ot:<http://www.opentox.org/api/1.1#>
 PREFIX isa:<http://onto.toxbank.net/isa/>
 PREFIX dcterms:<http://purl.org/dc/terms/>
-PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdfs:<http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX skos:<http://www.w3.org/2004/02/skos/core#>
 PREFIX owl:<http://www.w3.org/2002/07/owl#>
-PREFIX tb:    <http://onto.toxbank.net/api/>
+PREFIX tb:<http://onto.toxbank.net/api/>
 
 SELECT DISTINCT ?investigation ?gene WHERE {
+   ?investigation rdf:type isa:Investigation.
+   ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+   ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
    ?gene rdf:type isa:Gene.
    ?s skos:closeMatch ?gene.
    ?s ot:values ?fv.
@@ -21,8 +24,5 @@ SELECT DISTINCT ?investigation ?gene WHERE {
    ?datanode isa:hasStudy ?study.
    ?study rdf:type isa:Study.
    ?investigation isa:hasStudy ?study.
-   ?investigation rdf:type isa:Investigation.
-   ?investigation tb:isPublished ?published.
-   ?investigation tb:isSummarySearchable ?searchable.
-   FILTER( ?value > %{value} && ?published = true && ?searchable = true)
-} 
+   FILTER( ?value > %{value} ).
+}
