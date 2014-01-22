@@ -10,8 +10,8 @@ PREFIX tb:    <http://onto.toxbank.net/api/>
 SELECT DISTINCT ?protocol ?label ?factorname ?value WHERE {
  ?investigation rdf:type isa:Investigation.
  ?investigation isa:hasStudy ?study.
- ?investigation tb:isPublished ?published.
- ?investigation tb:isSummarySearchable ?searchable.
+ ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+ ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
  ?study isa:hasProtocol ?protocol.
  OPTIONAL {
  ?protocol rdfs:label ?label.
@@ -26,5 +26,4 @@ SELECT DISTINCT ?protocol ?label ?factorname ?value WHERE {
  ?factorValue isa:hasValue  ?value.
  ?factorValue isa:hasFactor ?factor. 
  ?factor dcterms:title ?factorname.
- FILTER(?published = true && ?searchable = true)
 } ORDER BY ?factorValue

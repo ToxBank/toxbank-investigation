@@ -10,8 +10,8 @@ PREFIX tb:    <http://onto.toxbank.net/api/>
 SELECT DISTINCT ?investigation ?value ?ontoURI WHERE {
  ?investigation rdf:type isa:Investigation.
  ?investigation isa:hasStudy ?study.
- ?investigation tb:isPublished ?published.
- ?investigation tb:isSummarySearchable ?searchable. 
+ ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
+ ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
  ?node isa:hasStudy ?study.
  ?node rdf:type isa:MaterialNode.
  ?node isa:hasMaterial ?sample.
@@ -20,5 +20,4 @@ SELECT DISTINCT ?investigation ?value ?ontoURI WHERE {
  ?propValue isa:hasValue  ?value.
  ?propValue isa:hasProperty ?property. 
  ?property dcterms:title "%{value}".
- FILTER(?published = true && ?searchable = true)
 } ORDER BY ?investigation
