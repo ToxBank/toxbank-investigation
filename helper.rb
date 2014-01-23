@@ -275,7 +275,7 @@ module OpenTox
       def get_datafiles
         response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_by_investigation", {}, {:accept => "application/json"}
         result = JSON.parse(response)
-        files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
+        files = result["results"]["bindings"].map{|n| File.basename("#{n["file"]["value"]}")}
         return files.flatten
       end
 
