@@ -17,6 +17,7 @@ module OpenTox
         uris.delete_if{|u| u.match(/_policies$/)}
         uris.delete_if{|u| u.match(/log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
+        uris.map!{ |u| if File.symlink?("#{dir}/#{File.basename(u)}"); u.gsub("/isatab/", "/files/"); else; u; end}
         uris.compact.sort.join("\n") + "\n"
       end
 
@@ -276,6 +277,9 @@ module OpenTox
         response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_by_investigation", {}, {:accept => "application/json"}
         result = JSON.parse(response)
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
+        datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
+        # key => datanode uri, value => file title
+        @datahash = Hash[datanodes.zip(files.map {|i| i})]
         return files.flatten
       end
 
@@ -295,6 +299,7 @@ module OpenTox
         tolink = (ftpfiles.keys & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
+          OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{@datahash.index(file)}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
         end
         return tolink
       end
