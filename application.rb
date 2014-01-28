@@ -217,13 +217,15 @@ module OpenTox
     #   * subjectid [String] authorization token
     # @return [String] of mime-type [text/tab-separated-values, application/sparql-results+json] - Study, assay, data representation in ISA-TAB or RDF format.
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_study.2C_assay_or_data_representation API: Get a study, assay or data representation
-    get '/investigation/:id/isatab/:filename'  do
-      resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
-      # @todo return text/plain content type for tab separated files
-      filetype = (File.symlink?(file) ? File.new(File.readlink(file)).mime_type : File.new(file).mime_type)
-      send_file file, :type => filetype
+    ['/investigation/:id/isatab/:filename','/investigation/:id/files/:filename'].each do |path|
+      get path  do
+        resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
+        # @todo return text/plain content type for tab separated files
+        filetype = (File.symlink?(file) ? File.new(File.readlink(file)).mime_type : File.new(file).mime_type)
+        send_file file, :type => filetype
+      end
     end
-
+    
     # @method get_resource
     # @overload get "/investigation/:id/:recource"
     # Get n-triples, turtle or RDF for an investigation resource
