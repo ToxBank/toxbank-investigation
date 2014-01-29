@@ -53,6 +53,11 @@ namespace :fourstore do
         OpenTox::Backend::FourStore.post uri, File.read(isP), "text/plain" if File.exist?(isP)
         puts "Done."
     
+        puts "Upload ftpfiles."
+        ftpfiles = File.join("investigation", inv, "ftpfiles.nt")
+        OpenTox::Backend::FourStore.post uri, File.read(ftpfiles), "text/plain" if File.exist?(ftpfiles)
+        puts "Done."
+
         puts "Update last modified date entry."
         mod = File.join("investigation", inv, "modified.nt")
         if File.exist?(mod)
