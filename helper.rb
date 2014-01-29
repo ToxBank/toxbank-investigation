@@ -295,8 +295,11 @@ module OpenTox
       # link files uploaded to FTP
       def link_ftpfiles
         ftpfiles = get_ftpfiles
+        datafiles = get_datafiles
+        return "" if ftpfiles.empty? || datafiles.empty?
+        datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
         return "" if ftpfiles.empty?
-        tolink = (ftpfiles.keys & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
+        tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
           OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{@datahash.index(file)}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
