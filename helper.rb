@@ -274,7 +274,7 @@ module OpenTox
 
       # get an array of data files in an investigation
       def get_datafiles
-        response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_by_investigation", {}, {:accept => "application/json"}
+        response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_with_datanodes_by_investigation", {}, {:accept => "application/json"}
         result = JSON.parse(response)
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
@@ -300,6 +300,8 @@ module OpenTox
         tolink.each do |file|
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
           OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{@datahash.index(file)}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
+          ftpfilesave = "<#{@datahash.index(file)}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}"
+          File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
         end
         return tolink
       end
