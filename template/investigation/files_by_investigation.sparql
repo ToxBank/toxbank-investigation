@@ -3,7 +3,7 @@ PREFIX isa:<http://onto.toxbank.net/isa/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf:<http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
-SELECT DISTINCT ?file ?term ?downloaduri ?datanode WHERE {
+SELECT DISTINCT ?file ?term ?downloaduri WHERE {
   <%{investigation_uri}> isa:hasStudy ?study.
   ?study rdf:type isa:Study.
   ?datanode isa:hasStudy ?study.
