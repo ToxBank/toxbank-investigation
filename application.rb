@@ -130,6 +130,20 @@ module OpenTox
       templatename = params[:templatename].underscore
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
       case templatename
+      when /_by_gene_and_pvalue$/
+        bad_request_error "missing parameter geneIdentifiers. Request needs a gene identifier." if params[:geneIdentifiers].blank?
+        bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
+        values = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
+        if values.class == Array
+          VArr = []
+          values.each do |value|
+            VArr << "{ ?dataentry skos:closeMatch #{value.gsub("'","").strip}. }"
+          end
+          sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION "), :value => params[:value] }
+        else
+          sparqlstring = File.read(templates[templatename]) % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }", :value => params[:value] }
+        end
+        FourStore.query sparqlstring, @accept
       when /_and_/
         return FourStore.query File.read(templates[templatename]) , @accept
       when /_by_[a-z]+s$/
