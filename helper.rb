@@ -278,8 +278,8 @@ module OpenTox
         result = JSON.parse(response)
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
-        # key => datanode uri, value => file title
-        @datahash = Hash[datanodes.zip(files.map {|i| i})]
+        @datahash = {}
+        result["results"]["bindings"].each{ |f| @datahash[File.basename(f["file"]["value"])].nil? ? @datahash[File.basename(f["file"]["value"])] = ["#{f["datanode"]["value"]}"] : @datahash[File.basename(f["file"]["value"])] << "#{f["datanode"]["value"]}"}
         return files.flatten
       end
 
@@ -295,13 +295,17 @@ module OpenTox
       # link files uploaded to FTP
       def link_ftpfiles
         ftpfiles = get_ftpfiles
-        return "" if ftpfiles.empty?
-        tolink = (ftpfiles.keys & (get_datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
+        datafiles = get_datafiles
+        return "" if ftpfiles.empty? || datafiles.empty?
+        datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
+        tolink = (ftpfiles.keys & (datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
-          OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{@datahash.index(file)}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
-          ftpfilesave = "<#{@datahash.index(file)}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}"
-          File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
+          @datahash[file].each do |data_node|
+            OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
+            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}"
+            File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
+          end
         end
         return tolink
       end
