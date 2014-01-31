@@ -175,7 +175,7 @@ module OpenTox
         OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{!value}\"#{flagtype}}}"
         OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype}}}"
         # save flag to file in case of restore or transport backend
-        flagsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{flag}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{flag}> ?o }", "text/plain"
+        flagsave = "<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype} ."
         File.open(File.join(dir, "#{flag.to_s.split("/").last}.nt"), 'w') {|f| f.write(flagsave) }
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
