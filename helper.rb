@@ -192,7 +192,7 @@ module OpenTox
         DELETE { <#{investigation_uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o};
         INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
         # save last modified to file in case of restore or transport backend
-        modsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{RDF::DC.modified}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o }", "text/plain"
+        modsave = "<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\" ." 
         File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
