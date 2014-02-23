@@ -1,3 +1,5 @@
+# @markup ruby
+# @title
 # Retrieves investigation URI given gene identifier 
 # e.G.: uniprot:P10809 or genesymbol:HSPD1
 

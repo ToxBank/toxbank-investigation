@@ -2,7 +2,7 @@ require 'opentox-server'
 require_relative "tbaccount.rb"
 require_relative "util.rb"
 require_relative "helper.rb"
-
+# ToxBank implementation based on OpenTox API and OpenTox ruby gems
 
 module OpenTox
   # For full API description of the ToxBank investigation service see:
@@ -35,12 +35,15 @@ module OpenTox
       response['Content-Type'] = @accept
     end
 
+    # @!group URI Routes
+
     # @method head_all
     # @overload head "/investigation/?"
     # Head request.
     # @return [String] only HTTP headers.
     head '/investigation/?' do
     end
+
 
     # @method get_all
     # @overload get "/investigation/?"
@@ -326,6 +329,8 @@ module OpenTox
       response['Content-Type'] = 'text/plain'
       "Investigation #{params[:id]} deleted"
     end
+
+    # @!endgroup
 
 =begin
     # Delete an individual study, assay or data file

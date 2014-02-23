@@ -1,5 +1,7 @@
-#Investigation service query
-#Retrieves investigation URI and characteristics (name, value, ontology URI of the value)
+# @markup ruby
+# @title Investigation and Characteristics SPARQL Template
+# Investigation service query
+# Retrieves investigation URI and characteristics (name, value, ontology URI of the value)
 #
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
