@@ -18,7 +18,7 @@ module OpenTox
         uris.delete_if{|u| u.match(/_policies$/)}
         uris.delete_if{|u| u.match(/log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
-        uris.map!{ |u| if File.symlink?("#{dir}/#{File.basename(u)}"); u.gsub("/isatab/", "/files/"); else; u; end}
+        uris.map!{ |u| File.symlink?("#{dir}/#{File.basename(u)}") ? u.gsub("/isatab/", "/files/") : u}
         uris.compact.sort.join("\n") + "\n"
       end
 
@@ -71,6 +71,8 @@ module OpenTox
           `mv #{d}/* #{tmp}`
           `rmdir #{d}`
         end
+        # zip original files for download
+        `zip -x #{tmp}/*.zip -j #{File.join(tmp, "investigation_#{params[:id]}.zip")} #{tmp}/*`
         replace_pi
       end
 =begin
@@ -107,7 +109,7 @@ module OpenTox
       def isa2rdf
         # @note isa2rdf returns correct exit code but error in task
         # @todo delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.0.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
+        `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.1.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
         if !File.exists?(File.join tmp, nt)
           out = IO.read(File.join tmp, 'log') 
           FileUtils.remove_entry dir
@@ -119,10 +121,11 @@ module OpenTox
           `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
           # `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
           `echo "\n<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
-          FileUtils.rm Dir[File.join(tmp,"*.zip")]
+          #FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
           #TODO if datasets.rdf intended for download add them to the zip
-          `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
+          # this line moved to l.74
+          #`zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
           # add datasets.rdf
           rdfs = File.join(dir, "*.rdf")
@@ -176,7 +179,7 @@ module OpenTox
         OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{!value}\"#{flagtype}}}"
         OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype}}}"
         # save flag to file in case of restore or transport backend
-        flagsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{flag}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{flag}> ?o }", "text/plain"
+        flagsave = "<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype} ."
         File.open(File.join(dir, "#{flag.to_s.split("/").last}.nt"), 'w') {|f| f.write(flagsave) }
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
@@ -194,7 +197,7 @@ module OpenTox
         DELETE { <#{investigation_uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o};
         INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
         # save last modified to file in case of restore or transport backend
-        modsave = OpenTox::Backend::FourStore.query "CONSTRUCT {<#{investigation_uri}> <#{RDF::DC.modified}> ?o} FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o }", "text/plain"
+        modsave = "<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\" ." 
         File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
@@ -306,7 +309,7 @@ module OpenTox
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
           @datahash[file].each do |data_node|
             OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
-            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}"
+            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}> ."
             File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
           end
         end

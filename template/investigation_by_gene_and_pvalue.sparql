@@ -29,7 +29,7 @@ SELECT DISTINCT ?investigation ?datatype ?title ?valuetype ?value WHERE {
    ?fv ot:feature ?feature.
    ?fv ot:value ?value.
    ?feature dcterms:title ?title.
-   ?feature owl:sameAs ?valuetype.
+   ?feature owl:sameAs <http://onto.toxbank.net/isa/pvalue>. 
    ?feature ot:hasSource ?data.
    ?data isa:hasOntologyTerm ?datatype.
    ?datanode isa:hasData ?data.
