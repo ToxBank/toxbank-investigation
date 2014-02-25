@@ -50,4 +50,4 @@ full ToxBank API documentation with examples see [ToxBank API wiki](http://api.t
 
 Code Documentation
 ------------------
-see full (yard) documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/frames)
+see full (yard) documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/development/frames)
