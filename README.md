@@ -43,6 +43,8 @@ Development:
 
 see also https://github.com/opentox/opentox-server
 
+see also https://github.com/opentox/opentox-client
+
 Documentation
 -------------
 * ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
