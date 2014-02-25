@@ -1,5 +1,5 @@
 --readme README.md
 --title 'ToxBank Investigation Documentation'
 --charset utf-8
-*.rb templates/*.sparql templates/investigation/*.sparql - README ChangeLog VERSION LICENSE SPARQL-Templates
+*.rb templates/*.sparql templates/investigation/*.sparql template/investigation/characteristics_by_investigation.sparql - README ChangeLog VERSION LICENSE SPARQL-Templates
 
