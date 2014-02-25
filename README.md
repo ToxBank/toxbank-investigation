@@ -1,3 +1,4 @@
+# @markup markdown
 ToxBank Investigation
 =====================
 Investigation service for ToxBank. 
@@ -46,3 +47,7 @@ API Documentation
 -----------------
 
 full ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
+
+Code Documentation
+------------------
+see full (yard) documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/frames)
