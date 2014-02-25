@@ -45,5 +45,5 @@ see also https://github.com/opentox/opentox-server
 
 Documentation
 -------------
-* full ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
-* full code documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/development/frames)
+* ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
+* Code documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/development/frames)
