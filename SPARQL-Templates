@@ -17,6 +17,7 @@ SPARQL on all published investigations
 * {file:template/investigations_and_factors.sparql Investigation and Factors}
 * {file:template/investigations_and_protocols.sparql Investigation and Protocols}
 * {file:template/protocols_by_factors.sparql Protocols by Factors}
+
 SPARQL on specific (published) investigations
 ---------------------
 * {file:template/investigation/characteristics_by_investigation.sparql Characteristics by Investigation}
