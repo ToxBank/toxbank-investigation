@@ -1,3 +1,5 @@
+# @markup ruby
+# @title
 #Investigation service query
 #Retrieves investigation URI containing any of the factor value URI (e.g. two compound URIs)
 #

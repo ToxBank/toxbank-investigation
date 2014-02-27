@@ -1,3 +1,5 @@
+# @markup ruby
+# @title
 # get investigation array data files
 PREFIX isa:<http://onto.toxbank.net/isa/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>

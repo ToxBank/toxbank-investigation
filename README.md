@@ -1,3 +1,4 @@
+# @markup markdown
 ToxBank Investigation
 =====================
 Investigation service for ToxBank. 
@@ -42,7 +43,9 @@ Development:
 
 see also https://github.com/opentox/opentox-server
 
-API Documentation
------------------
+see also https://github.com/opentox/opentox-client
 
-full ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
+Documentation
+-------------
+* ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
+* Code documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/development/frames)

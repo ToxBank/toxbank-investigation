@@ -12,7 +12,7 @@ module OpenTox
 
   CLASSES << "TBAccount"
 
-  # Get rdf representation for a user, organisation or project from the ToxBank service 
+  # Get RDF representation for a user, organisation or project from the ToxBank service
   # @see http://api.toxbank.net/index.php/User ToxBank API User
   # @see http://api.toxbank.net/index.php/Organisation ToxBank API Organisation
   # @see http://api.toxbank.net/index.php/Project ToxBank API Project

@@ -1,9 +1,10 @@
 module OpenTox
   # full API description for ToxBank investigation service see:
- # @see http://api.toxbank.net/index.php/Investigation ToxBank API Investigation
+  # @see http://api.toxbank.net/index.php/Investigation ToxBank API Investigation
   class Application < Service
 
     module Helpers
+      # @!group File and Directory Helpers
       # @return [String] full investigation URI: investigation service uri + investigation[:id]
       def investigation_uri
         to("/investigation/#{params[:id]}") # new in Sinatra, replaces url_for
@@ -40,7 +41,7 @@ module OpenTox
       def nt
         "#{params[:id]}.nt"
       end
-
+      # @!endgroup
       # @return [Integer] timestamp of a time string
       def get_timestamp timestring
         Time.parse(timestring).to_i
@@ -190,6 +191,7 @@ module OpenTox
         end
       end
 
+      # delete all RDF::DC.modified triples and insert new one with current date-time
       def set_modified
         OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
         DELETE { <#{investigation_uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o};
@@ -275,6 +277,7 @@ module OpenTox
         return templates
       end
 
+      # @!group Helpers to link FTP data
       # get an array of data files in an investigation
       def get_datafiles
         response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_with_datanodes_by_investigation", {}, {:accept => "application/json"}
@@ -312,7 +315,7 @@ module OpenTox
         end
         return tolink
       end
-
+      # @!endgroup
     end
   end
 end

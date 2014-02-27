@@ -1,3 +1,5 @@
+# @markup ruby
+# @title
 #Investigation service query
 #Retrieves investigation URI given characteristic name "cell line"
 #
