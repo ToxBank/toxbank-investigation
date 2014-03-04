@@ -1,4 +1,38 @@
-v1.0.0beta 2013-03
+= ChangeLog
+== v2.0.0 March 2014
+- 02/2014 yard documentation
+- 02/2014 link RubyDoc.info
+- 02/2014 add yard doc for sparql templates
+- 02/2014 isa2rdf version 1.0.1
+- 01/2014 adding FTP uploaded files to datanodes
+- 01/2014 enabled zip upload with whitespaces in title
+- 12/2013 link FTP files to investigation directory
+- 12/2013 add SPARQL templates for routes get '/investigation/sparql/:templatename' and get '/investigation/:id/sparql/:templatename' <br>
+  see also : {file:SPARQL-Templates}
+- 12/2013 README overhaul
+- 12/2013 extend yard documentation
+- 11/2013 4store restore script in Rakefile
+- 11/2013 upload of datasets only if files not empty
+- 11/2013 switched to isa2rdf 1.0.0
+- 11/2013 add datasets.rdf to investigation graph in backend
+- 11/2013 isa2rdf version 0.0.9
+- 11/2013 isa2rdf version to 0.0.8
+- 10/2013 disable direct upload of xls files
+- 10/2013 save flags and modified date to file in case of restore or transport backend
+- 10/2013 pass java error to task
+- 10/2013 remove investigation dir if rdf conversion fails
+- 10/2013 fix for wrong json date format in RDF::DC.modified
+- 10/2013 set heap size for isa2rdf to -Xmx2048m
+- 08/2013 isa2rdf version 0.0.7
+- 07/2013 remove trailing slash from graph uri
+- 07/2013 isa2rdf version 0.0.6
+- 07/2013 add modified configs for isa2rdf
+- 06/2013 unicorn configuration added
+- 05/2013 isa2rdf version 0.0.5 + add config files
+- 04/2013 RDF vocabularies moved to opentox-client
+- 03/2013 Task.run instead of Task.create
+
+== v1.0.0beta March 2013
 - add nt format for data processing isa2rdf => nt => 4store
 - add indexing for UI (add and remove investigation URIs on $search_service[:uri]
 - always return task URI on POST and PUT request
@@ -8,10 +42,10 @@ v1.0.0beta 2013-03
 - remove policies if allowReadBy(Group/User) contains empty string
 - update RDF::DC.modified when changing data in PUT request
 
-v0.0.4alpha 2012-12
+== v0.0.4alpha December 2012
 -Fix version number 0.0.4alpha in alpha test branch
 
-v0.0.4 2012-07
+== v0.0.4 July 2012
 - Address and IDs changed
   - Service URI https://INVESTIGATIONSERVICE is now https://INVESTIGATIONSERVICE/investigation
   - IDs changed to UUIDs e.G.: https://INVESTIGATIONSERVICE/123 changed to https://INVESTIGATIONSERVICE/investigation/1f6d584a-53aa-4c59-bae3-8c7ac9cb82ff
@@ -35,5 +69,5 @@ v0.0.4 2012-07
 - Add studies, assays or data to an investigation / Updating an investigation
   - additions to or updating an investigation will be handled via PUT request
 
-v0.0.3 2012-05-07
+v0.0.3 May 2012
 * switch from v0.0.2pre to v0.0.3
