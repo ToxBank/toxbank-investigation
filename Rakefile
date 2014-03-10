@@ -1,4 +1,49 @@
 require "bundler/gem_tasks"
+namespace :isa2rdf do
+  desc "Reparse isa-tab files to investigation ntriples file"
+  task :reparse do
+    # Author: Denis Gebele
+    # Description: reparse isatabs with a new isa2rdf version.
+    # Date: 07/Mar/2014
+ 
+    SERVICE = "investigation" # for service config file
+    require File.join '../opentox-client/lib/opentox-client.rb' # maybe adjust the paths here
+    require File.join '../opentox-server/lib/opentox-server.rb'
+    # collect the investigations
+    investigations = []
+    Dir.foreach(File.join File.dirname(File.expand_path __FILE__), "investigation") do |inv|
+      unless inv =~ /^\./i
+        investigations << inv
+      end
+    end
+    puts investigations
+    
+    broken_conversions = ""
+    Dir.chdir('java')
+    investigations.each_with_index do |inv, idx|
+      dir = File.join File.dirname(File.expand_path __FILE__),"investigation",inv
+      nt = File.join File.dirname(File.expand_path __FILE__),"investigation", inv, inv+".nt"
+      if File.exist?(nt)
+        puts "\n========================="
+        puts "\nReparse investigation #{idx + 1} with ID #{inv}."
+        uri = $investigation[:uri] + '/' + inv
+        # reparse
+        puts uri
+        puts dir
+        `java -jar -Xmx2048m isa2rdf-cli-1.0.1.jar -d #{dir} -i #{uri} -a #{dir} -o #{nt} -t #{$user_service[:uri]} &`
+        puts "Done."
+      else
+        broken_conversions << "#{inv}\n"
+      end
+    end
+    if broken_conversions != ""
+      puts "\nList of broken conversions, stored in 'broken_conversions' file.\n"
+      puts broken_conversions
+      File.open('broken_conversions', 'w'){ |file| file.write(broken_conversions) }
+    end
+    puts "Execute 'rake fourstore:restore' to update local changes in backend !"
+  end
+end
 namespace :fourstore do
 
   desc "Restore 4store entries from investigation file directory"
@@ -73,19 +118,22 @@ namespace :fourstore do
       end
     
     end
-    
-    puts "\nList of broken investigations, stored in 'broken_investigations' file.\n"
-    puts broken_investigations
-    File.open('broken_investigations', 'w') { |file| file.write(broken_investigations) }
 
-    #if broken_investigations != ""
-    #  broken_investigations.split("\n").each do |broken|
-    #    `cd investigation`
-    #    `rm -rf #{broken}`
-    #    `git commit -am 'removed #{broken}'`
-    #  end
-    #end
-
-
+    if broken_investigations != ""
+      puts "\nList of broken investigations, stored in 'broken_investigations' file.\n"
+      puts broken_investigations
+      File.open('broken_investigations', 'w'){ |file| file.write(broken_investigations) }
+    end
+=begin 
+    # remove begin;end block for auto-remove invalid dirs
+    if broken_investigations != ""
+      Dir.chdir('investigation') do
+        broken_investigations.split("\n").each do |broken|
+          inv = broken.split("/").last
+          `rm -rf #{inv};git commit -am 'removed #{inv}'`
+        end
+      end
+    end
+=end
   end
 end
