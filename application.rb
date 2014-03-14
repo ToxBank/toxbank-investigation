@@ -235,7 +235,7 @@ module OpenTox
     # @return [String] of mime-type [text/tab-separated-values, application/sparql-results+json] - Study, assay, data representation in ISA-TAB or RDF format.
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_study.2C_assay_or_data_representation API: Get a study, assay or data representation
     ['/investigation/:id/isatab/:filename','/investigation/:id/files/:filename'].each do |path|
-      get path  do
+      get path do
         resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
         # @todo return text/plain content type for tab separated files
         filetype = (File.symlink?(file) ? File.new(File.readlink(file)).mime_type : File.new(file).mime_type)
@@ -262,12 +262,19 @@ module OpenTox
     #   * Accept [String] <application/sparql-results+xml, application/json, text/uri-list, text/html>
     #   * subjectid [String] authorization token
     # @return [String] sparql-results+xml, json, uri-list, html
-    get '/investigation/:id/sparql/:templatename' do
-      templates = get_templates "investigation"
-      templatename = params[:templatename].underscore
-      resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
-      sparqlstring = File.read(templates[templatename]) % { :investigation_uri => investigation_uri }
-      FourStore.query sparqlstring, @accept
+    ['/investigation/:id/sparql/:templatename', '/investigation/:id/sparql/:templatename/:biosample'].each do |path|
+      get path do
+        templates = get_templates "investigation"
+        templatename = params[:templatename].underscore
+        $logger.debug "templatename:\t#{templatename}"
+        resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
+        unless templatename == "characteristics_by_sample"
+          sparqlstring = File.read(templates[templatename]) % { :investigation_uri => investigation_uri }
+        else
+          sparqlstring = File.read(templates[templatename]) % { :sample_uri => investigation_uri + "/" + params[:biosample] }
+        end
+        FourStore.query sparqlstring, @accept
+      end
     end
 
     # @method put_id
