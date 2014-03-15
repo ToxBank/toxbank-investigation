@@ -136,12 +136,12 @@ module OpenTox
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. Request needs a gene identifier." if params[:geneIdentifiers].blank?
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
-        bad_request_error "missing parameter value_type. Request needs a value_type like 'FC=0.7'." if params[:value].to_s !~ /=/
-        bad_request_error "wrong parameter value_type. Request needs a value_type like 'FC,pvalue,qvalue'." if params[:value].split("=").first !~ /^FC$|^pvalue$|^qvalue$/
+        bad_request_error "missing parameter value_type. Request needs a value_type like 'FC=0.7'." if params[:value].to_s !~ /\:/
+        bad_request_error "wrong parameter value_type. Request needs a value_type like 'FC,pvalue,qvalue'." if params[:value].split(":").first !~ /^FC$|^pvalue$|^qvalue$/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         # split params[:value] in "value_type" and "value"
-        value_type = "http://onto.toxbank.net/isa/" + params[:value].split("=").first
-        value = params[:value].split("=").last
+        value_type = "http://onto.toxbank.net/isa/" + params[:value].split(":").first
+        value = params[:value].split(":").last
         if genes.class == Array
           VArr = []
           genes.each do |gene|
