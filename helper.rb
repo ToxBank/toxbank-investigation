@@ -123,16 +123,19 @@ module OpenTox
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           #FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
-          #TODO if datasets.rdf intended for download add them to the zip
           # this line moved to l.74
           #`zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          # add datasets.rdf
-          rdfs = File.join(dir, "*.rdf")
-          unless rdfs.blank?
-            Dir.glob(rdfs).each do |dataset|
-              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/rdf+xml" unless File.zero?(dataset)
-            end
+          # get extra datasets
+          extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /^#{nt}$|^ftpfiles\.nt$|^modified\.nt$|^isPublished\.nt$|^isSummarySearchable\.nt/}
+          #$logger.debug extrafiles
+          # split extra datasets
+          extrafiles.each{|dataset| `split -d -l 750000 #{dataset} #{dataset}_` unless File.zero?(dataset)}
+          newfiles = Dir["#{dir}/*.nt_*"]
+          #$logger.debug newfiles
+          # append datasets to investigation graph
+          extrafiles.each do |dataset|
+            OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
           end
           FileUtils.remove_entry tmp
           link_ftpfiles
