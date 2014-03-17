@@ -128,14 +128,16 @@ module OpenTox
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
           # get extra datasets
           extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /^#{nt}$|^ftpfiles\.nt$|^modified\.nt$|^isPublished\.nt$|^isSummarySearchable\.nt/}
-          #$logger.debug extrafiles
+          $logger.debug "extrafiles: #{extrafiles}"
           # split extra datasets
-          extrafiles.each{|dataset| `split -d -l 750000 #{dataset} #{dataset}_` unless File.zero?(dataset)}
-          newfiles = Dir["#{dir}/*.nt_*"]
-          #$logger.debug newfiles
-          # append datasets to investigation graph
-          extrafiles.each do |dataset|
-            OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
+          unless extrafiles.nil?
+            extrafiles.each{|dataset| `split -d -l 750000 #{dataset} #{dataset}_` unless File.zero?(dataset)}
+            newfiles = Dir["#{dir}/*.nt_*"]
+            #$logger.debug newfiles
+            # append datasets to investigation graph
+            extrafiles.each do |dataset|
+              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
+            end
           end
           FileUtils.remove_entry tmp
           link_ftpfiles
