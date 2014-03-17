@@ -10,7 +10,7 @@ SPARQL on all published investigations
 * {file:template/investigation_by_factor.sparql Investigation by Factor}
 * {file:template/investigation_by_factors.sparql Investigation by Factors}
 * {file:template/investigation_by_foldchange.sparql Investigation by Foldchange}
-* {file:template/investigation_by_gene_and_pvalue.sparql Investigation by Gene and Value}
+* {file:template/investigation_by_gene_and_value.sparql Investigation by Gene and Value}
 * {file:template/investigation_by_genes.sparql Investigation by Genes}
 * {file:template/investigation_by_pvalue.sparql Investigation by PValue}
 * {file:template/investigation_by_qvalue.sparql Investigation by QValue}
