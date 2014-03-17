@@ -87,6 +87,7 @@ namespace :fourstore do
     
     investigations.each_with_index do |inv, idx|
       
+      dir = File.join File.dirname(File.expand_path __FILE__),"investigation",inv
       if File.exist?(File.join("investigation", inv, inv+".nt"))
         puts "\n========================="
         puts "\nUploading investigation #{idx + 1} with ID #{inv}."
