@@ -131,7 +131,7 @@ module OpenTox
           $logger.debug "extrafiles: #{extrafiles}"
           # split extra datasets
           unless extrafiles.nil?
-            extrafiles.each{|dataset| `split -d -l 750000 #{dataset} #{dataset}_` unless File.zero?(dataset)}
+            extrafiles.each{|dataset| `split -d -l 750000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
             newfiles = Dir["#{dir}/*.nt_*"]
             $logger.debug newfiles
             # append datasets to investigation graph
