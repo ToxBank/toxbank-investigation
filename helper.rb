@@ -135,7 +135,7 @@ module OpenTox
             newfiles = Dir["#{dir}/*.nt_*"]
             #$logger.debug newfiles
             # append datasets to investigation graph
-            extrafiles.each do |dataset|
+            newfiles.each do |dataset|
               OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
             end
           end
