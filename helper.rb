@@ -133,7 +133,7 @@ module OpenTox
           unless extrafiles.nil?
             extrafiles.each{|dataset| `split -d -l 750000 #{dataset} #{dataset}_` unless File.zero?(dataset)}
             newfiles = Dir["#{dir}/*.nt_*"]
-            #$logger.debug newfiles
+            $logger.debug newfiles
             # append datasets to investigation graph
             newfiles.each do |dataset|
               OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
