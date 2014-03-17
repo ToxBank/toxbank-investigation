@@ -127,7 +127,7 @@ module OpenTox
           #`zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
           # get extra datasets
-          extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /^#{nt}$|^ftpfiles\.nt$|^modified\.nt$|^isPublished\.nt$|^isSummarySearchable\.nt/}
+          extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
           $logger.debug "extrafiles: #{extrafiles}"
           # split extra datasets
           unless extrafiles.nil?
