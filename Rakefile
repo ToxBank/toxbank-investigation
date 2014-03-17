@@ -28,7 +28,7 @@ namespace :isa2rdf do
         extrafiles = Dir["#{dir}/*.nt_*"]
         unless extrafiles.nil?
           puts "remove existing extrafiles.\n#{extrafiles}\n"
-          extrafiles.each{|file| `rm #{file}`}
+          extrafiles.each{|file| `rm '#{file}'`}
           puts "Done."
         end
         puts "\nReparse investigation #{idx + 1} with ID #{inv}."
