@@ -137,7 +137,6 @@ module OpenTox
             # append datasets to investigation graph
             newfiles.each do |dataset|
               OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
-              `rm #{dataset}`
             end
           end
           FileUtils.remove_entry tmp
