@@ -30,7 +30,7 @@ namespace :isa2rdf do
         # reparse
         puts uri
         puts dir
-        `java -jar -Xmx2048m isa2rdf-cli-1.0.1.jar -d #{dir} -i #{uri} -a #{dir} -o #{nt} -t #{$user_service[:uri]} &`
+        `java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{uri} -a #{dir} -o #{nt} -t #{$user_service[:uri]} &`
         id = `grep "#{uri}/I[0-9]" #{File.join nt}|cut -f1 -d ' '`.strip
         `sed -i 's;#{id.split.last};<#{uri}>;g' #{File.join nt}`
         `echo "<#{uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join nt}`
@@ -45,7 +45,7 @@ namespace :isa2rdf do
       File.open('broken_conversions', 'w'){ |file| file.write(broken_conversions) }
     end
     Dir.chdir('../investigation')
-    `git add -A;git commit -am "updated with isa2rdf v1.0.1"`
+    `git add -A;git commit -am "updated with isa2rdf v1.0.2"`
     puts "Execute 'rake fourstore:restore' to update local changes in backend !"
   end
 end
@@ -84,11 +84,11 @@ namespace :fourstore do
         OpenTox::Backend::FourStore.put uri, File.read(nt), "text/plain"
         puts "Done."
         
-        rdfs = File.join("investigation", inv, "*.rdf")
-        Dir.glob(rdfs).each do |dataset|
-          unless File.zero?(dataset)
+        extrafiles = Dir["#{dir}/*.nt_*"]
+        unless extrafiles.nil?
+          extrafiles.each do |dataset|
             puts "Upload Dataset #{dataset}."
-            OpenTox::Backend::FourStore.post uri, File.read(dataset), "application/rdf+xml"
+            OpenTox::Backend::FourStore.post uri, File.read(dataset), "text/plain"
             puts "Done."
           end
         end
