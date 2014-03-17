@@ -41,6 +41,11 @@ namespace :isa2rdf do
         `sed -i 's;#{id.split.last};<#{uri}>;g' #{File.join nt}`
         `echo "<#{uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join nt}`
         puts "Done."
+        # extra files
+        extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
+        unless extrafiles.nil?
+          extrafiles.each{|dataset| `split -d -l 750000 #{dataset} #{dataset}_` unless File.zero?(dataset)}
+        end
       else
         broken_conversions << "#{inv}\n"
       end
