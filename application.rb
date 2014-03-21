@@ -145,7 +145,7 @@ module OpenTox
         if genes.class == Array
           VArr = []
           genes.each do |gene|
-            VArr << "{ ?dataentry skos:closeMatch #{gene.gsub("'","").strip}. }"
+            VArr << "{ ?dataentry skos:closeMatch #{gene.gsub("'","").strip}. }" unless gene.empty?
           end
           sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION "), :value_type => value_type, :value => value }
         else
