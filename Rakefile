@@ -41,11 +41,6 @@ namespace :isa2rdf do
         `sed -i 's;#{id.split.last};<#{uri}>;g' #{File.join nt}`
         `echo "<#{uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join nt}`
         puts "Done."
-        # extra files
-        extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
-        unless extrafiles.nil?
-          extrafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
-        end
       else
         broken_conversions << "#{inv}\n"
       end
@@ -96,11 +91,18 @@ namespace :fourstore do
         OpenTox::Backend::FourStore.put uri, File.read(nt), "text/plain"
         puts "Done."
         
+        # extra files
+        extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
+        unless extrafiles.nil?
+          extrafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+        end
+        
         extrafiles = Dir["#{dir}/*.nt_*"]
         unless extrafiles.nil?
           extrafiles.each do |dataset|
             puts "Upload Dataset #{dataset}."
             OpenTox::Backend::FourStore.post uri, File.read(dataset), "text/plain"
+            File.delete(dataset)
             puts "Done."
           end
         end
