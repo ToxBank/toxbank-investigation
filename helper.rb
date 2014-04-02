@@ -154,8 +154,8 @@ module OpenTox
                 end
                 datafiles.each{|file| FileUtils.cp file, dir}
               end # datafiles
-              FileUtils.remove_entry tmp
             end # rdfs
+            FileUtils.remove_entry tmp
             investigation_uri # result uri for subtask
           end # task
           # update metadata with subtask uri
