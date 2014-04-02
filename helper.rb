@@ -109,7 +109,7 @@ module OpenTox
       def isa2rdf
         # @note isa2rdf returns correct exit code but error in task
         # @todo delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
+        `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
         if !File.exists?(File.join tmp, nt)
           out = IO.read(File.join tmp, 'log') 
           FileUtils.remove_entry dir
@@ -123,24 +123,46 @@ module OpenTox
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           #FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
-          # this line moved to l.74
+          # next line moved to l.74
           #`zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          # get extra datasets
-          extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
-          $logger.debug "extrafiles: #{extrafiles}"
-          # split extra datasets
-          unless extrafiles.nil?
-            extrafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
-            newfiles = Dir["#{dir}/*.nt_*"]
-            $logger.debug newfiles
-            # append datasets to investigation graph
-            newfiles.each do |dataset|
-              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
-              File.delete(dataset)
-            end
-          end
-          FileUtils.remove_entry tmp
+          
+          task = OpenTox::Task.run("Processing raw data",investigation_uri) do
+            `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
+            # get rdfs
+            sleep 1 # wait until first file is generated
+            rdfs = Dir["#{tmp}/*.rdf"]
+            $logger.debug "rdfs:\t#{rdfs}\n"
+            unless rdfs.blank?
+              sleep 1
+              rdfs = Dir["#{tmp}/*.rdf"].reject!{|rdf| rdf.blank?}
+            else
+              # get ntriples datafiles
+              datafiles = Dir["#{tmp}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
+              $logger.debug "datafiles:\t#{datafiles}"
+              unless datafiles.blank?
+                # split extra datasets
+                datafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+                chunkfiles = Dir["#{tmp}/*.nt_*"]
+                $logger.debug "chunkfiles:\t#{chunkfiles}"
+                
+                # append datasets to investigation graph
+                chunkfiles.each do |dataset|
+                  OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
+                  sleep 1
+                  File.delete(dataset)
+                end
+                datafiles.each{|file| FileUtils.cp file, dir}
+              end # datafiles
+              FileUtils.remove_entry tmp
+            end # rdfs
+            investigation_uri # result uri for subtask
+          end # task
+          # update metadata with subtask uri
+          triplestring = "<#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> <#{task.uri}> ."
+          OpenTox::Backend::FourStore.post investigation_uri, triplestring, "application/x-turtle"
+          
+          #FileUtils.remove_entry tmp
           link_ftpfiles
           newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
           `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
