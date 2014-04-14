@@ -305,6 +305,7 @@ module OpenTox
         if params[:file]
           prepare_upload
           extract_zip if params[:file][:type] == 'application/zip'
+          kill_isa2rdf
           isa2rdf
         end
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
@@ -334,6 +335,7 @@ module OpenTox
     # @return [String] status message and HTTP code
     # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation API: Delete an investigation
     delete '/investigation/:id' do
+      kill_isa2rdf
       set_index false
       FileUtils.remove_entry dir
       `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user}"`

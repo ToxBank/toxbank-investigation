@@ -41,10 +41,19 @@ module OpenTox
       def nt
         "#{params[:id]}.nt"
       end
+      
       # @!endgroup
       # @return [Integer] timestamp of a time string
       def get_timestamp timestring
         Time.parse(timestring).to_i
+      end
+
+      # kill isa2rdf pids if delete or put
+      def kill_isa2rdf
+        pid = []
+        pid << `ps x|grep #{params[:id]}|grep java|grep -v grep|awk '{ print $1 }'`.split("\n")
+        $logger.debug "isa2rdf PIDs for current investigation:\t#{pid.flatten}\n"
+        pid.flatten.each{|p| `kill #{p.to_i}`} unless pid.blank?
       end
 
       # deletes all policies of an investigation
