@@ -50,4 +50,4 @@ see also https://github.com/opentox/opentox-client
 Documentation
 -------------
 * ToxBank API documentation with examples see [ToxBank API wiki](http://api.toxbank.net/index.php/Investigation)
-* Code documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/development/frames)
+* Code documentation at [RubyDoc.info](http://rubydoc.info/github/ToxBank/toxbank-investigation/frames)
