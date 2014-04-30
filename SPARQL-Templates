@@ -1,0 +1,28 @@
+# @markup markdown
+SPARQL Templates in the ToxBank Investigation Webservice:
+=====================
+SPARQL on all published investigations
+---------------------
+* {file:template/investigation_and_characteristics.sparql  Investigation and Characteristics}
+* {file:template/investigation_by_characteristic_name.sparql  Investigation by Characteristic Name}
+* {file:template/investigation_by_characteristic.sparql Investigation by Characteristic}
+* {file:template/investigation_by_characteristic_value.sparql Investigation by Characteristic Value}
+* {file:template/investigation_by_factor.sparql Investigation by Factor}
+* {file:template/investigation_by_factors.sparql Investigation by Factors}
+* {file:template/investigation_by_foldchange.sparql Investigation by Foldchange}
+* {file:template/investigation_by_gene_and_value.sparql Investigation by Gene and Value}
+* {file:template/investigation_by_genes.sparql Investigation by Genes}
+* {file:template/investigation_by_pvalue.sparql Investigation by PValue}
+* {file:template/investigation_by_qvalue.sparql Investigation by QValue}
+* {file:template/investigations_and_factors.sparql Investigation and Factors}
+* {file:template/investigations_and_protocols.sparql Investigation and Protocols}
+* {file:template/protocols_by_factors.sparql Protocols by Factors}
+
+SPARQL on specific (published) investigations
+---------------------
+* {file:template/investigation/characteristics_by_investigation.sparql Characteristics by Investigation}
+* {file:template/investigation/factors_by_investigation.sparql Factors by Investigation}
+* {file:template/investigation/files_by_investigation.sparql Files by Investigation}
+* {file:template/investigation/files_with_datanodes_by_investigation.sparql Files with Datanodes by Investigation}
+* {file:template/investigation/investigation_details.sparql Investigation Details}
+* {file:template/investigation/investigation_endpoint_technology.sparql Investigation Endpoint Technology}

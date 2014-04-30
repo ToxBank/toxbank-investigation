@@ -2,42 +2,46 @@ module OpenTox
 
   # define RDF vocabularies
   # use 'RDF' as 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' prefix
-  RDF::TB   = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
   RDF::TBU  = RDF::Vocabulary.new "#{$user_service[:uri]}/user/"
   RDF::TBO  = RDF::Vocabulary.new "#{$user_service[:uri]}/organisation/"
   RDF::TBPT = RDF::Vocabulary.new "#{$user_service[:uri]}/project/"
-  RDF::OWL = RDF::Vocabulary.new "http://www.w3.org/2002/07/owl#"
-  RDF::ISA = RDF::Vocabulary.new "http://onto.toxbank.net/isa/"
+  # defined in opentox-client.rb
+  #RDF::TB   = RDF::Vocabulary.new "http://onto.toxbank.net/api/"
+  #RDF::OWL = RDF::Vocabulary.new "http://www.w3.org/2002/07/owl#"
+  #RDF::ISA = RDF::Vocabulary.new "http://onto.toxbank.net/isa/"
 
   CLASSES << "TBAccount"
 
-  # Get rdf representation for a user, organisation or project from the ToxBank service 
+  # Get RDF representation for a user, organisation or project from the ToxBank service
   # @see http://api.toxbank.net/index.php/User ToxBank API User
   # @see http://api.toxbank.net/index.php/Organisation ToxBank API Organisation
   # @see http://api.toxbank.net/index.php/Project ToxBank API Project
   # @see http://api.toxbank.net/index.php/Protocol#Security ToxBank API Security
   # @example TBAccount
   #   require "opentox-server"
-  #   User1 = OpenTox::TBAccount.new("http://uri_to_toxbankservice/toxbank/user/U123", subjectid)
+  #   OpenTox::Authorization.authenticate("user", "password")
+  #   User1 = OpenTox::TBAccount.new("http://uri_to_toxbankservice/toxbank/user/U123")
   #   puts User1.ldap_dn #=> "uid=username,ou=people,dc=opentox,dc=org"
   #   User1.send_policy("http://uri_toprotect/bla/foo") #=> creates new read policy for http://uri_toprotect/bla/foo
   class TBAccount
     include OpenTox
 
     # Search a user URI in the user service
-    # @param [String,String]username,subjectid
-    # @return [String]userURI
-    def self.search_user user, subjectid
-      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
+    # @param user [String] username
+    # @param subjectid [String]
+    # @return [String] userURI
+    def self.search_user user
+      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
       return result if !result.match("Not Found")
       false
     end
 
     # Search a project URI in the user service
-    # @param [String,String]projectname,subjectid
+    # @param project [String] projectname
+    # @param [String] subjectid
     # @return [String]userURI
-    def self.search_project project, subjectid
-      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{$user_service[:uri]}/project?search=#{project}`.chomp.sub("\n","")
+    def self.search_project project
+      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/project?search=#{project}`.chomp.sub("\n","")
       return result if !result.match("Not Found")
       false
     end
@@ -61,7 +65,8 @@ module OpenTox
     end
 
     # GET policy XML 
-    # @param [String,String] URI,Type URI to protect, Access-rights < "all", "readwrite", "read" (default) >
+    # @param uri [String] URI
+    # @param type [String] Type URI to protect, Access-rights < "all", "readwrite", "read" (default) >
     # @return [String] policy in XML 
     def get_policy uri, type="read"
       policy(uri, type)
@@ -70,12 +75,12 @@ module OpenTox
     # sends policy to opensso server
     # @param (see #get_policy) 
     def send_policy uri, type="read"
-      OpenTox::Authorization.create_policy(policy(uri, type), @subjectid)
+      OpenTox::Authorization.create_policy(policy(uri, type))
     end
 
     # Change account URI into RDF prefixed Version e.G.: "http://toxbanktest1.opentox.org:8080/toxbank/user/U2" becomes "TBU:U2"
     # @example 
-    #   user = OpenTox::TBAccount.new("http://uri_to_toxbankservice/toxbank/user/U2", subjectid)
+    #   user = OpenTox::TBAccount.new("http://uri_to_toxbankservice/toxbank/user/U2")
     #   puts user.ns_uri #=> "RDF::TBU:U2"
     # @return [String] prefixed URI of a user/organisation/project
     def ns_uri
@@ -97,8 +102,15 @@ module OpenTox
     end
 
     def get mime_type="application/rdf+xml"
-       response = `curl -Lk -X GET -H "Accept:#{mime_type}" -H "subjectid:#{@subjectid}" #{@uri}`.chomp
-       parse_rdfxml response if mime_type == "application/rdf+xml"
+      response = `curl -Lk -X GET -H "Accept:#{mime_type}" -H "subjectid:#{RestClientWrapper.subjectid}" #{@uri}`.chomp
+      parse_rdfxml response if mime_type == "application/rdf+xml"
+      metadata
+    end
+
+    # Object metadata
+    # @return [Hash] Object metadata
+    def metadata
+      @metadata = @rdf.to_hash[RDF::URI.new(@uri)].inject({}) { |h, (predicate, values)| h[predicate] = values.collect{|v| v.to_s}; h }
     end
 
     # creates policy
@@ -147,23 +159,26 @@ module OpenTox
   module Authorization
 
     # Create policy for PI-user (owner of subjectid)
-    # @param [String, String] URI,subjectid URI to create a policy for, subjectid
-    def self.create_pi_policy uri, subjectid
-      user = get_user(subjectid)
+    # @param uri [String] URI to create a policy for
+    # @param subjectid [String]
+    def self.create_pi_policy uri
+      user = get_user
       #piuri = RestClientWrapper.get("#{RDF::TBU.to_s}?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
-      piuri =`curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{subjectid}" #{RDF::TBU.to_s}?username=#{user}`.chomp.sub("\n","")
-      piaccount = TBAccount.new(piuri, subjectid)
+      piuri =`curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{RDF::TBU.to_s}?username=#{user}`.chomp.sub("\n","")
+      piaccount = TBAccount.new(piuri)
       piaccount.send_policy(uri, "all")
     end
 
     # Delete all policies for Users or Groups of an investigation except the policy of the subjectid-owner.
-    # @param [String, String, String] URI,LDAPtype,subjectid URI to protect, LDAPUsers or LDAPGroups, subjectid
-    def self.reset_policies uri, type, subjectid
-      policies = self.list_uri_policies(uri, subjectid)
-      user = get_user(subjectid)
+    # @param uri [String] URI
+    # @param type [String] LDAP type: LDAPUsers or LDAPGroups
+    # @param subjectid [String]
+    def self.reset_policies uri, type
+      policies = self.list_uri_policies(uri)
+      user = get_user
       policies.keep_if{|policy| policy =~ /^tbi-\w+-#{type}-*/ }
       policies.delete_if{|policy| policy =~ /^tbi-#{user}-users-*/ }
-      policies.each{|policy| self.delete_policy(policy, subjectid) }
+      policies.each{|policy| self.delete_policy(policy) }
     end
 
   end

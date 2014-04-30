@@ -15,11 +15,10 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "toxbank-investigation"
 
   s.files         = `git ls-files`.split("\n")
-  s.required_ruby_version = '>= 1.9.2'
+  s.required_ruby_version = '~> 2.0.0'
 
   # specify any dependencies here:
   s.add_runtime_dependency "opentox-server"
-  s.add_runtime_dependency "roo", "=1.10.1" #lock 1.10.2 does not work
 
   # external requirements
   ["git", "zip", "java", "curl", "wget"].each{|r| s.requirements << r}
