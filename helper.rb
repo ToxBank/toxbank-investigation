@@ -151,7 +151,7 @@ module OpenTox
               $logger.debug "datafiles:\t#{datafiles}"
               unless datafiles.blank?
                 # split extra datasets
-                datafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+                datafiles.each{|dataset| `split -d -l 200000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
                 chunkfiles = Dir["#{tmp}/*.nt_*"]
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
@@ -159,24 +159,24 @@ module OpenTox
                 chunkfiles.each do |dataset|
                   OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
                   sleep 1
+                  set_modified
                   File.delete(dataset)
                 end
                 datafiles.each{|file| FileUtils.cp file, dir}
               end # datafiles
             end # rdfs
             FileUtils.remove_entry tmp
+            # remove subtask uri from metadata
+            OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
+            DELETE { <#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> ?o} 
+            WHERE {<#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> ?o}"
+            set_modified
             investigation_uri # result uri for subtask
           end # task
           # update metadata with subtask uri
           triplestring = "<#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> <#{task.uri}> ."
           OpenTox::Backend::FourStore.post investigation_uri, triplestring, "application/x-turtle"
-          
-          #FileUtils.remove_entry tmp
           link_ftpfiles
-          newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
-          `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-          request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
-          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user}"`
           investigation_uri
         end
       end
