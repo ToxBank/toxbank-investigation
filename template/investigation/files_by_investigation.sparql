@@ -21,7 +21,7 @@ SELECT DISTINCT ?assay ?assayFile ?endpoint ?endpointLabel ?platform ?technology
     ?materialnode isa:hasMaterial ?material.
     ?assay isa:uses ?material.
     ?assay isa:hasEndpoint ?endpoint.
-    rdfs:seeAlso ?assayFile.
+    ?assay rdfs:seeAlso ?assayFile.
     OPTIONAL {?endpoint rdfs:label ?endpointLabel.}
     OPTIONAL {?assay isa:usesPlatform ?platform.}
     ?assay isa:usesTechnology ?technology.
