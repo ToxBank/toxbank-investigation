@@ -137,15 +137,13 @@ module OpenTox
             # append datasets to investigation graph
             newfiles.each do |dataset|
               OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
+              sleep 1
+              set_modified
               File.delete(dataset)
             end
           end
           FileUtils.remove_entry tmp
           link_ftpfiles
-          newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
-          `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-          request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
-          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "investigation #{params[:id]} #{action} by #{OpenTox::Authorization.get_user}"`
           investigation_uri
         end
       end
