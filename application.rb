@@ -30,7 +30,7 @@ module OpenTox
     before do
       $logger.debug "WHO: #{OpenTox::Authorization.get_user}, request method: #{request.env['REQUEST_METHOD']}, type: #{request.env['CONTENT_TYPE']}\n\nhole request env: #{request.env}\n\nparams inspect: #{params.inspect}\n\n"
       resource_not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
-      parse_input if request.request_method =~ /POST|PUT/
+      #parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
     end
