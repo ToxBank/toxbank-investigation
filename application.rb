@@ -232,6 +232,21 @@ module OpenTox
                        ?study <#{RDF::ISA}hasProtocol> ?protocol. ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.}", @accept
     end
 
+    # @method get_subtaskuri
+    # @overload get "/investigation/:id/subtaskuri"
+    # Get SubTaskURI of an investigation.
+    # @param [Hash] header
+    #   * Accept [String] <text/uri-list, application/json>
+    #   * subjectid [String] authorization token
+    # Returns the URI of an data subtask or an empty string if requested with 'text/uri-list'
+    # @raise [ResourceNotFoundError] if investigation URI do not exist.
+    # @return [String] text/uri-list  or application/json.
+    get '/investigation/:id/subtaskuri' do
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/json")
+      FourStore.query "SELECT ?subtaskuri WHERE { <#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> ?subtaskuri. }", @accept
+    end
+
     # @method get_file
     # @overload get "/investigation/:id/:filename"
     # Get a study, assay, data representation
