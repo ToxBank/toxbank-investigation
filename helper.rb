@@ -168,13 +168,13 @@ module OpenTox
             FileUtils.remove_entry tmp
             # remove subtask uri from metadata
             OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
-            DELETE { <#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> ?o} 
-            WHERE {<#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> ?o}"
+            DELETE { <#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}
+            WHERE {<#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}"
             set_modified
             investigation_uri # result uri for subtask
           end # task
           # update metadata with subtask uri
-          triplestring = "<#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> <#{task.uri}> ."
+          triplestring = "<#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> <#{task.uri}> ."
           OpenTox::Backend::FourStore.post investigation_uri, triplestring, "application/x-turtle"
           link_ftpfiles
           investigation_uri

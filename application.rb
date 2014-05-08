@@ -244,7 +244,7 @@ module OpenTox
     get '/investigation/:id/subtaskuri' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir
       bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/json")
-      FourStore.query "SELECT ?subtaskuri WHERE { <#{investigation_uri}> <#{RDF::ISA.hasSubTaskURI}> ?subtaskuri. }", @accept
+      FourStore.query "SELECT ?subtaskuri WHERE { <#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?subtaskuri. }", @accept
     end
 
     # @method get_file
