@@ -15,6 +15,7 @@ module OpenTox
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
+        uris.collect!{|u| u.sub(/(\/isatab\/)/,'/files/')} if params[:id] && File.read(File.join(dir,nt)).match("hasInvType")
         uris.delete_if{|u| u.match(/_policies$/)}
         uris.delete_if{|u| u.match(/log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
@@ -69,8 +70,8 @@ module OpenTox
         bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
         # move existing ISA-TAB files to tmp
         FileUtils.mkdir_p tmp
-        FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
-        FileUtils.cp params[:file][:tempfile], File.join(tmp, params[:file][:filename])
+        FileUtils.cp Dir[File.join(dir,"*.txt")], tmp if params[:file]
+        FileUtils.cp params[:file][:tempfile], File.join(tmp, params[:file][:filename]) if params[:file]
       end
 
       # extract zip upload to tmp subdirectory of investigation
@@ -112,6 +113,51 @@ module OpenTox
         end
       end
 =end
+      # write pi in metadata
+      def get_pi
+        user = OpenTox::Authorization.get_user
+        accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
+        accounturi
+      end
+      
+      # Parameters to RDF conversion.
+      def params2rdf
+        $logger.debug params.inspect
+        FileUtils.cp(File.join(File.dirname(File.expand_path __FILE__), "template", "metadata.nt"), File.join(tmp,nt))
+        metadata = File.read(File.join(tmp,nt)) % {:investigation_uri => investigation_uri,
+          :type => params[:type],
+          :title => params[:title],
+          :abstract => params[:abstract],
+          :pi => get_pi,
+        }
+        # if several params has diferent values
+        owningOrg = params[:owningOrg].gsub(/\s+/, "").split(",")
+        owningOrg.each do |organisation|
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasOrganisation> <#{organisation}> .\n"
+        end
+        authors = params[:authors].gsub(/\s+/, "").split(",")
+        authors.each do |author|
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasAuthor> \"#{author}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+        end
+        keywords = params[:keywords].gsub(/\s+/, "").split(",")
+        keywords.each do |keyword|
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> \"#{keyword}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+        end
+        if params[:ftpData]
+          ftpData = params[:ftpData].gsub(/\s+/, "").split(",")
+          ftpData.each do |ftp|
+            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> \"#{ftp}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+          end
+        end
+        
+        $logger.debug metadata
+        File.open(File.join(tmp,nt), 'w'){|f| f.write(metadata)}
+        FileUtils.cp Dir[File.join(tmp,"*")], dir
+        FileUtils.remove_entry tmp
+        OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
+        investigation_uri
+      end
+
       # ISA-TAB to RDF conversion.
       # Preprocess and parse isa-tab files with java isa2rdf
       # @see https://github.com/ToxBank/isa2rdf
@@ -352,6 +398,20 @@ module OpenTox
         end
         return tolink
       end
+
+      #link ftp files by params
+      def link_ftpfiles_by_params
+        ftpfiles = get_ftpfiles
+        paramfiles = params[:ftpFile].split(",")
+        paramfiles.each do |pf|
+          bad_request_error "'#{pf}' is missing. Please upload to your ftp directory first." if !ftpfiles.include?(pf)
+          `ln -s "#{ftpfiles[pf]}" "#{dir}/#{pf}"` unless File.exists?("#{dir}/#{pf}")
+          ftpfilesave = "<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}> ."
+          File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
+          OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}>}}"
+        end
+      end
+
       # @!endgroup
     end
   end

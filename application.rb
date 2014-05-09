@@ -90,29 +90,62 @@ module OpenTox
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
         params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values']
-        bad_request_error "No file uploaded." unless params[:file]
-        bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-        prepare_upload
-        OpenTox::Authorization.create_pi_policy(investigation_uri)
-        case params[:file][:type]
-        #when "application/vnd.ms-excel"
-        #  extract_xls
-        #when "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        #  extract_xls
-        when 'application/zip'
-          if `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt')
-            extract_zip
-          else
-            FileUtils.remove_entry dir
-            delete_investigation_policy
-            bad_request_error "The zip #{params[:file][:filename]} contains no investigation file."
+        inv_types = ['noData', 'unFormatedData', 'ftpData']
+        param_types = ['title', 'abstract', 'owningOrg', 'authors', 'keywords', 'ftpFile']
+        # no data or ftp data
+        if params[:type] && !params[:file]
+          bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
+          case params[:type]
+          when "noData"
+            bad_request_error "Parameter 'ftpData' not expected for type '#{params[:type]}'." if params[:ftpFile]
+            param_types.delete("ftpFile")
+            param_types.each do |p|
+              bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
+            end
+            OpenTox::Authorization.create_pi_policy(investigation_uri)
+            prepare_upload
+            params2rdf
+          when "ftpData"
+            param_types.each do |p|
+              bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
+            end
+            OpenTox::Authorization.create_pi_policy(investigation_uri)
+            prepare_upload
+            link_ftpfiles_by_params
+            params2rdf
           end
+        # unformated data
+        elsif params[:type] && params[:file]
+          bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
+          bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
+          bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unFormatedData"
+          bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
+          param_types.delete("ftpFile")
+          param_types.each do |p|
+            bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
+          end
+          OpenTox::Authorization.create_pi_policy(investigation_uri)
+          prepare_upload
+          params2rdf
+        # isa-tab data
+        elsif params[:file] && !params[:type]
+          bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+          OpenTox::Authorization.create_pi_policy(investigation_uri)
+          case params[:file][:type]
+          when 'application/zip'
+            prepare_upload
+            extract_zip
+            isa2rdf
+          end
+        # no params or data
+        else
+          bad_request_error "No file uploaded or parameters given."
         end
-        isa2rdf
+        # set flags and modified date
         set_flag(RDF::TB.isPublished, false, "boolean")
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean")
         set_modified
-        #set_flag(RDF.Type, RDF::OT.Investigation)
+        # set access rules
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
@@ -300,19 +333,53 @@ module OpenTox
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri) do
         mime_types = ['application/zip','text/tab-separated-values']
+        inv_types = ['noData', 'unFormatedData', 'ftpData']
+        param_types = ['title', 'abstract', 'owningOrg', 'authors', 'keywords', 'ftpFile']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
-        bad_request_error "The zip #{params[:file][:filename]} contains no investigation file.", investigation_uri unless `unzip -Z -1 #{File.join(params[:file][:tempfile])}`.match('.txt') if params[:file]
-        if params[:file]
+        # no data or ftp data
+        if params[:type] && !params[:file]
+          bad_request_error "Parameter '#{params[:type]}' not supported." unless inv_types.include? params[:type]
+          case params[:type]
+          when "noData"
+            bad_request_error "Parameter 'ftpData' not expected for type '#{params[:type]}'." if params[:ftpFile]
+            param_types.delete("ftpFile")
+            param_types.each do |p|
+              bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
+            end
+            prepare_upload
+            params2rdf
+          when "ftpData"
+            param_types.each do |p|
+              bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
+            end
+            prepare_upload
+            link_ftpfiles_by_params
+            params2rdf
+          end
+        # unformated data
+        elsif params[:type] && params[:file]
+          bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
+          bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unFormatedData"
+          bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
+          param_types.delete("ftpFile")
+          param_types.each do |p|
+            bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
+          end
+          prepare_upload
+          params2rdf
+        # isatab data
+        elsif params[:file] && !params[:type]
+          bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
           prepare_upload
           extract_zip if params[:file][:type] == 'application/zip'
           kill_isa2rdf
           isa2rdf
+        else
+          bad_request_error "No file uploaded or parameters given."
         end
+        
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
         set_flag(RDF::TB.isSummarySearchable, (params[:summarySearchable].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:summarySearchable])
-        #FourStore.update "WITH <#{investigation_uri}>
-        #                  DELETE { <#{investigation_uri}> <#{RDF::DC.modified}> ?o} WHERE {<#{investigation_uri}> <#{RDF::DC.modified}> ?o};
-        #                  INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\"}}"
         set_modified
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
