@@ -113,7 +113,13 @@ module OpenTox
         end
       end
 =end
-      # write pi in metadata
+      def validate_params_uri(param, value)
+        keys = ["owningOrg", "authors", "keywords"]
+        if keys.include?(param.to_s)
+          (value.uri? && value =~ /toxbank/) ? (return true) : (return false)
+        end
+      end
+      
       def get_pi
         user = OpenTox::Authorization.get_user
         accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
@@ -137,16 +143,16 @@ module OpenTox
         end
         authors = params[:authors].gsub(/\s+/, "").split(",")
         authors.each do |author|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasAuthor> \"#{author}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasAuthor> <#{author}> .\n"
         end
         keywords = params[:keywords].gsub(/\s+/, "").split(",")
         keywords.each do |keyword|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> \"#{keyword}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword}> .\n"
         end
         if params[:ftpData]
           ftpData = params[:ftpData].gsub(/\s+/, "").split(",")
           ftpData.each do |ftp|
-            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> \"#{ftp}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{ftp}> .\n"
           end
         end
         
