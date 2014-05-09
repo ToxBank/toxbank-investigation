@@ -149,10 +149,10 @@ module OpenTox
         keywords.each do |keyword|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword}> .\n"
         end
-        if params[:ftpData]
-          ftpData = params[:ftpData].gsub(/\s+/, "").split(",")
+        if params[:ftpFile]
+          ftpData = params[:ftpFile].gsub(/\s+/, "").split(",")
           ftpData.each do |ftp|
-            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{ftp}> .\n"
+            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{ftp}> .\n"
           end
         end
         
