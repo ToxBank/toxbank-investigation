@@ -221,8 +221,8 @@ module OpenTox
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
-          newfiles.split("\0").each{|newfile|`cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`
-          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+          newfiles.split("\0").each{|newfile|`cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
           `cd #{File.dirname(__FILE__)}/investigation && git add "#{params[:id]}/#{flag.to_s.split("/").last}.nt" && git commit --allow-empty -am "#{params[:id]}/#{flag.to_s.split("/").last}.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
         end
@@ -239,8 +239,8 @@ module OpenTox
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
-          newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`
-          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+          newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
           `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{params[:id]}/modified.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
         end
