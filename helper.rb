@@ -185,11 +185,11 @@ module OpenTox
         # save flag to file in case of restore or transport backend
         flagsave = "<#{investigation_uri}> <#{flag}> \"#{value}\"#{flagtype} ."
         File.open(File.join(dir, "#{flag.to_s.split("/").last}.nt"), 'w') {|f| f.write(flagsave) }
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
-          `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+          newfiles.split("\0").each{|newfile|`cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
           `cd #{File.dirname(__FILE__)}/investigation && git add "#{params[:id]}/#{flag.to_s.split("/").last}.nt" && git commit --allow-empty -am "#{params[:id]}/#{flag.to_s.split("/").last}.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
         end
@@ -203,11 +203,11 @@ module OpenTox
         # save last modified to file in case of restore or transport backend
         modsave = "<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\" ." 
         File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files --others --exclude-standard --directory #{params[:id]}`
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
-          `cd #{File.dirname(__FILE__)}/investigation && git add #{newfiles}`
-          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles}  #{action} by #{OpenTox::Authorization.get_user}"`
+          newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+          `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
           `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{params[:id]}/modified.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
         end
