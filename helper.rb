@@ -392,6 +392,8 @@ module OpenTox
         ftpfiles = get_ftpfiles
         datafiles = get_datafiles
         return "" if ftpfiles.empty? || datafiles.empty?
+        # remove existing from dir
+        Dir["#{dir}/*"].map!{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
         tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
@@ -408,13 +410,18 @@ module OpenTox
       #link ftp files by params
       def link_ftpfiles_by_params
         ftpfiles = get_ftpfiles
-        paramfiles = params[:ftpFile].split(",")
+        paramfiles = params[:ftpFile].gsub(/\s+/, "").split(",")
+        # remove existing from dir
+        Dir["#{dir}/*"].map!{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         paramfiles.each do |pf|
           bad_request_error "'#{pf}' is missing. Please upload to your ftp directory first." if !ftpfiles.include?(pf)
           `ln -s "#{ftpfiles[pf]}" "#{dir}/#{pf}"` unless File.exists?("#{dir}/#{pf}")
           ftpfilesave = "<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}> ."
           File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
-          OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}>}}"
+          # update backend
+          OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}> 
+          DELETE { <#{investigation_uri}> <#{RDF::ISA.hasDownload}> ?o} WHERE {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> ?o};
+          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}>}}"
         end
       end
 
