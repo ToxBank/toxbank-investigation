@@ -387,8 +387,9 @@ module OpenTox
           extract_zip if params[:file][:type] == 'application/zip'
           kill_isa2rdf
           isa2rdf
-        else
-          bad_request_error "No file uploaded or parameters given."
+        # incomplete request
+        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published]
+          bad_request_error "No file uploaded or any parameter given."
         end
         
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])
