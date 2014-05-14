@@ -354,7 +354,7 @@ module OpenTox
           bad_request_error "Parameter '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           case params[:type]
           when "noData"
-            bad_request_error "Parameter 'ftpData' not expected for type '#{params[:type]}'." if params[:ftpFile]
+            bad_request_error "Parameter 'ftpFile' not expected for type '#{params[:type]}'." if params[:ftpFile]
             param_types.delete("ftpFile")
             param_types.each do |p|
               bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
@@ -388,8 +388,8 @@ module OpenTox
           kill_isa2rdf
           isa2rdf
         # incomplete request
-        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published]
-          bad_request_error "No file uploaded or any parameter given."
+        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:publish] && !params[:summarySearchable]
+          bad_request_error "No file uploaded or any valid parameter given."
         end
         
         set_flag(RDF::TB.isPublished, (params[:published].to_s == "true" ? true : false), "boolean") if params[:file] || (!params[:file] && params[:published])

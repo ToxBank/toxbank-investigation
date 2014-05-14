@@ -128,7 +128,7 @@ module OpenTox
       
       # Parameters to RDF conversion.
       def params2rdf
-        $logger.debug params.inspect
+        #$logger.debug params.inspect
         FileUtils.cp(File.join(File.dirname(File.expand_path __FILE__), "template", "metadata.nt"), File.join(tmp,nt))
         metadata = File.read(File.join(tmp,nt)) % {:investigation_uri => investigation_uri,
           :type => params[:type],
@@ -136,7 +136,7 @@ module OpenTox
           :abstract => params[:abstract],
           :pi => get_pi,
         }
-        # if several params has diferent values
+        # if several params has different values
         owningOrg = params[:owningOrg].gsub(/\s+/, "").split(",")
         owningOrg.each do |organisation|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasOrganisation> <#{organisation}> .\n"
@@ -154,9 +154,11 @@ module OpenTox
           ftpData.each do |ftp|
             metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{ftp}> .\n"
           end
+        else
+          Dir["#{dir}/*"].map!{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         end
         
-        $logger.debug metadata
+        #$logger.debug metadata
         File.open(File.join(tmp,nt), 'w'){|f| f.write(metadata)}
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         FileUtils.remove_entry tmp
