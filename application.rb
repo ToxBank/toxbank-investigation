@@ -1,7 +1,10 @@
 require 'opentox-server'
 require_relative "tbaccount.rb"
 require_relative "util.rb"
-require_relative "helper.rb"
+#require_relative "helper.rb"
+require_relative "helper_methods.rb"
+require_relative "helper_isatab.rb"
+require_relative "helper_data.rb"
 # ToxBank implementation based on OpenTox API and OpenTox ruby gems
 
 module OpenTox
@@ -431,14 +434,13 @@ module OpenTox
     ['/investigation/:id/isatab/:filename', '/investigation/:id/files/:filename'].each  do |path|
       delete path do
         task = OpenTox::Task.run("Deleting #{params[:filename]} from investigation #{params[:id]}.",@uri) do
+          #TODO reparse if isatab deleted; delete specific entry from backend
           if path.include?("isatab") 
             prepare_upload
             File.delete File.join(tmp,params[:filename])
             isa2rdf
           else
             File.delete File.join(dir,params[:filename])
-            OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> 
-            {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{params[:filename]}>}}"
           end
         end
         response['Content-Type'] = 'text/uri-list'
