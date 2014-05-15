@@ -67,7 +67,7 @@ module OpenTox
       # copy investigation files in tmp subfolder
       def prepare_upload
         locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
-        bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
+        bad_request_error "Please submit data as multipart/form-data" unless request.form_data? 
         # move existing ISA-TAB files to tmp
         FileUtils.mkdir_p tmp
         FileUtils.cp Dir[File.join(dir,"*.txt")], tmp if params[:file]
@@ -85,34 +85,7 @@ module OpenTox
         `zip -x #{tmp}/*.zip -j #{File.join(tmp, "investigation_#{params[:id]}.zip")} #{tmp}/*`
         replace_pi
       end
-=begin
-      # process Excel file
-      def extract_xls
-        # use Excelx.new instead of Excel.new if your file is a .xlsx
-        # @todo delete dir if task catches error, e.g. password locked, pass error to block
-        if params[:file][:filename].match(/\.xls$|\.xlsx$/)
-          xls = Excel.new(File.join(tmp, params[:file][:filename]))  if params[:file][:filename].match(/.xls$/)
-          xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
-          xls.sheets.each_with_index do |sh, idx|
-            name = sh.to_s
-            xls.default_sheet = xls.sheets[idx]
-            1.upto(xls.last_row) do |ro|
-              1.upto(xls.last_column) do |co|
-                unless (co == xls.last_column)
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-                else
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
-                end
-              end
-            end
-          end
-        else
-          FileUtils.remove_entry dir
-          delete_investigation_policy
-          bad_request_error "Could not parse spreadsheet #{params[:file][:filename]}"
-        end
-      end
-=end
+      
       def validate_params_uri(param, value)
         keys = ["owningOrg", "authors", "keywords"]
         if keys.include?(param.to_s)
@@ -154,10 +127,13 @@ module OpenTox
           ftpData.each do |ftp|
             metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{ftp}> .\n"
           end
+          link_ftpfiles_by_params
         else
-          Dir["#{dir}/*"].map!{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+          Dir["#{tmp}/*"].each{|file| $logger.debug file; FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+          Dir["#{dir}/*"].each{|file| $logger.debug file; FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+          FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
         end
-        
+
         #$logger.debug metadata
         File.open(File.join(tmp,nt), 'w'){|f| f.write(metadata)}
         FileUtils.cp Dir[File.join(tmp,"*")], dir
@@ -395,7 +371,9 @@ module OpenTox
         datafiles = get_datafiles
         return "" if ftpfiles.empty? || datafiles.empty?
         # remove existing from dir
-        Dir["#{dir}/*"].map!{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        Dir["#{tmp}/*"].each{|file| $logger.debug file; FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        Dir["#{dir}/*"].each{|file| $logger.debug file; FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
         datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
         tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
@@ -414,16 +392,16 @@ module OpenTox
         ftpfiles = get_ftpfiles
         paramfiles = params[:ftpFile].gsub(/\s+/, "").split(",")
         # remove existing from dir
-        Dir["#{dir}/*"].map!{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        Dir["#{tmp}/*"].each{|file| $logger.debug file; FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        Dir["#{dir}/*"].each{|file| $logger.debug file; FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
         paramfiles.each do |pf|
           bad_request_error "'#{pf}' is missing. Please upload to your ftp directory first." if !ftpfiles.include?(pf)
           `ln -s "#{ftpfiles[pf]}" "#{dir}/#{pf}"` unless File.exists?("#{dir}/#{pf}")
           ftpfilesave = "<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}> ."
           File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
           # update backend
-          OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}> 
-          DELETE { <#{investigation_uri}> <#{RDF::ISA.hasDownload}> ?o} WHERE {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> ?o};
-          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}>}}"
+          OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{pf}>}}"
         end
       end
 

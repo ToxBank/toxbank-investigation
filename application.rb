@@ -366,7 +366,6 @@ module OpenTox
               bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
             end
             prepare_upload
-            link_ftpfiles_by_params
             params2rdf
           end
         # unformated data
@@ -388,7 +387,7 @@ module OpenTox
           kill_isa2rdf
           isa2rdf
         # incomplete request
-        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:publish] && !params[:summarySearchable]
+        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:publish] && !params[:summarySearchable] && !params[:allowReadByGroup] && !params[:allowReadByUser]
           bad_request_error "No file uploaded or any valid parameter given."
         end
         
@@ -428,20 +427,23 @@ module OpenTox
 
     # @!endgroup
 
-=begin
     # Delete an individual study, assay or data file
-    delete '/investigation/:id/:filename'  do
-      # CH: Task.create is now Task.run(description,creator_uri) to avoid method clashes
-      task = OpenTox::Task.run("Deleting #{params[:file][:filename]} from investigation #{params[:id]}.",@uri) do
-        prepare_upload
-        File.delete File.join(tmp,params[:filename])
-        isa2rdf
-        set_index true if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
-        "#{request.env['rack.url_scheme']}://#{request.env['HTTP_HOST']}"
+    ['/investigation/:id/isatab/:filename', '/investigation/:id/files/:filename'].each  do |path|
+      delete path do
+        task = OpenTox::Task.run("Deleting #{params[:filename]} from investigation #{params[:id]}.",@uri) do
+          if path.include?("isatab") 
+            prepare_upload
+            File.delete File.join(tmp,params[:filename])
+            isa2rdf
+          else
+            File.delete File.join(dir,params[:filename])
+            OpenTox::Backend::FourStore.update "DELETE DATA { GRAPH <#{investigation_uri}> 
+            {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{params[:filename]}>}}"
+          end
+        end
+        response['Content-Type'] = 'text/uri-list'
+        halt 202,task.uri+"\n"
       end
-      response['Content-Type'] = 'text/uri-list'
-      halt 202,task.uri+"\n"
     end
-=end
   end
 end
