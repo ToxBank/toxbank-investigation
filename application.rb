@@ -93,7 +93,7 @@ module OpenTox
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
         params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values']
-        inv_types = ['noData', 'unformatedData', 'ftpData']
+        inv_types = ['noData', 'unformattedData', 'ftpData']
         param_types = ['owningPro', 'title', 'abstract', 'owningOrg', 'authors', 'keywords', 'ftpFile']
         param_uris = {:owningPro => params[:owningPro], :owningOrg => params[:owningOrg], :authors => params[:authors], :keywords => params[:keywords]}
         # no data or ftp data
@@ -120,7 +120,7 @@ module OpenTox
         elsif params[:type] && params[:file]
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
           bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
-          bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformatedData"
+          bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformattedData"
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
           param_types.delete("ftpFile")
           param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
@@ -349,7 +349,7 @@ module OpenTox
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri) do
         mime_types = ['application/zip','text/tab-separated-values']
-        inv_types = ['noData', 'unformatedData', 'ftpData']
+        inv_types = ['noData', 'unformattedData', 'ftpData']
         param_types = ['title', 'abstract', 'owningOrg', 'owningPro', 'authors', 'keywords', 'ftpFile']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
         # no data or ftp data
@@ -374,7 +374,7 @@ module OpenTox
         # unformated data
         elsif params[:type] && params[:file]
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
-          bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformatedData"
+          bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformattedData"
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
           param_types.delete("ftpFile")
           param_types.each do |p|
