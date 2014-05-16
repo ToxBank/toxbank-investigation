@@ -6,7 +6,7 @@ module OpenTox
     module Helpers
       
       def validate_params_uri(param, value)
-        keys = ["owningOrg", "authors", "keywords"]
+        keys = ["owningOrg", "owningPro", "authors", "keywords"]
         if keys.include?(param.to_s)
           (value.uri? && value =~ /toxbank/) ? (return true) : (return false)
         end
@@ -29,6 +29,10 @@ module OpenTox
           :pi => get_pi,
         }
         # if several params has different values
+        owningPro = params[:owningPro].gsub(/\s+/, "").split(",")
+        owningPro.each do |project|
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project}> .\n"
+        end
         owningOrg = params[:owningOrg].gsub(/\s+/, "").split(",")
         owningOrg.each do |organisation|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasOrganisation> <#{organisation}> .\n"
@@ -40,6 +44,9 @@ module OpenTox
         keywords = params[:keywords].gsub(/\s+/, "").split(",")
         keywords.each do |keyword|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword}> .\n"
+        end
+        if params[:file]
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{params[:file][:filename]}> .\n"
         end
         if params[:ftpFile]
           ftpData = params[:ftpFile].gsub(/\s+/, "").split(",")
