@@ -101,6 +101,7 @@ module OpenTox
           bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           case params[:type]
           when "noData"
+            bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
             bad_request_error "Parameter 'ftpData' not expected for type '#{params[:type]}'." if params[:ftpFile]
             param_types.delete("ftpFile")
             param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
@@ -125,6 +126,7 @@ module OpenTox
           param_types.delete("ftpFile")
           param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
           param_uris.each{|key, value| value.gsub(/\s+/, "").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+          bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
           OpenTox::Authorization.create_pi_policy(investigation_uri)
           prepare_upload
           params2rdf
@@ -362,12 +364,14 @@ module OpenTox
             param_types.each do |p|
               bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
             end
+            bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
             prepare_upload
             params2rdf
           when "ftpData"
             param_types.each do |p|
               bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
             end
+            bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
             prepare_upload
             params2rdf
           end

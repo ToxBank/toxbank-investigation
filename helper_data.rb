@@ -26,16 +26,13 @@ module OpenTox
           :type => params[:type],
           :title => params[:title],
           :abstract => params[:abstract],
+          :organisation => params[:owningOrg],
           :pi => get_pi,
         }
         # if several params has different values
         owningPro = params[:owningPro].gsub(/\s+/, "").split(",")
         owningPro.each do |project|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project}> .\n"
-        end
-        owningOrg = params[:owningOrg].gsub(/\s+/, "").split(",")
-        owningOrg.each do |organisation|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasOrganisation> <#{organisation}> .\n"
         end
         authors = params[:authors].gsub(/\s+/, "").split(",")
         authors.each do |author|
