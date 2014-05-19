@@ -348,7 +348,6 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Add.2Fupdate_studies.2C_assays_or_data_to_an_investigation API: Add/update studies, assays or data to an investigation
     # @see http://api.toxbank.net/index.php/User API: User service
     put '/investigation/:id' do
-      # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       task = OpenTox::Task.run("#{investigation_uri}: Add studies, assays or data.",@uri) do
         mime_types = ['application/zip','text/tab-separated-values']
         inv_types = ['noData', 'unformattedData', 'ftpData']
@@ -389,6 +388,7 @@ module OpenTox
         # isatab data
         elsif params[:file] && !params[:type]
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
+          bad_request_error "Unable to edit unformated investigation with ISA-TAB data." unless is_isatab? 
           prepare_upload
           extract_zip if params[:file][:type] == 'application/zip'
           kill_isa2rdf
