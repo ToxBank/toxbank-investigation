@@ -10,11 +10,7 @@ module OpenTox
         response = OpenTox::Backend::FourStore.query "SELECT ?o WHERE {<#{investigation_uri}> <#{RDF::TB}hasInvType> ?o}", "application/json"
         result = JSON.parse(response)
         type = result["results"]["bindings"].map {|n|  "#{n["o"]["value"]}"}
-        if type.blank?
-          return true
-        else
-          return false
-        end
+        type.blank? ? (return true) : (return false)
       end
       
       # kill isa2rdf pids if delete or put
