@@ -1,10 +1,9 @@
 require 'opentox-server'
 require_relative "tbaccount.rb"
 require_relative "util.rb"
-#require_relative "helper.rb"
-require_relative "helper_methods.rb"
+require_relative "helper.rb"
 require_relative "helper_isatab.rb"
-require_relative "helper_data.rb"
+require_relative "helper_unformatted.rb"
 # ToxBank implementation based on OpenTox API and OpenTox ruby gems
 
 module OpenTox

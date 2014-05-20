@@ -52,9 +52,7 @@ module OpenTox
           end
           link_ftpfiles_by_params
         else
-          Dir["#{tmp}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
-          Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
-          FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
+          remove_symlinks
         end
 
         #$logger.debug metadata
@@ -70,9 +68,7 @@ module OpenTox
         ftpfiles = get_ftpfiles
         paramfiles = params[:ftpFile].gsub(/,\s/, ",").split(",")
         # remove existing from dir
-        Dir["#{tmp}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
-        Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
-        FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
+        remove_symlinks
         paramfiles.each do |file|
           bad_request_error "'#{file}' is missing. Please upload to your ftp directory first." if !ftpfiles.include?(file)
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"` unless File.exists?("#{dir}/#{file}")
