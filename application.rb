@@ -105,13 +105,13 @@ module OpenTox
             bad_request_error "Parameter 'ftpData' not expected for type '#{params[:type]}'." if params[:ftpFile]
             param_types.delete("ftpFile")
             param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
-            param_uris.each{|key, value| value.gsub(/\s+/, "").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+            param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
             OpenTox::Authorization.create_pi_policy(investigation_uri)
             prepare_upload
             params2rdf
           when "ftpData"
             param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
-            param_uris.each{|key, value| value.gsub(/\s+/, "").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+            param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
             OpenTox::Authorization.create_pi_policy(investigation_uri)
             prepare_upload
             link_ftpfiles_by_params
@@ -125,7 +125,7 @@ module OpenTox
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
           param_types.delete("ftpFile")
           param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
-          param_uris.each{|key, value| value.gsub(/\s+/, "").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+          param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
           bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
           OpenTox::Authorization.create_pi_policy(investigation_uri)
           prepare_upload

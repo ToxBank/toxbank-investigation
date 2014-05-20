@@ -30,23 +30,23 @@ module OpenTox
           :pi => get_pi,
         }
         # if several params has different values
-        owningPro = params[:owningPro].gsub(/\s+/, "").split(",")
+        owningPro = params[:owningPro].gsub(/,\s/, "").split(",")
         owningPro.each do |project|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project}> .\n"
         end
-        authors = params[:authors].gsub(/\s+/, "").split(",")
+        authors = params[:authors].gsub(/,\s/, ",").split(",")
         authors.each do |author|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasAuthor> <#{author}> .\n"
         end
-        keywords = params[:keywords].gsub(/\s+/, "").split(",")
+        keywords = params[:keywords].gsub(/,\s/, ",").split(",")
         keywords.each do |keyword|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword}> .\n"
         end
         if params[:file]
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{params[:file][:filename]}> .\n"
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{params[:file][:filename].gsub(/\s/, "%20")}> .\n"
         end
         if params[:ftpFile]
-          ftpData = params[:ftpFile].gsub(/\s+/, "").split(",")
+          ftpData = params[:ftpFile].gsub(/\,\s/, ",").gsub(/\s/, "%20").split(",")
           ftpData.each do |ftp|
             metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{ftp}> .\n"
           end
@@ -68,7 +68,7 @@ module OpenTox
       #link ftp files by params
       def link_ftpfiles_by_params
         ftpfiles = get_ftpfiles
-        paramfiles = params[:ftpFile].gsub(/\s+/, "").split(",")
+        paramfiles = params[:ftpFile].gsub(/,\s/, ",").split(",")
         # remove existing from dir
         Dir["#{tmp}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
