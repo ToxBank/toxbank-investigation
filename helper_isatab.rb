@@ -117,6 +117,8 @@ module OpenTox
         ftpfiles = get_ftpfiles
         datafiles = get_datafiles
         return "" if ftpfiles.empty? || datafiles.empty?
+        Dir["#{tmp}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
         datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
         tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
