@@ -1,0 +1,7 @@
+<%{investigation_uri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.opentox.org/api/1.2#Investigation> .
+<%{investigation_uri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://onto.toxbank.net/isa/Investigation> .
+<%{investigation_uri}> <http://onto.toxbank.net/api/hasInvType> "%{type}"^^<http://www.w3.org/2001/XMLSchema#string> .
+<%{investigation_uri}> <http://purl.org/dc/terms/title> "%{title}"^^<http://www.w3.org/2001/XMLSchema#string> .
+<%{investigation_uri}> <http://purl.org/dc/terms/abstract> "%{abstract}"^^<http://www.w3.org/2001/XMLSchema#string> .
+<%{investigation_uri}> <http://onto.toxbank.net/api/hasOrganisation> <%{organisation}> .
+<%{investigation_uri}> <http://onto.toxbank.net/api/hasOwner> <%{pi}> .
