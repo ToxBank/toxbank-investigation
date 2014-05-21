@@ -261,14 +261,16 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_protocol_uri_associated_with_a_Study API: Get a protocol uri associated with a
     get '/investigation/:id/protocol' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol.
-                                  ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>.
-                                  ?protocol <#{RDF.label}> ?label. }
+      FourStore.query "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                       PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                       CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol.
+                                  ?protocol rdf:type <#{RDF::TB}Protocol>.
+                                  ?protocol rdfs:label ?label. }
                        FROM <#{investigation_uri}>
                        WHERE {<#{investigation_uri}> <#{RDF::ISA}hasStudy> ?study.
                        ?study <#{RDF::ISA}hasProtocol> ?protocol.
-                       OPTIONAL { ?protocol <http://www.w3.org/2000/01/rdf-schema#label> ?label.}
-                       ?protocol <#{RDF.type}> <#{RDF::TB}Protocol>. }", @accept
+                       OPTIONAL { ?protocol rdfs:label ?label.}
+                       OPTIONAL { ?protocol rdf:type <#{RDF::TB}Protocol>.} }", @accept
     end
 
     # @method get_subtaskuri
