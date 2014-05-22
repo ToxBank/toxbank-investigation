@@ -89,6 +89,7 @@ module OpenTox
     get '/investigation/ftpfiles/?' do
        bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/json")
        filehash = get_ftpfiles
+       user = Authorization.get_user
        case @accept.to_s
         when "application/json"
           return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|bn,fn| {"filename"=>{"type"=>"string", "value"=> fn.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> bn}}}}} )

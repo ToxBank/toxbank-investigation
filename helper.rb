@@ -202,7 +202,7 @@ module OpenTox
       end
 
       # get an array of files in ftp folder of a user
-      def get_ftpfiles type=nil
+      def get_ftpfiles
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
         files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
