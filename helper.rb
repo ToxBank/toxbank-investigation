@@ -143,7 +143,7 @@ module OpenTox
         return true if uri == $investigation[:uri]
         return true if OpenTox::Authorization.get_user == "protocol_service"
         return true if OpenTox::Authorization.uri_owner?(curi)
-        if (request.env['REQUEST_URI'] =~ /investigation\/sparql/ ) # give permission to user groups defined in policies
+        if (request.env['REQUEST_URI'] =~ /investigation\/sparql/ || request.env['REQUEST_URI'] =~ /investigation\/ftpfiles/) # give permission to user groups defined in policies
           return true if OpenTox::Authorization.authorized?("#{$investigation[:uri]}", "GET")
         end
         if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
@@ -211,7 +211,7 @@ module OpenTox
         when "application/json"
           return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|bn,fn| {"filename"=>{"type"=>"string", "value"=> fn.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> bn}}}}} )
         when "text/uri-list"
-          return filehash.collect{|bn,fn| fn.gsub("/home/ftpusers/#{user}/","")}
+          return filehash.each{|bn,fn| fn.gsub("/home/ftpusers/#{user}/","")}
         else
           return filehash
         end
