@@ -88,7 +88,15 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_uploaded_files API: Get a list of investigations
     get '/investigation/ftpfiles/?' do
        bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/json")
-       get_ftpfiles @accept
+       filehash = get_ftpfiles
+       case @accept.to_s
+        when "application/json"
+          return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|bn,fn| {"filename"=>{"type"=>"string", "value"=> fn.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> bn}}}}} )
+        when "text/uri-list"
+          return filehash.collect{|bn,fn| "#{fn.gsub("/home/ftpusers/#{user}/","")}\n"}
+        else
+          return filehash
+        end
     end
 
     # @method post_investigation
