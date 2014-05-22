@@ -211,7 +211,7 @@ module OpenTox
         when "application/json"
           return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|bn,fn| {"filename"=>{"type"=>"string", "value"=> fn.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> bn}}}}} )
         when "text/uri-list"
-          return filehash.each{|bn,fn| fn.gsub("/home/ftpusers/#{user}/","")}
+          return filehash.collect{|bn,fn| "#{fn.gsub("/home/ftpusers/#{user}/","")}\n"}
         else
           return filehash
         end
