@@ -278,7 +278,7 @@ module OpenTox
       FourStore.query "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                        CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol.
-                                  ?protocol rdf:type <#{RDF::TB}Protocol>.
+                                  ?protocol rdf:type ?type.
                                   ?protocol rdfs:label ?label. }
                        FROM <#{investigation_uri}>
                        WHERE {<#{investigation_uri}> <#{RDF::ISA}hasStudy> ?study.
