@@ -77,6 +77,20 @@ module OpenTox
       end
     end
 
+    # @method get_ftpfiles
+    # @overload get "/investigation/ftpfiles/?"
+    # List all uploaded FTP-files of a user.
+    # @param header [hash]
+    #   * Accept [String] <text/uri-list, application/rdf+xml, application/json>
+    #   * subjectid [String] authorization token
+    # @return [String] text/uri-list, application/json List of files.
+    # @raise [BadRequestError] if wrong mime-type
+    # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_uploaded_files API: Get a list of investigations
+    get '/investigation/ftpfiles/?' do
+       bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/json")
+       get_ftpfiles @accept
+    end
+
     # @method post_investigation
     # @overload post "/investigation/?"
     # Create a new investigation from ISA-TAB files.

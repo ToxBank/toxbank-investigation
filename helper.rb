@@ -202,11 +202,19 @@ module OpenTox
       end
 
       # get an array of files in ftp folder of a user
-      def get_ftpfiles
+      def get_ftpfiles type=nil
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
         files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
-        Hash[files.collect { |f| [File.basename(f), f] }]
+        filehash = Hash[files.collect { |f| [File.basename(f), f] }]
+        case type
+        when "application/json"
+          return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|bn,fn| {"filename"=>{"type"=>"string", "value"=> fn.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> bn}}}}} )
+        when "text/uri-list"
+          return filehash.collect{|bn,fn| fn.gsub("/home/ftpusers/#{user}/","")}
+        else
+          return filehash
+        end
         #Dir.entries("/home/ftpusers/#{Authorization.get_user}").reject{|entry| entry =~ /^\.{1,2}$/}
       end
 
