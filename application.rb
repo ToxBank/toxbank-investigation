@@ -288,12 +288,14 @@ module OpenTox
                        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                        CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol.
                                   ?protocol rdf:type ?type.
-                                  ?protocol rdfs:label ?label. }
+                                  ?protocol rdfs:label ?label.
+                       }
                        FROM <#{investigation_uri}>
                        WHERE {<#{investigation_uri}> <#{RDF::ISA}hasStudy> ?study.
                        ?study <#{RDF::ISA}hasProtocol> ?protocol.
+                       OPTIONAL { ?protocol rdf:type ?type.}
                        OPTIONAL { ?protocol rdfs:label ?label.}
-                       OPTIONAL { ?protocol rdf:type <#{RDF::TB}Protocol>.} }", @accept
+                       }", @accept
     end
 
     # @method get_subtaskuri
