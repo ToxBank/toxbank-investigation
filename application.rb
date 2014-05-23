@@ -286,14 +286,14 @@ module OpenTox
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
       FourStore.query "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                       CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol.
-                                  ?protocol rdf:type ?type.
+                       CONSTRUCT {
+                                  ?protocol a ?type.
                                   ?protocol rdfs:label ?label.
                        }
                        FROM <#{investigation_uri}>
                        WHERE {<#{investigation_uri}> <#{RDF::ISA}hasStudy> ?study.
                        ?study <#{RDF::ISA}hasProtocol> ?protocol.
-                       OPTIONAL { ?protocol rdf:type ?type.}
+                       ?protocol a ?type.
                        OPTIONAL { ?protocol rdfs:label ?label.}
                        }", @accept
     end
