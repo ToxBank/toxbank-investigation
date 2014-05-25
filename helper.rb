@@ -206,7 +206,7 @@ module OpenTox
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
         files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
-        Hash[files.collect { |f| [f.gsub("/home/ftpusers/#{user}",""), File.basename(f)] }]
+        Hash[files.collect { |f| [f.gsub("/home/ftpusers/#{user}/",""), File.basename(f)] }]
       end
 
       # remove existing symlinks
