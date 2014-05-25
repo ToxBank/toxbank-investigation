@@ -197,7 +197,7 @@ module OpenTox
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
         @datahash = {}
-        result["results"]["bindings"].each{ |f| @datahash[File.basename(f["file"]["value"])].nil? ? @datahash[f["file"]["value"].gsub("#{$ftp[:uri]}","")] = ["#{f["datanode"]["value"]}"] : @datahash[(f["file"]["value"].gsub("#{$ftp[:uri]}","")] << "#{f["datanode"]["value"]}"}
+        result["results"]["bindings"].each{ |f| @datahash[f["file"]["value"].gsub("#{$ftp[:uri]}","")] = ["#{f["datanode"]["value"]}"] }
         return files.flatten
       end
 
