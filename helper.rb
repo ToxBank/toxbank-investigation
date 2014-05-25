@@ -197,7 +197,7 @@ module OpenTox
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
         @datahash = {}
-        result["results"]["bindings"].each{ |f| @datahash[File.basename(f["file"]["value"])].nil? ? @datahash[File.basename(f["file"]["value"])] = ["#{f["datanode"]["value"]}"] : @datahash[File.basename(f["file"]["value"])] << "#{f["datanode"]["value"]}"}
+        result["results"]["bindings"].each{ |f| @datahash[File.basename(f["file"]["value"])].nil? ? @datahash[f["file"]["value"].gsub("#{$ftp[:uri]}","")] = ["#{f["datanode"]["value"]}"] : @datahash[(f["file"]["value"].gsub("#{$ftp[:uri]}","")] << "#{f["datanode"]["value"]}"}
         return files.flatten
       end
 
@@ -206,7 +206,7 @@ module OpenTox
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
         files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
-        Hash[files.collect { |f| [File.basename(f), f] }]
+        Hash[files.collect { |f| [f, File.basename(f)] }]
       end
 
       # remove existing symlinks

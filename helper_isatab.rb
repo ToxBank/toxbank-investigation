@@ -121,10 +121,10 @@ module OpenTox
         datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
         tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
-          `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
+          `ln -s "#{ftpfiles[file]}" "#{dir}/#{file.gsub("/","_")}"`
           @datahash[file].each do |data_node|
-            OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
-            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}> ."
+            OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file.gsub("/","_")}>}}"
+            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file.gsub("/","_")}> ."
             File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
           end
         end

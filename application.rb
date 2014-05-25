@@ -81,7 +81,7 @@ module OpenTox
     # @overload get "/investigation/ftpfiles/?"
     # List all uploaded FTP-files of a user.
     # @param header [hash]
-    #   * Accept [String] <text/uri-list, application/rdf+xml, application/json>
+    #   * Accept [String] <text/uri-list, application/json>
     #   * subjectid [String] authorization token
     # @return [String] text/uri-list, application/json List of files.
     # @raise [BadRequestError] if wrong mime-type
@@ -92,9 +92,9 @@ module OpenTox
        user = Authorization.get_user
        case @accept.to_s
         when "application/json"
-          return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|bn,fn| {"filename"=>{"type"=>"string", "value"=> fn.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> bn}}}}} )
+          return JSON.pretty_generate( {"head"=>{"vars" => ["filename","basename"]},"results"=> {"bindings"=>filehash.collect{|fullname, basename| {"filename"=>{"type"=>"string", "value"=> fullname.gsub("/home/ftpusers/#{user}/","")}, "basename"=>{"type"=>"string", "value"=> basename}}}}} )
         when "text/uri-list"
-          return filehash.collect{|bn,fn| "#{fn.gsub("/home/ftpusers/#{user}/","")}\n"}
+          return filehash.collect{|fullname,basename| "#{fullname.gsub("/home/ftpusers/#{user}/","")}\n"}
         else
           return filehash
         end
