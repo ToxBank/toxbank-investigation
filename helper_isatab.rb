@@ -118,8 +118,8 @@ module OpenTox
         datafiles = get_datafiles
         return "" if ftpfiles.empty? || datafiles.empty?
         remove_symlinks
-        datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
-        tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
+        datafiles = datafiles.collect { |f| [f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }
+        tolink = (ftpfiles.keys & ( datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
           `ln -s "#{ftpfiles[file]}" "#{dir}/#{file.gsub("/","_")}"`
           @datahash[file].each do |data_node|

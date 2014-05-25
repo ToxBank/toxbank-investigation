@@ -197,7 +197,7 @@ module OpenTox
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
         @datahash = {}
-        result["results"]["bindings"].each{ |f| @datahash[f["file"]["value"].gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] = ["#{f["datanode"]["value"]}"] }
+        result["results"]["bindings"].each{ |f| @datahash[(f["file"]["value"]).gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] = ["#{f["datanode"]["value"]}"] }
         return files.flatten
       end
 
@@ -206,7 +206,7 @@ module OpenTox
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
         files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
-        Hash[files.collect { |f| [f, File.basename(f)] }]
+        Hash[files.collect { |f| [f.gsub("/home/ftpusers/#{user}",""), File.basename(f)] }]
       end
 
       # remove existing symlinks
