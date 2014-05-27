@@ -71,13 +71,13 @@ module OpenTox
         remove_symlinks
         paramfiles.each do |file|
           bad_request_error "'#{file}' is missing. Please upload to your ftp directory first." if !ftpfiles.include?(file)
-          `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"` unless File.exists?("#{dir}/#{file}")
-          ftpfilesave = "<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}> ."
+          `ln -s "/home/ftpusers/#{Authorization.get_user}/#{file}" "#{dir}/#{file.gsub("/","_")}"` unless File.exists?("#{dir}/#{file}") 
+          ftpfilesave = "<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file.gsub("/","_")}> ."
           File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
           # update backend
           OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
           DELETE { <#{investigation_uri}> <#{RDF::ISA.hasDownload}> ?o} WHERE {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> ?o};
-          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
+          INSERT DATA { GRAPH <#{investigation_uri}> {<#{investigation_uri}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file.gsub("/","_")}>}}"
         end
       end
 
