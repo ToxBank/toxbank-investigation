@@ -33,7 +33,7 @@ module OpenTox
 
       # extract zip upload to tmp subdirectory of investigation
       def extract_zip
-        `unzip -o '#{File.join(tmp,params[:file][:filename])}' -d #{tmp}`
+        `unzip -o '#{File.join(tmp,params[:file][:filename])}'  -x '__MACOSX/*' -d #{tmp}`
         Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
           `mv #{d}/* #{tmp}`
           `rmdir #{d}`
@@ -118,13 +118,13 @@ module OpenTox
         datafiles = get_datafiles
         return "" if ftpfiles.empty? || datafiles.empty?
         remove_symlinks
-        datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
-        tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
+        datafiles = datafiles.collect { |f| f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"") }
+        tolink = (ftpfiles.keys & ( datafiles - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
         tolink.each do |file|
-          `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
+          `ln -s "/home/ftpusers/#{Authorization.get_user}/#{file}" "#{dir}/#{file.gsub("/","_")}"`
           @datahash[file].each do |data_node|
-            OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
-            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}> ."
+            OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file.gsub("/","_")}>}}"
+            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file.gsub("/","_")}> ."
             File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
           end
         end
