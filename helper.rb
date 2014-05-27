@@ -66,7 +66,7 @@ module OpenTox
 
       # extract zip upload to tmp subdirectory of investigation
       def extract_zip
-        `unzip -o '#{File.join(tmp,params[:file][:filename])}' -d #{tmp}`
+        `unzip -o '#{File.join(tmp,params[:file][:filename])}' -x '__MACOSX/*' -d #{tmp}`
         Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
           `mv #{d}/* #{tmp}`
           `rmdir #{d}`
