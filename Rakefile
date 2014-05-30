@@ -36,11 +36,14 @@ namespace :isa2rdf do
         # reparse
         puts uri
         puts dir
-        `java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{uri} -a #{dir} -o #{nt} -t #{$user_service[:uri]} &`
-        id = `grep "#{uri}/I[0-9]" #{File.join nt}|cut -f1 -d ' '`.strip
-        `sed -i 's;#{id.split.last};<#{uri}>;g' #{File.join nt}`
-        `echo "<#{uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join nt}`
-        puts "Done."
+        text = File.read(nt)
+        unless text.include?("hasInvType")
+          `java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{uri} -a #{dir} -o #{nt} -t #{$user_service[:uri]} &`
+          id = `grep "#{uri}/I[0-9]" #{File.join nt}|cut -f1 -d ' '`.strip
+          `sed -i 's;#{id.split.last};<#{uri}>;g' #{File.join nt}`
+          `echo "<#{uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join nt}`
+          puts "Done."
+        end
       else
         broken_conversions << "#{inv}\n"
       end
