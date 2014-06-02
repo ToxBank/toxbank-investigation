@@ -138,54 +138,75 @@ namespace :fourstore do
             puts "Done.\n"
           end
         rescue
-          import_errors << uri
+          puts "error"
+          import_errors << "#{inv}\n"
           next
         end
       else
-        broken_investigations << "#{File.join("investigation", inv)}\n"
+        puts "broken"
+        broken_investigations << "#{inv}\n"
       end
     
     end
 
     if import_errors != ""
-      puts "\nList of investigations with import errors.\n"
+      puts "\nList of investigations with import errors:"
+      puts "------------------------------------------\n"
       puts import_errors
       File.open('import_errors', 'w'){ |file| file.write(import_errors) }
     end
-=begin 
-    # remove begin;end block for auto-remove invalid 
-    if import_errors != ""
-      Dir.chdir('investigation') do
-        import_errors.split("\n").each do |errors|
-          inv = errors.split("/").last
-          # remove from backend
-          OpenTox::Backend::FourStore.delete $investigation[:uri] + '/' + inv
-          # remove locally
-          `rm -rf #{inv};git commit -am 'removed #{inv}'`
-        end
-      end
-    end
-=end
-
+    puts "\n+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n"
     if broken_investigations != ""
-      puts "\nList of broken investigations, stored in 'broken_investigations' file.\n"
+      puts "\nList of broken investigations:"
+      puts "------------------------------------------\n"
       puts broken_investigations
       File.open('broken_investigations', 'w'){ |file| file.write(broken_investigations) }
+      puts "\n"
     end
 
-=begin 
-    # remove begin;end block for auto-remove invalid
-    if broken_investigations != ""
-      Dir.chdir('investigation') do
-        broken_investigations.split("\n").each do |broken|
-          inv = broken.split("/").last
-          # remove from backend
-          OpenTox::Backend::FourStore.delete $investigation[:uri] + '/' + inv
-          # remove locally
-          `cd investigation;rm -rf #{inv};git commit -am 'removed #{inv}';cd -`
-        end
-      end
-    end
-=end
   end
+end
+namespace :remove do
+  
+  SERVICE = "investigation" # for service config file
+  require File.join '../opentox-client/lib/opentox-client.rb' # maybe adjust the paths here
+  require File.join '../opentox-server/lib/opentox-server.rb'
+
+
+  desc "Remove investigations without nt file."
+  task :broken do
+    Dir.chdir('investigation') 
+    IO.readlines(File.join "../broken_investigations").each do |inv|
+      uri = $investigation[:uri] + '/' + inv
+      # remove from backend
+      OpenTox::Backend::FourStore.delete uri 
+      puts "#{uri} removed from backend"
+      # remove from search index service
+      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape("#{uri}")}",{},{:subjectid => OpenTox::RestClientWrapper.subjectid}
+      puts "#{uri} removed from search index service."
+      # remove locally
+      `rm -rf #{inv}`
+      `git commit -am 'removed broken #{inv}'`
+      puts "#{inv} removed locally."
+    end
+  end
+
+  desc "Remove investigations throwing errors while import to backend."
+  task :errors do
+    Dir.chdir('investigation') 
+    IO.readlines(File.join "../import_errors").each do |inv|
+      uri = $investigation[:uri] + '/' + inv
+      # remove from backend
+      OpenTox::Backend::FourStore.delete uri 
+      puts "#{uri} removed from backend"
+      # remove from search index service
+      OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape("#{uri}")}",{},{:subjectid => OpenTox::RestClientWrapper.subjectid}
+      puts "#{uri} removed from search index service."
+      # remove locally
+      `rm -rf #{inv}`
+      `git commit -am 'removed imoert error #{inv}'`
+      puts "#{inv} removed locally."
+    end
+  end
+
 end
