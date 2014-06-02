@@ -25,7 +25,7 @@ module OpenTox
         metadata = File.read(File.join(tmp,nt)) % {:investigation_uri => investigation_uri,
           :type => params[:type],
           :title => params[:title].strip,
-          :abstract => params[:abstract].strip,
+          :abstract => params[:abstract].strip.gsub(/\r\n/,"\\n"), # catch ^M character
           :organisation => params[:owningOrg],
           :pi => get_pi
         }
