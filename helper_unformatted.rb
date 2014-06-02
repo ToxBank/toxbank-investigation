@@ -24,31 +24,38 @@ module OpenTox
         FileUtils.cp(File.join(File.dirname(File.expand_path __FILE__), "template", "metadata.nt"), File.join(tmp,nt))
         metadata = File.read(File.join(tmp,nt)) % {:investigation_uri => investigation_uri,
           :type => params[:type],
-          :title => params[:title].gsub(/\t|\n|\s/, " "),
-          :abstract => params[:abstract].gsub(/\t|\n|\s/, " "),
+          :title => params[:title].strip,
+          :abstract => params[:abstract].strip,
           :organisation => params[:owningOrg],
-          :pi => get_pi,
+          :pi => get_pi
         }
+        if request.env['REQUEST_METHOD'] =~ /POST/
+          metadata << "<#{investigation_uri}> <http://purl.org/dc/terms/issued> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\" .\n"
+        else
+          issued = ""
+          IO.readlines(File.join(dir,nt)).each{|l| issued << l if l =~ /issued/}
+          metadata << issued
+        end
         # if several params has different values
-        owningPro = params[:owningPro].gsub(/,\s/, "").split(",")
+        owningPro = params[:owningPro].split(",")
         owningPro.each do |project|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project}> .\n"
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project.strip}> .\n"
         end
-        authors = params[:authors].gsub(/,\s/, ",").split(",")
+        authors = params[:authors].split(",")
         authors.each do |author|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasAuthor> <#{author}> .\n"
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasAuthor> <#{author.strip}> .\n"
         end
-        keywords = params[:keywords].gsub(/,\s/, ",").split(",")
+        keywords = params[:keywords].split(",")
         keywords.each do |keyword|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword}> .\n"
+          metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword.strip}> .\n"
         end
         if params[:file]
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{params[:file][:filename].gsub(/\s/, "%20")}> .\n"
         end
         if params[:ftpFile]
-          ftpData = params[:ftpFile].gsub(/\,\s/, ",").gsub(/\s/, "%20").split(",")
+          ftpData = params[:ftpFile].split(",")
           ftpData.each do |ftp|
-            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{ftp}> .\n"
+            metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{ftp.strip.gsub(/\s/, "%20")}> .\n"
           end
           link_ftpfiles_by_params
         else
