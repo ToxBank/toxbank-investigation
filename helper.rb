@@ -15,6 +15,7 @@ module OpenTox
         params[:id] ? d = "./investigation/#{params[:id]}/*" : d = "./investigation/*"
         uris = Dir[d].collect{|f| to(f.sub(/\.\//,'')) }
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
+        uris.collect!{|u| u.sub(/(\/isatab\/)/,'/files/')} if params[:id] && File.read(File.join(dir,nt)).match("hasInvType")
         uris.delete_if{|u| u.match(/_policies$/)}
         uris.delete_if{|u| u.match(/log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
@@ -41,6 +42,7 @@ module OpenTox
       def nt
         "#{params[:id]}.nt"
       end
+      
       # @!endgroup
       # @return [Integer] timestamp of a time string
       def get_timestamp timestring
@@ -51,100 +53,6 @@ module OpenTox
       def delete_investigation_policy
         if RestClientWrapper.subjectid and !File.exists?(dir) and investigation_uri
           res = OpenTox::Authorization.delete_policies_from_uri(investigation_uri)
-        end
-      end
-
-      # copy investigation files in tmp subfolder
-      def prepare_upload
-        locked_error "Processing investigation #{params[:id]}. Please try again later." if File.exists? tmp
-        bad_request_error "Please submit data as multipart/form-data" unless request.form_data?
-        # move existing ISA-TAB files to tmp
-        FileUtils.mkdir_p tmp
-        FileUtils.cp Dir[File.join(dir,"*.txt")], tmp
-        FileUtils.cp params[:file][:tempfile], File.join(tmp, params[:file][:filename])
-      end
-
-      # extract zip upload to tmp subdirectory of investigation
-      def extract_zip
-        `unzip -o '#{File.join(tmp,params[:file][:filename])}' -x '__MACOSX/*' -d #{tmp}`
-        Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
-          `mv #{d}/* #{tmp}`
-          `rmdir #{d}`
-        end
-        # zip original files for download
-        `zip -x #{tmp}/*.zip -j #{File.join(tmp, "investigation_#{params[:id]}.zip")} #{tmp}/*`
-        replace_pi
-      end
-=begin
-      # process Excel file
-      def extract_xls
-        # use Excelx.new instead of Excel.new if your file is a .xlsx
-        # @todo delete dir if task catches error, e.g. password locked, pass error to block
-        if params[:file][:filename].match(/\.xls$|\.xlsx$/)
-          xls = Excel.new(File.join(tmp, params[:file][:filename]))  if params[:file][:filename].match(/.xls$/)
-          xls = Excelx.new(File.join(tmp, params[:file][:filename])) if params[:file][:filename].match(/.xlsx$/)
-          xls.sheets.each_with_index do |sh, idx|
-            name = sh.to_s
-            xls.default_sheet = xls.sheets[idx]
-            1.upto(xls.last_row) do |ro|
-              1.upto(xls.last_column) do |co|
-                unless (co == xls.last_column)
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\t"}
-                else
-                  File.open(File.join(tmp, name + ".txt"), "a+"){|f| f.print "#{xls.cell(ro, co)}\n"}
-                end
-              end
-            end
-          end
-        else
-          FileUtils.remove_entry dir
-          delete_investigation_policy
-          bad_request_error "Could not parse spreadsheet #{params[:file][:filename]}"
-        end
-      end
-=end
-      # ISA-TAB to RDF conversion.
-      # Preprocess and parse isa-tab files with java isa2rdf
-      # @see https://github.com/ToxBank/isa2rdf
-      def isa2rdf
-        # @note isa2rdf returns correct exit code but error in task
-        # @todo delete dir if task catches error, pass error to block
-        `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
-        if !File.exists?(File.join tmp, nt)
-          out = IO.read(File.join tmp, 'log') 
-          FileUtils.remove_entry dir
-          delete_investigation_policy
-          bad_request_error "Could not parse isatab file in '#{params[:file][:filename]}'. Message is:\n #{out}"
-        else
-          `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
-          investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
-          `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
-          # `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
-          `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
-          #FileUtils.rm Dir[File.join(tmp,"*.zip")]
-          FileUtils.cp Dir[File.join(tmp,"*")], dir
-          # this line moved to l.74
-          #`zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
-          OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          # get extra datasets
-          extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
-          $logger.debug "extrafiles: #{extrafiles}"
-          # split extra datasets
-          unless extrafiles.nil?
-            extrafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
-            newfiles = Dir["#{dir}/*.nt_*"]
-            $logger.debug newfiles
-            # append datasets to investigation graph
-            newfiles.each do |dataset|
-              OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
-              sleep 1
-              set_modified
-              File.delete(dataset)
-            end
-          end
-          FileUtils.remove_entry tmp
-          link_ftpfiles
-          investigation_uri
         end
       end
 
@@ -235,7 +143,7 @@ module OpenTox
         return true if uri == $investigation[:uri]
         return true if OpenTox::Authorization.get_user == "protocol_service"
         return true if OpenTox::Authorization.uri_owner?(curi)
-        if (request.env['REQUEST_URI'] =~ /investigation\/sparql/ ) # give permission to user groups defined in policies
+        if (request.env['REQUEST_URI'] =~ /investigation\/sparql/ || request.env['REQUEST_URI'] =~ /investigation\/ftpfiles/) # give permission to user groups defined in policies
           return true if OpenTox::Authorization.authorized?("#{$investigation[:uri]}", "GET")
         end
         if (request.env['REQUEST_URI'] =~ /metadata/ ) || (request.env['REQUEST_URI'] =~ /protocol/ )
@@ -289,7 +197,7 @@ module OpenTox
         files = result["results"]["bindings"].map{|n| "#{n["file"]["value"]}"}
         datanodes = result["results"]["bindings"].map{|n| "#{n["datanode"]["value"]}"}
         @datahash = {}
-        result["results"]["bindings"].each{ |f| @datahash[File.basename(f["file"]["value"])].nil? ? @datahash[File.basename(f["file"]["value"])] = ["#{f["datanode"]["value"]}"] : @datahash[File.basename(f["file"]["value"])] << "#{f["datanode"]["value"]}"}
+        result["results"]["bindings"].each{ |f| @datahash[(f["file"]["value"]).gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] = ["#{f["datanode"]["value"]}"] }
         return files.flatten
       end
 
@@ -298,27 +206,16 @@ module OpenTox
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
         files = Dir.chdir("/home/ftpusers/#{user}") { Dir.glob("**/*").map{|path| File.expand_path(path) } }.reject{ |p| File.directory? p }
-        Hash[files.collect { |f| [File.basename(f), f] }]
-        #Dir.entries("/home/ftpusers/#{Authorization.get_user}").reject{|entry| entry =~ /^\.{1,2}$/}
+        Hash[files.collect { |f| [f.gsub("/home/ftpusers/#{user}/",""), File.basename(f)] }]
       end
 
-      # link files uploaded to FTP
-      def link_ftpfiles
-        ftpfiles = get_ftpfiles
-        datafiles = get_datafiles
-        return "" if ftpfiles.empty? || datafiles.empty?
-        datafiles = Hash[datafiles.collect { |f| [File.basename(f), f.gsub(/(ftp:\/\/|)#{URI($investigation[:uri]).host}\//,"")] }]
-        tolink = (ftpfiles.keys & ( datafiles.keys - Dir.entries(dir).reject{|entry| entry =~ /^\.{1,2}$/}))
-        tolink.each do |file|
-          `ln -s "#{ftpfiles[file]}" "#{dir}/#{file}"`
-          @datahash[file].each do |data_node|
-            OpenTox::Backend::FourStore.update "INSERT DATA { GRAPH <#{investigation_uri}> {<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}>}}"
-            ftpfilesave = "<#{data_node}> <#{RDF::ISA.hasDownload}> <#{investigation_uri}/files/#{file}> ."
-            File.open(File.join(dir, "ftpfiles.nt"), 'a') {|f| f.write("#{ftpfilesave}\n") }
-          end
-        end
-        return tolink
+      # remove existing symlinks
+      def remove_symlinks
+        Dir["#{tmp}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
+        FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
       end
+
       # @!endgroup
     end
   end
