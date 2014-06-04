@@ -5,7 +5,7 @@ namespace :isa2rdf do
     # Author: Denis Gebele
     # Description: reparse isatabs with a new isa2rdf version.
     # Date: 07/Mar/2014
- 
+
     SERVICE = "investigation" # for service config file
     require File.join '../opentox-client/lib/opentox-client.rb' # maybe adjust the paths here
     require File.join '../opentox-server/lib/opentox-server.rb'
@@ -17,7 +17,7 @@ namespace :isa2rdf do
       end
     end
     puts investigations
-    
+
     broken_conversions = ""
     Dir.chdir('java')
     investigations.each_with_index do |inv, idx|
@@ -65,11 +65,11 @@ namespace :fourstore do
     # Author: Denis Gebele
     # Description: ruby script to restore a destroyed 4store backend from locally stored toxbank-investigation files
     # Date: 07/Nov/2013
- 
+
     SERVICE = "investigation" # for service config file
     require File.join '../opentox-client/lib/opentox-client.rb' # maybe adjust the paths here
     require File.join '../opentox-server/lib/opentox-server.rb'
-    
+
     # collect the investigations
     investigations = []
     Dir.foreach(File.join File.dirname(File.expand_path __FILE__), "investigation") do |inv|
@@ -77,7 +77,7 @@ namespace :fourstore do
         investigations << inv
       end
     end
-    
+
     # start restore
     puts "\n#{investigations.size} investigations locally stored at the service."
     puts "Start upload to backend at #{$four_store[:uri]}."
@@ -85,7 +85,7 @@ namespace :fourstore do
     import_errors = ""
 
     investigations.each_with_index do |inv, idx|
-      
+
       dir = File.join File.dirname(File.expand_path __FILE__),"investigation",inv
       if File.exist?(File.join("investigation", inv, inv+".nt"))
         puts "\n========================="
@@ -95,13 +95,13 @@ namespace :fourstore do
         begin
           OpenTox::Backend::FourStore.put uri, File.read(nt), "text/plain"
           puts "Done."
-          
+
           # extra files
           extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
           unless extrafiles.nil?
             extrafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
           end
-          
+
           extrafiles = Dir["#{dir}/*.nt_*"]
           unless extrafiles.nil?
             extrafiles.each do |dataset|
@@ -111,17 +111,17 @@ namespace :fourstore do
               puts "Done."
             end
           end
-          
+
           puts "Upload isSummarySearchable flag."
           isSS = File.join("investigation", inv, "isSummarySearchable.nt")
           OpenTox::Backend::FourStore.post uri, File.read(isSS), "text/plain" if File.exist?(isSS)
           puts "Done."
-          
+
           puts "Upload isPublished flag."
           isP = File.join("investigation", inv, "isPublished.nt")
           OpenTox::Backend::FourStore.post uri, File.read(isP), "text/plain" if File.exist?(isP)
           puts "Done."
-      
+
           puts "Upload ftpfiles."
           ftpfiles = File.join("investigation", inv, "ftpfiles.nt")
           OpenTox::Backend::FourStore.post uri, File.read(ftpfiles), "text/plain" if File.exist?(ftpfiles)
@@ -146,7 +146,7 @@ namespace :fourstore do
         puts "broken"
         broken_investigations << "#{inv}\n"
       end
-    
+
     end
 
     if import_errors != ""
@@ -167,7 +167,7 @@ namespace :fourstore do
   end
 end
 namespace :remove do
-  
+
   SERVICE = "investigation" # for service config file
   require File.join '../opentox-client/lib/opentox-client.rb' # maybe adjust the paths here
   require File.join '../opentox-server/lib/opentox-server.rb'
@@ -175,11 +175,11 @@ namespace :remove do
 
   desc "Remove investigations without nt file."
   task :broken do
-    Dir.chdir('investigation') 
+    Dir.chdir('investigation')
     IO.readlines(File.join "../broken_investigations").each do |inv|
       uri = $investigation[:uri] + '/' + inv
       # remove from backend
-      OpenTox::Backend::FourStore.delete uri 
+      OpenTox::Backend::FourStore.delete uri
       puts "#{uri} removed from backend"
       # remove from search index service
       OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape("#{uri}")}",{},{:subjectid => OpenTox::RestClientWrapper.subjectid}
@@ -193,11 +193,11 @@ namespace :remove do
 
   desc "Remove investigations throwing errors while import to backend."
   task :errors do
-    Dir.chdir('investigation') 
+    Dir.chdir('investigation')
     IO.readlines(File.join "../import_errors").each do |inv|
       uri = $investigation[:uri] + '/' + inv
       # remove from backend
-      OpenTox::Backend::FourStore.delete uri 
+      OpenTox::Backend::FourStore.delete uri
       puts "#{uri} removed from backend"
       # remove from search index service
       OpenTox::RestClientWrapper.delete "#{$search_service[:uri]}/search/index/investigation?resourceUri=#{CGI.escape("#{uri}")}",{},{:subjectid => OpenTox::RestClientWrapper.subjectid}
