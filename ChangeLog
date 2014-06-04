@@ -1,4 +1,11 @@
 = ChangeLog
+== v2.1.0 June 2014
+- 05/2014 add upload of unformatted investigation data @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation
+- 05/2014 add SubTaskURI to process large isatab-formatted raw-datafiles => RDF::TB.hasSubTaskURI
+- 05/2014 enhanced Rakefile to restore and repair SPARQL backend
+- 05/2014 add methods to get a list of uploaded ftp files for user owning the token @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_uploaded_FTP_files
+- 04/2014 fix missing downloaduri in template/investigation/files_by_investigation.sparql
+- 03-06/2014 different fixes and improvements
 == v2.0.0 March 2014
 - 02/2014 yard documentation
 - 02/2014 link RubyDoc.info
