@@ -167,7 +167,7 @@ module OpenTox
           #accounturi = OpenTox::RestClientWrapper.get("#{$user_service[:uri]}/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
           accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
           account = OpenTox::TBAccount.new(accounturi)
-          investigation_file = Dir["#{tmp}/i_*vestigation.txt"]
+          investigation_file = Dir["#{tmp}/i_*.txt"]
           investigation_file.each do |inv_file|
             text = File.read(inv_file, :encoding => "BINARY")
             #replace = text.gsub!(/TBU:U\d+/, account.ns_uri)
