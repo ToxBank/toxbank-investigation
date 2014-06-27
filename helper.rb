@@ -231,7 +231,7 @@ module OpenTox
         result.empty? ? (bad_request_error "Nothing received from backend.") : (out = JSON.parse(result))
         getaccess = getaccess_uris
         unless getaccess.empty?
-          out["results"]["bindings"].each{|i| i.delete_if{|x| !getaccess.include?(i["investigation"]["value"])}}
+          out["results"]["bindings"].delete_if{|i| !getaccess.include?(i["investigation"]["value"])}
         else
           out["results"]["bindings"].clear
         end
