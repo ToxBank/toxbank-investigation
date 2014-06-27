@@ -215,6 +215,28 @@ module OpenTox
         Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
       end
+      
+      def getaccess_uris
+        a = Time.now
+        out = []
+        uri_list.split("\n").each do |u|
+          out << u if OpenTox::Authorization.authorized?(u, "GET")
+        end
+        b = Time.now
+        $logger.debug "Duration to get biosearch uris: #{(b-a).round(3)}\n#{out}"
+        out
+      end
+
+      def check_get_access result
+        result.empty? ? (bad_request_error "Nothing received from backend.") : (out = JSON.parse(result))
+        getaccess = getaccess_uris
+        unless getaccess.empty?
+          out["results"]["bindings"].each{|i| i.delete_if{|x| !getaccess.include?(i["investigation"]["value"])}}
+        else
+          out["results"]["bindings"].clear
+        end
+        return JSON.pretty_generate(out)
+      end
 
       # @!endgroup
     end

@@ -210,9 +210,11 @@ module OpenTox
           sparqlstring = File.read(templates[templatename]) % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }", :value_type => value_type, :value => value }
         end
         #$logger.debug sparqlstring
-        FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, @accept
+        check_get_access result
       when /_and_/
-        return FourStore.query File.read(templates[templatename]) , @accept
+        result = FourStore.query File.read(templates[templatename]) , @accept
+        check_get_access result
       when /_by_[a-z]+s$/
         genesparql = templatename.match(/_by_genes$/)
         values = genesparql ? params[:geneIdentifiers] : params[:factorValues]
@@ -229,11 +231,13 @@ module OpenTox
           end
         end
         sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
-        FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, @accept
+        check_get_access result
       when /_by_[a-z_]+(?<!s)$/
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
         sparqlstring = File.read(templates[templatename]) % { :value => params[:value] }
-        FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, @accept
+        check_get_access result
       else
         not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
       end

@@ -13,7 +13,6 @@ SELECT DISTINCT ?inv ?factorname ?value WHERE {
  ?inv rdf:type isa:Investigation.
  ?inv isa:hasStudy ?study.
  ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
- ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
  ?node isa:hasStudy ?study.
  ?node rdf:type isa:MaterialNode.
  ?node isa:hasMaterial ?sample.
