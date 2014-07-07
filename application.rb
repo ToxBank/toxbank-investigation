@@ -187,6 +187,7 @@ module OpenTox
     #   * subjectid [String] authorization token
     # @return [String] sparql-results+xml, json, uri-list, html
     get '/investigation/sparql/:templatename' do
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as 'application/json'." unless (@accept.to_s == "application/json")
       templates = get_templates ""
       templatename = params[:templatename].underscore
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
@@ -210,10 +211,10 @@ module OpenTox
           sparqlstring = File.read(templates[templatename]) % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }", :value_type => value_type, :value => value }
         end
         #$logger.debug sparqlstring
-        result = FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, "application/json"
         check_get_access result
       when /_and_/
-        result = FourStore.query File.read(templates[templatename]) , @accept
+        result = FourStore.query File.read(templates[templatename]) , "application/json"
         check_get_access result
       when /_by_[a-z]+s$/
         genesparql = templatename.match(/_by_genes$/)
@@ -231,12 +232,12 @@ module OpenTox
           end
         end
         sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
-        result = FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, "application/json"
         check_get_access result
       when /_by_[a-z_]+(?<!s)$/
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
         sparqlstring = File.read(templates[templatename]) % { :value => params[:value] }
-        result = FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, "application/json"
         check_get_access result
       else
         not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
