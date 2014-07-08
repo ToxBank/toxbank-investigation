@@ -5,6 +5,22 @@ module OpenTox
 
     module Helpers
       
+      # clean up parameters
+      def clean_params type
+        inv_types = ['noData', 'unformattedData', 'ftpData']
+        param_types = ['owningPro', 'title', 'abstract', 'owningOrg', 'authors', 'keywords', 'ftpFile']
+        param_types.delete("ftpFile") if type == "noftp"
+        param_uris = {:owningPro => params[:owningPro], :owningOrg => params[:owningOrg], :authors => params[:authors], :keywords => params[:keywords]}
+        bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
+        param_types.delete("owningPro")
+        param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
+        bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
+        param_uris.delete_if{|k, v| v.nil? }
+        param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+      end
+      
+      # validates parameters uri
+      # must be a toxbank user service uri
       def validate_params_uri(param, value)
         keys = ["owningOrg", "owningPro", "authors", "keywords"]
         if keys.include?(param.to_s)
@@ -12,6 +28,7 @@ module OpenTox
         end
       end
       
+      # get the user name
       def get_pi
         user = OpenTox::Authorization.get_user
         accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
@@ -37,9 +54,11 @@ module OpenTox
           metadata << issued
         end
         # if several params has different values
-        owningPro = params[:owningPro].split(",")
-        owningPro.each do |project|
-          metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project.strip}> .\n"
+        unless params[:owningPro].nil?
+          owningPro = params[:owningPro].split(",")
+          owningPro.each do |project|
+            metadata << "<#{investigation_uri}> <#{RDF::TB}hasProject> <#{project.strip}> .\n"
+          end
         end
         authors = params[:authors].split(",")
         authors.each do |author|

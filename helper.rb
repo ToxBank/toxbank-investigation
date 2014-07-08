@@ -228,7 +228,7 @@ module OpenTox
       end
 
       def check_get_access result
-        if OpenTox::Authorization.get_user == "protocol_service"
+        if get_pi == "protocol_service"
           return result
         end
         result.empty? ? (bad_request_error "Nothing received from backend.") : (out = JSON.parse(result))
