@@ -189,7 +189,7 @@ module OpenTox
         return templates
       end
 
-      # @!group File and Directory Helpers
+      # @!group Helpers to link FTP data 
       # get an array of data files in an investigation
       # @param type [Array] investigation data files names
       def get_datafiles
