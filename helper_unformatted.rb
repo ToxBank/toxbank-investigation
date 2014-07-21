@@ -81,7 +81,6 @@ module OpenTox
           remove_symlinks
         end
 
-        #$logger.debug metadata
         File.open(File.join(tmp,nt), 'w'){|f| f.write(metadata)}
         FileUtils.cp Dir[File.join(tmp,"*")], dir
         FileUtils.remove_entry tmp
