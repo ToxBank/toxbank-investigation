@@ -4,7 +4,6 @@ module OpenTox
   class Application < Service
 
     module Helpers
-      
       # check for investigation type
       def is_isatab?
         response = OpenTox::Backend::FourStore.query "SELECT ?o WHERE {<#{investigation_uri}> <#{RDF::TB}hasInvType> ?o}", "application/json"
@@ -112,7 +111,8 @@ module OpenTox
         end
       end
       
-      # link files uploaded to FTP
+      # @!group Helpers to link FTP data 
+      # link data files from FTP to investigation dir
       def link_ftpfiles
         ftpfiles = get_ftpfiles
         datafiles = get_datafiles
@@ -130,6 +130,7 @@ module OpenTox
         end
         return tolink
       end
+      # @!endgroup
 
     end
   end

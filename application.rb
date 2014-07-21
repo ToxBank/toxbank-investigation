@@ -116,24 +116,18 @@ module OpenTox
         params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values']
         inv_types = ['noData', 'unformattedData', 'ftpData']
-        param_types = ['owningPro', 'title', 'abstract', 'owningOrg', 'authors', 'keywords', 'ftpFile']
-        param_uris = {:owningPro => params[:owningPro], :owningOrg => params[:owningOrg], :authors => params[:authors], :keywords => params[:keywords]}
         # no data or ftp data
         if params[:type] && !params[:file]
           bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           case params[:type]
           when "noData"
-            bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
             bad_request_error "Parameter 'ftpData' not expected for type '#{params[:type]}'." if params[:ftpFile]
-            param_types.delete("ftpFile")
-            param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
-            param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+            clean_params "noftp"
             OpenTox::Authorization.create_pi_policy(investigation_uri)
             prepare_upload
             params2rdf
           when "ftpData"
-            param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
-            param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
+            clean_params "ftp"
             OpenTox::Authorization.create_pi_policy(investigation_uri)
             prepare_upload
             link_ftpfiles_by_params
@@ -145,10 +139,7 @@ module OpenTox
           bad_request_error "Investigation type '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformattedData"
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
-          param_types.delete("ftpFile")
-          param_types.each{|p| bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?}
-          param_uris.each{|key, value| value.gsub(/,\s/, ",").split(",").each{|v| validate_params_uri(key, v) ? next : (bad_request_error "'#{v}' is not a valid URI.")}}
-          bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
+          clean_params "noftp"
           OpenTox::Authorization.create_pi_policy(investigation_uri)
           prepare_upload
           params2rdf
@@ -187,14 +178,15 @@ module OpenTox
     #   * subjectid [String] authorization token
     # @return [String] sparql-results+xml, json, uri-list, html
     get '/investigation/sparql/:templatename' do
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as 'application/json'." unless (@accept.to_s == "application/json")
       templates = get_templates ""
       templatename = params[:templatename].underscore
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
       case templatename
       when /_by_gene_and_value$/
-        bad_request_error "missing parameter geneIdentifiers. Request needs a gene identifier." if params[:geneIdentifiers].blank?
+        bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
-        bad_request_error "missing parameter value_type. Request needs a value_type like 'FC:0.7'." if params[:value].to_s !~ /\:/
+        bad_request_error "missing parameter value_type. Request needs a value_type like 'FC:0.7'." if params[:value].to_s !~ /.*\:.*/
         bad_request_error "wrong parameter value_type. Request needs a value_type like 'FC,pvalue,qvalue'." if params[:value].split(":").first !~ /^FC$|^pvalue$|^qvalue$/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         # split params[:value] in "value_type" and "value"
@@ -210,11 +202,14 @@ module OpenTox
           sparqlstring = File.read(templates[templatename]) % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }", :value_type => value_type, :value => value }
         end
         #$logger.debug sparqlstring
-        FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, "application/json"
+        check_get_access result
       when /_and_/
-        return FourStore.query File.read(templates[templatename]) , @accept
+        result = FourStore.query File.read(templates[templatename]) , "application/json"
+        check_get_access result
       when /_by_[a-z]+s$/
         genesparql = templatename.match(/_by_genes$/)
+        params[:geneIdentifiers].split(",").each{|gene| bad_request_error "'#{gene}' is not a valid gene identifier." if gene !~ /.*\:.*/} if params[:geneIdentifiers]
         values = genesparql ? params[:geneIdentifiers] : params[:factorValues]
         bad_request_error "missing parameter #{genesparql ? "geneIdentifiers": "factorValues"}. Request needs one or multiple(separated by comma)." if values.blank?
         values = values.gsub(/[\[\]\"]/ , "").split(",") if values.class == String
@@ -229,11 +224,13 @@ module OpenTox
           end
         end
         sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION ") }
-        FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, "application/json"
+        check_get_access result
       when /_by_[a-z_]+(?<!s)$/
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
         sparqlstring = File.read(templates[templatename]) % { :value => params[:value] }
-        FourStore.query sparqlstring, @accept
+        result = FourStore.query sparqlstring, "application/json"
+        check_get_access result
       else
         not_implemented_error "Template: #{params[:templatename]} is not implemented yet."
       end
@@ -389,30 +386,21 @@ module OpenTox
           case params[:type]
           when "noData"
             bad_request_error "Parameter 'ftpFile' not expected for type '#{params[:type]}'." if params[:ftpFile]
-            param_types.delete("ftpFile")
-            param_types.each do |p|
-              bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
-            end
-            bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
+            clean_params "noftp"
             prepare_upload
             params2rdf
           when "ftpData"
-            param_types.each do |p|
-              bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
-            end
-            bad_request_error "Parameter 'owningOrg' requires single entry." if (params[:owningOrg].split(",").size > 1)
+            clean_params "ftp"
             prepare_upload
             params2rdf
           end
         # unformated data
         elsif params[:type] && params[:file]
+          bad_request_error "Parameter '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
           bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformattedData"
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
-          param_types.delete("ftpFile")
-          param_types.each do |p|
-            bad_request_error "Parameter '#{p}' is required." if params[p.to_sym].blank?
-          end
+          clean_params "noftp"
           prepare_upload
           params2rdf
         # isatab data

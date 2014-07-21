@@ -189,8 +189,9 @@ module OpenTox
         return templates
       end
 
-      # @!group Helpers to link FTP data
+      # @!group Helpers to link FTP data 
       # get an array of data files in an investigation
+      # @param type [Array] investigation data files names
       def get_datafiles
         response = OpenTox::RestClientWrapper.get "#{investigation_uri}/sparql/files_with_datanodes_by_investigation", {}, {:accept => "application/json"}
         result = JSON.parse(response)
@@ -202,6 +203,7 @@ module OpenTox
       end
 
       # get an array of files in ftp folder of a user
+      # @params type [Array] users ftp files
       def get_ftpfiles
         user = Authorization.get_user
         return [] if  !Dir.exists?("/home/ftpusers/#{user}") || user.nil?
@@ -209,11 +211,38 @@ module OpenTox
         Hash[files.collect { |f| [f.gsub("/home/ftpusers/#{user}/",""), File.basename(f)] }]
       end
 
-      # remove existing symlinks
+      # remove symlinks in investigation dir
       def remove_symlinks
         Dir["#{tmp}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         Dir["#{dir}/*"].each{|file| FileUtils.rm(file) if File.symlink?("#{dir}/#{File.basename(file)}")}
         FileUtils.rm(File.join(dir, "ftpfiles.nt")) if File.exists? File.join(dir, "ftpfiles.nt")
+      end
+      
+      # uris with GET permission for user
+      # @params [Array] investigation uris with GET permission for user
+      def getaccess_uris
+        a = Time.now
+        out = []
+        uri_list.split("\n").each do |u|
+          out << u if OpenTox::Authorization.authorized?(u, "GET")
+        end
+        b = Time.now
+        $logger.debug "Duration to get biosearch uris: #{(b-a).round(3)}\n#{out}"
+        out
+      end
+
+      def check_get_access result
+        if get_pi == "protocol_service"
+          return result
+        end
+        result.empty? ? (bad_request_error "Nothing received from backend.") : (out = JSON.parse(result))
+        getaccess = getaccess_uris
+        unless getaccess.empty?
+          out["results"]["bindings"].delete_if{|i| !getaccess.include?(i["investigation"]["value"])}
+        else
+          out["results"]["bindings"].clear
+        end
+        return JSON.pretty_generate(out)
       end
 
       # @!endgroup

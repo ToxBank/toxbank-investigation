@@ -1,4 +1,11 @@
 = ChangeLog
+== v2.2.0 July 2014
+- 07/2014 add code for biosearch
+- 07/2014 clean code for unformated data upload
+- 07/2014 updated yard-documentation
+- 07/2014 new templates: cellcount_HighContentImaging.xml and cellcount_LEAP.xml
+- 07/2014 full investigation file naming support - as described in 4.1 http://isatab.sourceforge.net/docs/ISA-TAB_release-candidate-1_v1.0_24nov08.pdf
+- 06/2014 fix nameing restriction for i_*.txt file
 == v2.1.0 June 2014
 - 05/2014 add upload of unformatted investigation data @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation
 - 05/2014 add SubTaskURI to process large isatab-formatted raw-datafiles => RDF::TB.hasSubTaskURI

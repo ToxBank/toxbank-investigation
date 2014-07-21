@@ -9,11 +9,10 @@ PREFIX isa:   <http://onto.toxbank.net/isa/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX tb:    <http://onto.toxbank.net/api/> 
 
-SELECT DISTINCT ?protocol ?label ?factorname ?value WHERE {
+SELECT DISTINCT ?investigation ?protocol ?label ?factorname ?value WHERE {
  ?investigation rdf:type isa:Investigation.
  ?investigation isa:hasStudy ?study.
  ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
- ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
  ?study isa:hasProtocol ?protocol.
  OPTIONAL {
  ?protocol rdfs:label ?label.

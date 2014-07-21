@@ -21,7 +21,6 @@ SELECT DISTINCT ?investigation ?datatype ?title ?valuetype ?value WHERE {
    ?investigation rdf:type isa:Investigation.
    ?investigation isa:hasStudy ?study.
    ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
-   ?investigation tb:isSummarySearchable "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
    ?dataentry ot:values ?fv.
    {
      %{Values}

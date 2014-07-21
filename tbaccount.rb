@@ -46,6 +46,16 @@ module OpenTox
       false
     end
 
+    # Search an organisation URI in the user service
+    # @param organisation [String] organisation-name
+    # @param [String] subjectid
+    # @return [String]userURI
+    def self.search_organisation organisation
+      result = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/organisation?search=#{organisation}`.chomp.sub("\n","")
+      return result if !result.match("Not Found")
+      false
+    end
+
     # Get hasAccount value of a user,organisation or project from ToxBank service
     # @return [String] username
     def account
