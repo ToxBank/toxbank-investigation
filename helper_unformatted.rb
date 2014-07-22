@@ -24,7 +24,7 @@ module OpenTox
       def validate_params_uri(param, value)
         keys = ["owningOrg", "owningPro", "authors", "keywords"]
         if keys.include?(param.to_s)
-          (value.uri? && value =~ /^#{$user_service[:uri]}/) ? (return true) : (return false)
+          (value.uri? && value =~ /toxbank/) ? (return true) : (return false)
         end
       end
       
