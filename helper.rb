@@ -135,6 +135,13 @@ module OpenTox
         qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '').strip
       end
 
+      # get non-isatab investigation type
+      def investigation_type
+        response = OpenTox::Backend::FourStore.query "SELECT ?o FROM <#{uri}> WHERE {?s <#{RDF::TB}hasInvType> ?o}", "application/json"
+        result = JSON.parse(response)
+        type = result["results"]["bindings"].map{|n| n["o"]["value"]}[0]
+      end
+
       # manage Get requests with policies and flags.
       def get_permission
         return false if request.env['REQUEST_METHOD'] != "GET"
