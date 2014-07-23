@@ -380,6 +380,8 @@ module OpenTox
         inv_types = ['noData', 'unformattedData', 'ftpData']
         param_types = ['title', 'abstract', 'owningOrg', 'owningPro', 'authors', 'keywords', 'ftpFile']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
+        inv_type = investigation_type
+        bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
         # no data or ftp data
         if params[:type] && !params[:file]
           bad_request_error "Parameter '#{params[:type]}' not supported." unless inv_types.include? params[:type]
@@ -406,13 +408,13 @@ module OpenTox
         # isatab data
         elsif params[:file] && !params[:type]
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-          bad_request_error "Unable to edit unformated investigation with ISA-TAB data." unless is_isatab? 
+          bad_request_error "Unable to edit unformatted investigation with ISA-TAB data." unless is_isatab? 
           prepare_upload
           extract_zip if params[:file][:type] == 'application/zip'
           kill_isa2rdf
           isa2rdf
         # incomplete request
-        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:publish] && !params[:summarySearchable] && !params[:allowReadByGroup] && !params[:allowReadByUser]
+        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:allowReadByGroup] && !params[:allowReadByUser]
           bad_request_error "No file uploaded or any valid parameter given."
         end
         
