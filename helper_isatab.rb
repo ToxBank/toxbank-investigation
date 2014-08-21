@@ -34,8 +34,13 @@ module OpenTox
       def extract_zip
         `unzip -o '#{File.join(tmp,params[:file][:filename])}'  -x '__MACOSX/*' -d #{tmp}`
         Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
-          `mv #{d}/* #{tmp}`
-          `rmdir #{d}`
+          unless d.empty?
+            `mv #{d}/* #{tmp}`
+            `rmdir #{d}`
+          else
+            FileUtils.remove_entry dir
+            bad_request_error "Could not parse isatab file. Empty directory submitted."
+          end
         end
         # zip original files for download
         #`zip -x #{tmp}/*.zip -j #{File.join(tmp, "investigation_#{params[:id]}.zip")} #{tmp}/*`
