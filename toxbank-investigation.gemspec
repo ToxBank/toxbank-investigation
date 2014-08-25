@@ -19,8 +19,9 @@ Gem::Specification.new do |s|
 
   # specify any dependencies here:
   s.add_runtime_dependency "opentox-server"
+  s.add_runtime_dependency "memcache-client"
 
   # external requirements
   ["git", "zip", "java", "curl", "wget"].each{|r| s.requirements << r}
-  s.post_install_message = "Run toxbank-investigation-install to set up your service"
+  s.post_install_message = "Run toxbank-investigation-install to set up your service. Please make sure you have memcached installed."
 end

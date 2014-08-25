@@ -1,4 +1,5 @@
 require 'opentox-server'
+require 'memcache'
 require_relative "tbaccount.rb"
 require_relative "util.rb"
 require_relative "helper.rb"
@@ -11,6 +12,9 @@ module OpenTox
   # {http://api.toxbank.net/index.php/Investigation ToxBank API Investigation}
   class Application < Service
 
+    # init CACHE for dashbord calls
+    CACHE = MemCache.new 'localhost:11211'
+    
     helpers do
       include Helpers
       # overwrite opentox-server method for toxbank use
@@ -256,6 +260,49 @@ module OpenTox
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       else
         FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept
+      end
+    end
+
+    # dashbord call
+    get '/investigation/:id/dashboard' do
+      @accept = "application/json"
+      templates = get_templates "investigation"
+      
+      @result = CACHE.get request.path
+      if @result == nil
+        @task = OpenTox::Task.run("Retrieve dashboard values.",investigation_uri) do
+          sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri } 
+          factorvalues = FourStore.query sparqlstring, @accept
+          result = JSON.parse(factorvalues)
+          biosamples = result["results"]["bindings"].map {|n| n["biosample"]["value"]}
+
+          @samples = []
+          biosamples.each_with_index do |biosample, idx|
+            sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
+            sample = FourStore.query sparqlstring, @accept
+            @samples << JSON.parse(sample)
+            
+            # calculate percentage progress
+            progress = 100/biosamples.size*idx
+            # update task
+            #ot:percentageCompleted
+          end
+          # json format of result
+          result = JSON.pretty_generate(@samples)#.map{|s| JSON[s]}
+          CACHE.replace request.path, result
+
+          investigation_uri+"/dashboard" # result uri for subtask
+        end
+        CACHE.add request.path, @task.uri
+        return @task.uri
+
+      # task is running
+      elsif @result.to_s =~ /task/
+        return @result.inspect
+      
+      # task uri is replaced by result
+      else
+        return @result.inspect
       end
     end
 
