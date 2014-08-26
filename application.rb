@@ -381,17 +381,19 @@ module OpenTox
         param_types = ['title', 'abstract', 'owningOrg', 'owningPro', 'authors', 'keywords', 'ftpFile']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
         inv_type = investigation_type
-        bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
+        
         # no data or ftp data
         if params[:type] && !params[:file]
           bad_request_error "Parameter '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           case params[:type]
           when "noData"
+            bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
             bad_request_error "Parameter 'ftpFile' not expected for type '#{params[:type]}'." if params[:ftpFile]
             clean_params "noftp"
             prepare_upload
             params2rdf
           when "ftpData"
+            bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
             clean_params "ftp"
             prepare_upload
             params2rdf
@@ -402,6 +404,7 @@ module OpenTox
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
           bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformattedData"
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
+          bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
           clean_params "noftp"
           prepare_upload
           params2rdf
@@ -413,6 +416,12 @@ module OpenTox
           extract_zip if params[:file][:type] == 'application/zip'
           kill_isa2rdf
           isa2rdf
+        # set flags and policies
+        elsif !params[:type] && !inv_type.blank? && (params[:summarySearchable]||params[:published]||params[:allowReadByGroup]||params[:allowReadByUser])
+          # pass to set flags or policies
+        # require type for non-isatab
+        elsif !params[:type] && !inv_type.blank?
+          bad_request_error "Expected type is '#{inv_type}'."
         # incomplete request
         elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:allowReadByGroup] && !params[:allowReadByUser]
           bad_request_error "No file uploaded or any valid parameter given."
@@ -425,6 +434,7 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
         if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
+          $logger.debug "index investigation"
           set_index true
         else
           set_index false
