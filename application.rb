@@ -263,7 +263,7 @@ module OpenTox
       end
     end
 
-    # dashbord call
+    # dashboard call
     get '/investigation/:id/dashboard' do
       @accept = "application/json"
       templates = get_templates "investigation"
@@ -273,22 +273,22 @@ module OpenTox
         @task = OpenTox::Task.run("Retrieve dashboard values.",investigation_uri) do
           sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri } 
           factorvalues = FourStore.query sparqlstring, @accept
-          result = JSON.parse(factorvalues)
-          biosamples = result["results"]["bindings"].map {|n| n["biosample"]["value"]}
-
+          @result = JSON.parse(factorvalues)
+          biosamples = @result["results"]["bindings"].map {|n| n["biosample"]["value"]}
           @samples = []
           biosamples.each_with_index do |biosample, idx|
             sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
             sample = FourStore.query sparqlstring, @accept
+            result = JSON.parse(sample)
             @samples << JSON.parse(sample)
             
             # calculate percentage progress
             progress = 100/biosamples.size*idx
             # update task
-            #ot:percentageCompleted
+            #RDF::OT.percentageCompleted, progress
           end
           # json format of result
-          result = JSON.pretty_generate(@samples)#.map{|s| JSON[s]}
+          result = JSON.pretty_generate(@samples)
           CACHE.replace request.path, result
 
           investigation_uri+"/dashboard" # result uri for subtask
