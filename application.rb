@@ -275,20 +275,21 @@ module OpenTox
           factorvalues = FourStore.query sparqlstring, @accept
           @result = JSON.parse(factorvalues)
           biosamples = @result["results"]["bindings"].map {|n| n["biosample"]["value"]}
-          @samples = []
-          biosamples.each_with_index do |biosample, idx|
+          # add new json head
+          @result["head"]["vars"] << "characteristics"
+          biosamples.uniq.each_with_index do |biosample, idx|
             sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
             sample = FourStore.query sparqlstring, @accept
             result = JSON.parse(sample)
-            @samples << JSON.parse(sample)
-            
+            # adding single biosample characteristics to json array
+            @result["results"]["bindings"].select{|n| n["biosample"]["value"].to_s == biosample.to_s; n["characteristics"] = result["results"]["bindings"]}
             # calculate percentage progress
             progress = 100/biosamples.size*idx
             # update task
             #RDF::OT.percentageCompleted, progress
           end
           # json format of result
-          result = JSON.pretty_generate(@samples)
+          result = JSON.pretty_generate(@result)
           CACHE.replace request.path, result
 
           investigation_uri+"/dashboard" # result uri for subtask
