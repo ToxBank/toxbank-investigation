@@ -1,6 +1,5 @@
 require 'opentox-server'
 require_relative "tbaccount.rb"
-require_relative "tbcache.rb"
 require_relative "util.rb"
 require_relative "helper.rb"
 require_relative "helper_isatab.rb"
