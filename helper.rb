@@ -54,8 +54,9 @@ module OpenTox
       end
 
       def create_cache
-        locked_error "Cache already existing." if File.exists? cache
         FileUtils.mkdir_p cache
+        Dir.chdir cache
+        FileUtils.touch dashboard
       end
 
       def get_cache

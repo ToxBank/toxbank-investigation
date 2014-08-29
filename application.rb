@@ -263,7 +263,8 @@ module OpenTox
     get '/investigation/:id/dashboard' do
       @accept = "application/json"
       templates = get_templates "investigation"
-
+      #temporarily? to update existing investigations
+      create_cache unless File.exist?(dashboard)
       # look in cache for dashboard_file
       @result = get_cache
       if @result == nil||@result.blank?
