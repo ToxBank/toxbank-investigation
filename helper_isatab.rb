@@ -67,6 +67,8 @@ module OpenTox
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
+          # create cache dir
+          create_cache
           # next line moved to l.74
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
@@ -115,7 +117,7 @@ module OpenTox
           investigation_uri
         end
       end
-      
+
       # @!group Helpers to link FTP data 
       # link data files from FTP to investigation dir
       def link_ftpfiles

@@ -43,6 +43,36 @@ module OpenTox
         "#{params[:id]}.nt"
       end
       
+      # @return [String] absolute path investigation cache
+      def cache
+        File.join dir,"cache"
+      end
+
+      # @return [String] absolute path investigation dashboard file
+      def dashboard
+        File.join cache, "dashboard"
+      end
+
+      def create_cache
+        locked_error "Cache already existing." if File.exists? cache
+        FileUtils.mkdir_p cache
+      end
+
+      def get_cache
+        locked_error "Cache not existing." unless File.exists? cache
+        IO.read(File.join dashboard)
+      end
+
+      def add_cache string
+        locked_error "Cache not existing." unless File.exists? cache
+        File.open(File.join(dashboard), 'w') {|f| f.write(string) }
+      end
+
+      def replace_cache string
+        locked_error "Cache not existing." unless File.exists? cache
+        File.open(File.join(dashboard), 'w') {|f| f.write(string) }
+      end
+
       # @!endgroup
       # @return [Integer] timestamp of a time string
       def get_timestamp timestring

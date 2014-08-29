@@ -1,6 +1,6 @@
 require 'opentox-server'
-require 'memcache'
 require_relative "tbaccount.rb"
+require_relative "tbcache.rb"
 require_relative "util.rb"
 require_relative "helper.rb"
 require_relative "helper_isatab.rb"
@@ -12,9 +12,6 @@ module OpenTox
   # {http://api.toxbank.net/index.php/Investigation ToxBank API Investigation}
   class Application < Service
 
-    # init CACHE for dashbord calls
-    CACHE = MemCache.new 'localhost:11211'
-    
     helpers do
       include Helpers
       # overwrite opentox-server method for toxbank use
@@ -267,9 +264,10 @@ module OpenTox
     get '/investigation/:id/dashboard' do
       @accept = "application/json"
       templates = get_templates "investigation"
-      
-      @result = CACHE.get request.path
-      if @result == nil
+
+      # look in cache for dashboard_file
+      @result = get_cache
+      if @result == nil||@result.blank?
         @task = OpenTox::Task.run("Retrieve dashboard values.",investigation_uri) do
           sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri } 
           factorvalues = FourStore.query sparqlstring, @accept
@@ -283,27 +281,30 @@ module OpenTox
             result = JSON.parse(sample)
             # adding single biosample characteristics to json array
             @result["results"]["bindings"].select{|n| n["biosample"]["value"].to_s == biosample.to_s; n["characteristics"] = result["results"]["bindings"]}
+            
+            # TODO maybe implement this feature
             # calculate percentage progress
-            progress = 100/biosamples.size*idx
+            #progress = 100/biosamples.size*idx
             # update task
             #RDF::OT.percentageCompleted, progress
           end
-          # json format of result
+          # result to JSON
           result = JSON.pretty_generate(@result)
-          CACHE.replace request.path, result
-
+          # write result to dashboard_file
+          replace_cache result
           investigation_uri+"/dashboard" # result uri for subtask
         end
-        CACHE.add request.path, @task.uri
+        # write task URI to cache
+        add_cache @task.uri
         return @task.uri
 
       # task is running
       elsif @result.to_s =~ /task/
-        return @result.inspect
+        return @result
       
-      # task uri is replaced by result
+      # task URI is replaced by result
       else
-        return @result.inspect
+        return @result
       end
     end
 
