@@ -296,14 +296,17 @@ module OpenTox
         end
         # write task URI to cache
         add_cache @task.uri
+        response['Content-Type'] = 'text/uri-list'
         return @task.uri
 
       # task is running
       elsif @result.to_s =~ /task/
+        response['Content-Type'] = 'text/uri-list'
         return @result
       
       # task URI is replaced by result
       else
+        response['Content-Type'] = 'application/json'
         return @result
       end
     end
