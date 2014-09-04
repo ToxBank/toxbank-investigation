@@ -297,12 +297,12 @@ module OpenTox
         # write task URI to cache
         add_cache @task.uri
         response['Content-Type'] = 'text/uri-list'
-        return @task.uri
+        return halt 202,@task.uri+"\n"
 
       # task is running
       elsif @result.to_s =~ /task/
         response['Content-Type'] = 'text/uri-list'
-        return @result
+        return halt 202,@result+"\n"
       
       # task URI is replaced by result
       else
