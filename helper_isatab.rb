@@ -67,8 +67,10 @@ module OpenTox
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
-          # create cache dir
+
+          # create dashboard cache and empty JSON object
           create_cache
+
           # next line moved to l.74
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
@@ -103,6 +105,10 @@ module OpenTox
               end # datafiles
             end # rdfs
             FileUtils.remove_entry tmp
+
+            # update JSON object with dashboard values
+            dashboard_cache
+
             # remove subtask uri from metadata
             OpenTox::Backend::FourStore.update "WITH <#{investigation_uri}>
             DELETE { <#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}
@@ -116,6 +122,28 @@ module OpenTox
           link_ftpfiles
           investigation_uri
         end
+      end
+      
+      # create dashboard cache
+      def dashboard_cache
+        templates = get_templates "investigation"
+        sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri }
+        factorvalues = FourStore.query sparqlstring, "application/json"
+        @result = JSON.parse(factorvalues)
+        biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
+        # add new JSON head
+        @result["head"]["vars"] << "characteristics"
+        biosamples.uniq.each_with_index do |biosample, idx|
+          sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
+          sample = FourStore.query sparqlstring, "application/json"
+          result = JSON.parse(sample)
+          # adding single biosample characteristics to JSON array
+          @result["results"]["bindings"].select{|n| n["biosample"]["value"].to_s == biosample.to_s; n["characteristics"] = result["results"]["bindings"]}
+        end
+        # result to JSON
+        result = JSON.pretty_generate(@result)
+        # write result to dashboard_file
+        replace_cache result
       end
 
       # @!group Helpers to link FTP data 

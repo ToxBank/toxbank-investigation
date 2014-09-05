@@ -56,21 +56,16 @@ module OpenTox
       def create_cache
         FileUtils.mkdir_p cache
         Dir.chdir cache
-        FileUtils.touch dashboard
-      end
-
-      def get_cache
-        locked_error "Cache not existing." unless File.exists? cache
-        IO.read(File.join dashboard)
-      end
-
-      def add_cache string
-        locked_error "Cache not existing." unless File.exists? cache
+        # empty JSON object
+        string = "{\n  \"head\": {\n    \"vars\": [\n      \"biosample\",\n      \"sample\",\n      \"factorname\",\n      \"value\",\n      \"ontouri\",\n      \"unitOnto\",\n      \"unit\",\n      \"unitID\",\n      \"characteristics\"\n    ]\n  },\n  \"results\": {\n    \"bindings\": [\n\n    ]\n  }\n}"
         File.open(File.join(dashboard), 'w') {|f| f.write(string) }
       end
 
+      def get_cache
+        IO.read(File.join dashboard)
+      end
+
       def replace_cache string
-        locked_error "Cache not existing." unless File.exists? cache
         File.open(File.join(dashboard), 'w') {|f| f.write(string) }
       end
 

@@ -261,54 +261,9 @@ module OpenTox
 
     # dashboard call
     get '/investigation/:id/dashboard' do
-      @accept = "application/json"
-      templates = get_templates "investigation"
-      #temporarily? to update existing investigations
-      create_cache unless File.exist?(dashboard)
-      # look in cache for dashboard_file
-      @result = get_cache
-      if @result == nil||@result.blank?
-        @task = OpenTox::Task.run("Retrieve dashboard values.",investigation_uri) do
-          sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri } 
-          factorvalues = FourStore.query sparqlstring, @accept
-          @result = JSON.parse(factorvalues)
-          biosamples = @result["results"]["bindings"].map {|n| n["biosample"]["value"]}
-          # add new json head
-          @result["head"]["vars"] << "characteristics"
-          biosamples.uniq.each_with_index do |biosample, idx|
-            sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
-            sample = FourStore.query sparqlstring, @accept
-            result = JSON.parse(sample)
-            # adding single biosample characteristics to json array
-            @result["results"]["bindings"].select{|n| n["biosample"]["value"].to_s == biosample.to_s; n["characteristics"] = result["results"]["bindings"]}
-            
-            # TODO maybe implement this feature
-            # calculate percentage progress
-            #progress = 100/biosamples.size*idx
-            # update task
-            #RDF::OT.percentageCompleted, progress
-          end
-          # result to JSON
-          result = JSON.pretty_generate(@result)
-          # write result to dashboard_file
-          replace_cache result
-          investigation_uri+"/dashboard" # result uri for subtask
-        end
-        # write task URI to cache
-        add_cache @task.uri
-        response['Content-Type'] = 'text/uri-list'
-        return halt 202,@task.uri+"\n"
-
-      # task is running
-      elsif @result.to_s =~ /task/
-        response['Content-Type'] = 'text/uri-list'
-        return halt 202,@result+"\n"
-      
-      # task URI is replaced by result
-      else
-        response['Content-Type'] = 'application/json'
-        return @result
-      end
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as application/json." unless (@accept.to_s == "application/json")
+      response['Content-Type'] = 'application/json'
+      get_cache
     end
 
     # @method get_metadata
