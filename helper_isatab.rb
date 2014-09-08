@@ -128,14 +128,14 @@ module OpenTox
       def dashboard_cache
         templates = get_templates "investigation"
         sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri }
-        factorvalues = FourStore.query sparqlstring, "application/json"
+        factorvalues = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
         @result = JSON.parse(factorvalues)
         biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
         # add new JSON head
         @result["head"]["vars"] << "characteristics"
         biosamples.uniq.each_with_index do |biosample, idx|
           sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
-          sample = FourStore.query sparqlstring, "application/json"
+          sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
           result = JSON.parse(sample)
           # adding single biosample characteristics to JSON array
           @result["results"]["bindings"].select{|n| n["biosample"]["value"].to_s == biosample.to_s; n["characteristics"] = result["results"]["bindings"]}
