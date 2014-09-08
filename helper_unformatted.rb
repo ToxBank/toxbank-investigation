@@ -68,6 +68,12 @@ module OpenTox
         keywords.each do |keyword|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword.strip}> .\n"
         end
+        unless params[:licenses].nil?
+          licenses = params[:licenses].split(",")
+          licenses.each do |license|
+            metadata << "<#{investigation_uri}> <http://purl.org/dc/terms/license> \"#{license.strip.gsub(/\r\n/,"\\n")}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
+          end
+        end
         if params[:file]
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{params[:file][:filename].gsub(/\s/, "%20")}> .\n"
         end
