@@ -17,7 +17,10 @@ module OpenTox
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.collect!{|u| u.sub(/(\/isatab\/)/,'/files/')} if params[:id] && File.read(File.join(dir,nt)).match("hasInvType")
         uris.delete_if{|u| u.match(/_policies$/)}
-        uris.delete_if{|u| u.match(/tmp$|cache$|log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
+        # ID.nt file is never a isatab file;
+        # never use of ID.nt, deny view ?
+        #uris.delete_if{|u| u.match(/tmp$|cache$|log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
+        uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
         uris.map!{ |u| File.symlink?("#{dir}/#{File.basename(u)}") ? u.gsub("/isatab/", "/files/") : u}
         uris.compact.sort.join("\n") + "\n"
