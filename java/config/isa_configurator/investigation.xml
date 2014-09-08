@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <isatab-config-file xmlns="http://www.ebi.ac.uk/bii/isatab_configuration#">
   <isatab-configuration table-name="investigation">
     <measurement term-label="[investigation]" term-accession="" source-abbreviation="" />
