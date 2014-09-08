@@ -276,8 +276,12 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_metadata API: Get investigation metadata
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}>
-                       WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>. ?s ?p ?o .  } ", @accept
+      FourStore.query "CONSTRUCT {?s ?p ?o.} 
+                       FROM <#{investigation_uri}>
+                       WHERE {?s <#{RDF.type}> <#{RDF::ISA}Investigation>.
+                       OPTIONAL {?s <http://purl.org/dc/terms/license> ?o.}
+                              ?s ?p ?o . 
+                       } ", @accept
     end
 
     # @method get_protocol
