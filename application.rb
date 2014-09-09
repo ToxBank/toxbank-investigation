@@ -57,7 +57,8 @@ module OpenTox
     # @raise [BadRequestError] if wrong mime-type
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations API: Get a list of investigations
     get '/investigation/?' do
-      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
+      mime_types = ['text/uri-list', 'application/rdf+xml', 'application/json']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless mime_types.include? @accept
       if (@accept == "text/uri-list" && !request.env['HTTP_USER'])
         qlist @accept
       elsif (@accept == "application/rdf+xml" && !request.env['HTTP_USER'])
@@ -247,19 +248,34 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_an_investigation_representation API: Get an investigation representation
     get '/investigation/:id' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      mime_types = ['text/tab-separated-values', 'text/uri-list', 'application/zip', 'application/rdf+xml']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/tab-separated-values, text/uri-list, application/json or application/rdf+xml." unless mime_types.include? @accept
       case @accept
       when "text/tab-separated-values"
+        invfile = Dir["#{dir}/i_*.txt"][0]
+        resource_not_found_error "Investigation is not in ISA-TAB format. Please request metadata for details." if invfile.blank?
         send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
       when "text/uri-list"
-        uri_list
+        result = uri_list
+        # mind '\n' in empty uri-list
+        result.size == 1 ? "No files to list. Please request metadata for details.\n" : result
       when "application/zip"
+        resource_not_found_error "Investigation zip does not exist. Please request application/rdf+xml."  unless File.exist? File.join(dir, "investigation_#{params[:id]}.zip")
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       else
+        # application/rdf+xml
         FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept
       end
     end
 
-    # dashboard call
+    # @method get_dashboard
+    # @overload get "/investigation/:id/dashboard"
+    # Get investigation dashboard values.
+    # @param [Hash] header
+    #   * Accept [String] <application/json>
+    #   * subjectid [String] authorization token
+    # @return [Array] application/json.
+    # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_data_for_dashboard_contents API: Get investigation data for dashboard contents
     get '/investigation/:id/dashboard' do
       bad_request_error "Mime type #{@accept} not supported here. Please request data as application/json." unless (@accept.to_s == "application/json")
       response['Content-Type'] = 'application/json'
