@@ -32,18 +32,16 @@ module OpenTox
 
       # extract zip upload to tmp subdirectory of investigation
       def extract_zip
-        `unzip -o '#{File.join(tmp,params[:file][:filename])}'  -x '__MACOSX/*' -d #{tmp}`
-        Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
-          unless d.empty?
+        unless `jar -tvf '#{File.join(tmp,params[:file][:filename])}'`.to_i == 0
+          `unzip -o '#{File.join(tmp,params[:file][:filename])}'  -x '__MACOSX/*' -d #{tmp}`
+          Dir["#{tmp}/*"].collect{|d| d if File.directory?(d)}.compact.each  do |d|
             `mv #{d}/* #{tmp}`
             `rmdir #{d}`
-          else
-            FileUtils.remove_entry dir
-            bad_request_error "Could not parse isatab file. Empty directory submitted."
           end
+        else
+          FileUtils.remove_entry dir
+          bad_request_error "Could not parse isatab file. Empty directory submitted."
         end
-        # zip original files for download
-        #`zip -x #{tmp}/*.zip -j #{File.join(tmp, "investigation_#{params[:id]}.zip")} #{tmp}/*`
         replace_pi
       end
       
