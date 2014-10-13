@@ -109,6 +109,7 @@ namespace :fourstore do
               OpenTox::Backend::FourStore.post uri, File.read(dataset), "text/plain"
               File.delete(dataset)
               puts "Done."
+              sleep 10
             end
           end
 
