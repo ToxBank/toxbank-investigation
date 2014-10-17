@@ -65,7 +65,7 @@ module OpenTox
       end
 
       def get_cache
-        IO.read(File.join dashboard)
+        File.exist?(File.join dashboard) ? IO.read(File.join dashboard) : dashboard_cache
       end
 
       def replace_cache string

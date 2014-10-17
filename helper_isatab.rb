@@ -128,10 +128,33 @@ module OpenTox
         sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri }
         factorvalues = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
         @result = JSON.parse(factorvalues)
+        bindings = @result["results"]["bindings"]
+        # init arrays; a = by sample_uri; b = compare samples; c = uniq result
+        a = []; b = []; c = []
+        bindings.each{|b| a << bindings.map{|x| x if x["sample"]["value"] == b["sample"]["value"]}.compact }
+        # compare and uniq sample [compound, dose, time]
+        a.each do |sample|
+          sample.each do |s|
+            compound = sample[0]["value"]["value"]
+            dose = sample[1]["value"]["value"]
+            time = sample[2]["value"]["value"]
+            @collected_values = [compound, dose, time]
+          end
+          if !b.include?(@collected_values)
+            b << @collected_values
+            c << sample
+          end
+        end
+        # clear original bindings
+        @result["results"]["bindings"].clear
+        # add new bindings
+        @result["results"]["bindings"] = c.flatten!
+        
+        # add biosample characteristics
         biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
         # add new JSON head
         @result["head"]["vars"] << "characteristics"
-        biosamples.uniq.each_with_index do |biosample, idx|
+        biosamples.uniq!.each_with_index do |biosample, idx|
           sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
           sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
           result = JSON.parse(sample)
