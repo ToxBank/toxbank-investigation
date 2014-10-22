@@ -113,8 +113,9 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation API: Create an investigation
     post '/investigation/?' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
+      params[:id] = SecureRandom.uuid
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
-        params[:id] = SecureRandom.uuid
+        #params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values']
         inv_types = ['noData', 'unformattedData', 'ftpData']
         # no data or ftp data
@@ -166,6 +167,18 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
+      end
+      # remove unformatted investigation if import error
+      begin
+        t = OpenTox::Task.new task.uri
+        t.wait
+        if t.hasStatus == "Error"
+          $logger.debug "Error in POST: #{investigation_uri} remove dir."
+          FileUtils.remove_entry dir if Dir.exist?(dir)
+          `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation; git diff` != ""
+          FourStore.delete investigation_uri
+          delete_investigation_policy
+        end
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
