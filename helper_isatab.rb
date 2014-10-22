@@ -137,8 +137,13 @@ module OpenTox
           sample.each do |s|
             compound = sample[0]["value"]["value"]
             dose = sample[1]["value"]["value"]
-            time = sample[2]["value"]["value"]
-            @collected_values = [compound, dose, time]
+            #TODO compare by key;hotfix for missing time
+            if sample.size == 3
+              time = sample[2]["value"]["value"]
+              @collected_values = [compound, dose, time]
+            else
+              @collected_values = [compound, dose]
+            end
           end
           if !b.include?(@collected_values)
             b << @collected_values
