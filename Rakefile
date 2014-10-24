@@ -104,7 +104,7 @@ namespace :fourstore do
 
           extrafiles = Dir["#{dir}/*.nt_*"]
           unless extrafiles.nil?
-            extrafiles.each do |dataset|
+            extrafiles.sort{|a,b| a <=> b}.each do |dataset|
               puts "Upload Dataset #{dataset}."
               OpenTox::Backend::FourStore.post uri, File.read(dataset), "text/plain"
               File.delete(dataset)
