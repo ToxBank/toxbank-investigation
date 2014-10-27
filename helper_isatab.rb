@@ -74,7 +74,7 @@ module OpenTox
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
           
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
-            sleep 60 # wait until metadata imported and preview requested
+            sleep 30 # wait until metadata imported and preview requested
             `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
             # get rdfs
             sleep 10 # wait until first file is generated
@@ -89,7 +89,7 @@ module OpenTox
               $logger.debug "datafiles:\t#{datafiles}"
               unless datafiles.blank?
                 # split extra datasets
-                datafiles.each{|dataset| `split -d -l 200000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+                datafiles.each{|dataset| `split -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
                 chunkfiles = Dir["#{tmp}/*.nt_*"]
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
