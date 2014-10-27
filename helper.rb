@@ -17,7 +17,10 @@ module OpenTox
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.collect!{|u| u.sub(/(\/isatab\/)/,'/files/')} if params[:id] && File.read(File.join(dir,nt)).match("hasInvType")
         uris.delete_if{|u| u.match(/_policies$/)}
-        uris.delete_if{|u| u.match(/log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
+        # ID.nt file is never a isatab file;
+        # never use of ID.nt, deny view ?
+        #uris.delete_if{|u| u.match(/tmp$|cache$|log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
+        uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
         uris.map!{ |u| File.symlink?("#{dir}/#{File.basename(u)}") ? u.gsub("/isatab/", "/files/") : u}
         uris.compact.sort.join("\n") + "\n"
@@ -43,6 +46,32 @@ module OpenTox
         "#{params[:id]}.nt"
       end
       
+      # @return [String] absolute path investigation cache
+      def cache
+        File.join dir,"cache"
+      end
+
+      # @return [String] absolute path investigation dashboard file
+      def dashboard
+        File.join cache, "dashboard"
+      end
+
+      def create_cache
+        FileUtils.mkdir_p cache
+        Dir.chdir cache
+        # empty JSON object
+        string = "{\n  \"head\": {\n    \"vars\": [\n      \"biosample\",\n      \"sample\",\n      \"factorname\",\n      \"value\",\n      \"ontouri\",\n      \"unitOnto\",\n      \"unit\",\n      \"unitID\",\n      \"characteristics\"\n    ]\n  },\n  \"results\": {\n    \"bindings\": [\n\n    ]\n  }\n}"
+        File.open(File.join(dashboard), 'w') {|f| f.write(string) }
+      end
+
+      def get_cache
+        File.exist?(File.join dashboard) ? IO.read(File.join dashboard) : dashboard_cache
+      end
+
+      def replace_cache string
+        File.open(File.join(dashboard), 'w') {|f| f.write(string) }
+      end
+
       # @!endgroup
       # @return [Integer] timestamp of a time string
       def get_timestamp timestring
@@ -131,8 +160,15 @@ module OpenTox
       # @return [String] URI
       def qfilter(flag, uri)
         qfilter = OpenTox::Backend::FourStore.query "SELECT ?s FROM <#{uri}> WHERE {?s <#{RDF::TB}#{flag}> ?o FILTER regex(?o, 'true', 'i')}", "application/sparql-results+xml"
-        $logger.debug "\ncheck flags: #{qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '').strip}\n"
+        $logger.debug "\ncheck flags: #{flag}:\t#{qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '').strip}\n"
         qfilter.split("\n")[7].gsub(/<binding name="s"><uri>|\/<\/uri><\/binding>/, '').strip
+      end
+
+      # get non-isatab investigation type
+      def investigation_type
+        response = OpenTox::Backend::FourStore.query "SELECT ?o FROM <#{uri}> WHERE {?s <#{RDF::TB}hasInvType> ?o}", "application/json"
+        result = JSON.parse(response)
+        type = result["results"]["bindings"].map{|n| n["o"]["value"]}[0]
       end
 
       # manage Get requests with policies and flags.

@@ -41,8 +41,8 @@ module OpenTox
         FileUtils.cp(File.join(File.dirname(File.expand_path __FILE__), "template", "metadata.nt"), File.join(tmp,nt))
         metadata = File.read(File.join(tmp,nt)) % {:investigation_uri => investigation_uri,
           :type => params[:type],
-          :title => params[:title].strip,
-          :abstract => params[:abstract].strip.gsub(/\r\n/,"\\n"), # catch ^M character
+          :title => params[:title].strip.gsub("\"", "\\\""),
+          :abstract => params[:abstract].strip.gsub("\"", "\\\"").gsub(/\r\n/,"\\n"), # catch ^M character
           :organisation => params[:owningOrg],
           :pi => get_pi
         }
@@ -67,6 +67,9 @@ module OpenTox
         keywords = params[:keywords].split(",")
         keywords.each do |keyword|
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasKeyword> <#{keyword.strip}> .\n"
+        end
+        unless params[:licenses].nil?
+          metadata << "<#{investigation_uri}> <http://purl.org/dc/terms/license> \"#{params[:licenses].strip.gsub("\"", "\\\"").gsub(/\r\n/,"\\n")}\"^^<http://www.w3.org/2001/XMLSchema#string> .\n"
         end
         if params[:file]
           metadata << "<#{investigation_uri}> <#{RDF::TB}hasDownload> <#{investigation_uri}/files/#{params[:file][:filename].gsub(/\s/, "%20")}> .\n"

@@ -99,16 +99,17 @@ namespace :fourstore do
           # extra files
           extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
           unless extrafiles.nil?
-            extrafiles.each{|dataset| `split -d -l 300000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+            extrafiles.each{|dataset| `split -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
           end
 
           extrafiles = Dir["#{dir}/*.nt_*"]
           unless extrafiles.nil?
-            extrafiles.each do |dataset|
+            extrafiles.sort{|a,b| a <=> b}.each do |dataset|
               puts "Upload Dataset #{dataset}."
               OpenTox::Backend::FourStore.post uri, File.read(dataset), "text/plain"
               File.delete(dataset)
               puts "Done."
+              sleep 10
             end
           end
 

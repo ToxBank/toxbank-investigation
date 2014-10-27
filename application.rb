@@ -57,7 +57,8 @@ module OpenTox
     # @raise [BadRequestError] if wrong mime-type
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations API: Get a list of investigations
     get '/investigation/?' do
-      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/rdf+xml") || (@accept.to_s == "application/json")
+      mime_types = ['text/uri-list', 'application/rdf+xml', 'application/json']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list, application/json or application/rdf+xml." unless mime_types.include? @accept
       if (@accept == "text/uri-list" && !request.env['HTTP_USER'])
         qlist @accept
       elsif (@accept == "application/rdf+xml" && !request.env['HTTP_USER'])
@@ -112,8 +113,9 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Create_an_investigation API: Create an investigation
     post '/investigation/?' do
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
+      params[:id] = SecureRandom.uuid
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
-        params[:id] = SecureRandom.uuid
+        #params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values']
         inv_types = ['noData', 'unformattedData', 'ftpData']
         # no data or ftp data
@@ -165,6 +167,18 @@ module OpenTox
         create_policy "user", params[:allowReadByUser] if params[:allowReadByUser]
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
+      end
+      # remove unformatted investigation if import error
+      begin
+        t = OpenTox::Task.new task.uri
+        t.wait
+        if t.hasStatus == "Error"
+          $logger.debug "Error in POST: #{investigation_uri} remove dir."
+          FileUtils.remove_entry dir if Dir.exist?(dir)
+          `cd #{File.dirname(__FILE__)}/investigation; git commit -am "#{dir} deleted by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation; git diff` != ""
+          FourStore.delete investigation_uri
+          delete_investigation_policy
+        end
       end
       response['Content-Type'] = 'text/uri-list'
       halt 202,task.uri+"\n"
@@ -247,16 +261,36 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_an_investigation_representation API: Get an investigation representation
     get '/investigation/:id' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      mime_types = ['text/tab-separated-values', 'text/uri-list', 'application/zip', 'application/rdf+xml']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/tab-separated-values, text/uri-list, application/zip or application/rdf+xml." unless mime_types.include? @accept
       case @accept
       when "text/tab-separated-values"
+        invfile = Dir["#{dir}/i_*.txt"][0]
+        resource_not_found_error "Investigation is not in ISA-TAB format. Please request metadata for details." if invfile.blank?
         send_file Dir["./investigation/#{params[:id]}/i_*txt"].first, :type => @accept
       when "text/uri-list"
         uri_list
       when "application/zip"
+        resource_not_found_error "Investigation zip does not exist. Please request application/rdf+xml."  unless File.exist? File.join(dir, "investigation_#{params[:id]}.zip")
         send_file File.join dir, "investigation_#{params[:id]}.zip"
       else
+        # application/rdf+xml
         FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept
       end
+    end
+
+    # @method get_dashboard
+    # @overload get "/investigation/:id/dashboard"
+    # Get investigation dashboard values.
+    # @param [Hash] header
+    #   * Accept [String] <application/json>
+    #   * subjectid [String] authorization token
+    # @return [Array] application/json.
+    # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_data_for_dashboard_contents API: Get investigation data for dashboard contents
+    get '/investigation/:id/dashboard' do
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as application/json." unless (@accept.to_s == "application/json")
+      response['Content-Type'] = 'application/json'
+      get_cache
     end
 
     # @method get_metadata
@@ -269,8 +303,14 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_metadata API: Get investigation metadata
     get '/investigation/:id/metadata' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
-      FourStore.query "CONSTRUCT { ?s ?p ?o.  } FROM <#{investigation_uri}>
-                       WHERE { ?s <#{RDF.type}> <#{RDF::ISA}Investigation>. ?s ?p ?o .  } ", @accept
+      mime_types = ['text/plain', 'text/turtle', 'application/rdf+xml']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/plain, text/turtle or application/rdf+xml." unless mime_types.include? @accept
+      FourStore.query "CONSTRUCT {?s ?p ?o.} 
+                       FROM <#{investigation_uri}>
+                       WHERE {?s <#{RDF.type}> <#{RDF::ISA}Investigation>.
+                       OPTIONAL {?s <http://purl.org/dc/terms/license> ?o.}
+                              ?s ?p ?o . 
+                       } ", @accept
     end
 
     # @method get_protocol
@@ -281,6 +321,8 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_protocol_uri_associated_with_a_Study API: Get a protocol uri associated with a
     get '/investigation/:id/protocol' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir # not called in before filter???
+      mime_types = ['text/plain', 'text/turtle', 'application/rdf+xml']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/plain, text/turtle or application/rdf+xml." unless mime_types.include? @accept
       FourStore.query "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                        CONSTRUCT {?study <#{RDF::ISA}hasProtocol> ?protocol.
@@ -306,7 +348,8 @@ module OpenTox
     # @return [String] text/uri-list  or application/json.
     get '/investigation/:id/subtaskuri' do
       resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir
-      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless (@accept.to_s == "text/uri-list") || (@accept.to_s == "application/json")
+      mime_types = ['text/uri-list', 'application/json']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/uri-list or application/json." unless mime_types.include? @accept
       FourStore.query "SELECT ?subtaskuri WHERE { <#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?subtaskuri. }", @accept
     end
 
@@ -316,13 +359,14 @@ module OpenTox
     # @param [Hash] header
     #   * Accept [String] <text/tab-separated-values, application/sparql-results+json>
     #   * subjectid [String] authorization token
-    # @return [String] of mime-type [text/tab-separated-values, application/sparql-results+json] - Study, assay, data representation in ISA-TAB or RDF format.
+    # @return [String] of mime-type [text/tab-separated-values] - Study, assay, data representation in ISA-TAB or RDF format.
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_study.2C_assay_or_data_representation API: Get a study, assay or data representation
     ['/investigation/:id/isatab/:filename','/investigation/:id/files/:filename'].each do |path|
       get path do
         resource_not_found_error "File #{File.join investigation_uri,"isatab",params[:filename]} does not exist."  unless File.exist? file
-        # @todo return text/plain content type for tab separated files
         filetype = (File.symlink?(file) ? File.new(File.readlink(file)).mime_type : File.new(file).mime_type)
+        #TODO set mime-type for isatab ?
+        # send_file file, :type => (request.path =~ /isatab/) ? 'text/tab-separated-values' : filetype
         send_file file, :type => filetype
       end
     end
@@ -336,7 +380,11 @@ module OpenTox
     # @return [String] text/plain, text/turtle, application/rdf+xml
     # @note Result includes your own and published investigations.
     get '/investigation/:id/:resource' do
-      FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
+      resource_not_found_error "Investigation #{investigation_uri} does not exist."  unless File.exist? dir
+      mime_types = ['text/plain', 'text/turtle', 'application/rdf+xml']
+      bad_request_error "Mime type #{@accept} not supported here. Please request data as text/plain, text/turtle or application/rdf+xml." unless mime_types.include? @accept
+      result = FourStore.query " CONSTRUCT {  <#{File.join(investigation_uri,params[:resource])}> ?p ?o.  } FROM <#{investigation_uri}> WHERE { <#{File.join(investigation_uri,params[:resource])}> ?p ?o .  } ", @accept
+      result.blank? ? "Resource '#{params[:resource]}' not found.\n" : result
     end
 
     # @method get_investigation_sparql
@@ -380,16 +428,20 @@ module OpenTox
         inv_types = ['noData', 'unformattedData', 'ftpData']
         param_types = ['title', 'abstract', 'owningOrg', 'owningPro', 'authors', 'keywords', 'ftpFile']
         bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include?(params[:file][:type]) if params[:file]
+        inv_type = investigation_type
+        
         # no data or ftp data
         if params[:type] && !params[:file]
           bad_request_error "Parameter '#{params[:type]}' not supported." unless inv_types.include? params[:type]
           case params[:type]
           when "noData"
+            bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
             bad_request_error "Parameter 'ftpFile' not expected for type '#{params[:type]}'." if params[:ftpFile]
             clean_params "noftp"
             prepare_upload
             params2rdf
           when "ftpData"
+            bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
             clean_params "ftp"
             prepare_upload
             params2rdf
@@ -400,19 +452,26 @@ module OpenTox
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip)." unless mime_types[0] == params[:file][:type]
           bad_request_error "No file expected for type '#{params[:type]}'." unless params[:type] == "unformattedData"
           bad_request_error "File '#{params[:file][:filename]}' is to large. Please choose FTP investigation type and upload to your FTP directory first." unless (params[:file][:tempfile].size.to_i < 10485760)
+          bad_request_error "Expected type is '#{inv_type}'." unless params[:type] == inv_type
           clean_params "noftp"
           prepare_upload
           params2rdf
         # isatab data
         elsif params[:file] && !params[:type]
           bad_request_error "Mime type #{params[:file][:type]} not supported. Please submit data as zip archive (application/zip) or as tab separated text (text/tab-separated-values)" unless mime_types.include? params[:file][:type]
-          bad_request_error "Unable to edit unformated investigation with ISA-TAB data." unless is_isatab? 
+          bad_request_error "Unable to edit unformatted investigation with ISA-TAB data." unless is_isatab? 
           prepare_upload
           extract_zip if params[:file][:type] == 'application/zip'
           kill_isa2rdf
           isa2rdf
+        # set flags and policies
+        elsif !params[:type] && !inv_type.blank? && (params[:summarySearchable]||params[:published]||params[:allowReadByGroup]||params[:allowReadByUser])
+          # pass to set flags or policies
+        # require type for non-isatab
+        elsif !params[:type] && !inv_type.blank?
+          bad_request_error "Expected type is '#{inv_type}'."
         # incomplete request
-        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:publish] && !params[:summarySearchable] && !params[:allowReadByGroup] && !params[:allowReadByUser]
+        elsif !params[:file] && !params[:type] && !params[:summarySearchable] && !params[:published] && !params[:allowReadByGroup] && !params[:allowReadByUser]
           bad_request_error "No file uploaded or any valid parameter given."
         end
         
@@ -423,6 +482,7 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         curi = clean_uri(uri)
         if qfilter("isPublished", curi) =~ /#{curi}/ && qfilter("isSummarySearchable", curi) =~ /#{curi}/
+          $logger.debug "index investigation"
           set_index true
         else
           set_index false
@@ -456,12 +516,12 @@ module OpenTox
     ['/investigation/:id/isatab/:filename', '/investigation/:id/files/:filename'].each  do |path|
       delete path do
         task = OpenTox::Task.run("Deleting #{params[:filename]} from investigation #{params[:id]}.",@uri) do
-          #TODO reparse if isatab deleted; delete specific entry from backend
           if path.include?("isatab") 
             prepare_upload
             File.delete File.join(tmp,params[:filename])
             isa2rdf
           else
+          #TODO delete file triple from metadata.nt and overwrite in backend
             File.delete File.join(dir,params[:filename])
           end
         end
