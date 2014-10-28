@@ -1,6 +1,6 @@
 = ChangeLog
 == v2.3.0 October 2014
-- 10/2014 Dashboard optimazation with caching
+- 10/2014 Dashboard optimization with caching
 - 10/2014 add optional license field
 - 10/2014 isa2rdf update with several configuration files
 - 10/2014 fixes for false input
