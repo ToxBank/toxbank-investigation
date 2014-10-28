@@ -164,8 +164,9 @@ module OpenTox
           sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
           result = JSON.parse(sample)
           # adding single biosample characteristics to JSON array
-          @result["results"]["bindings"].select{|n| n["biosample"]["value"].to_s == biosample.to_s; n["characteristics"] = result["results"]["bindings"]}
+          @result["results"]["bindings"].find{|n| n["biosample"]["value"].to_s == biosample.to_s && n["factorname"]["value"].to_s == "compound"; n["characteristics"] = result["results"]["bindings"]}
         end
+        @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
         # result to JSON
         result = JSON.pretty_generate(@result)
         # write result to dashboard_file
