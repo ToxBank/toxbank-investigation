@@ -1,10 +1,10 @@
 = ChangeLog
-== v2.3.0 November 2014
-- 11/2014 Dashboard optimazation with caching
-- 11/2014 add optional license field
-- 11/2014 isa2rdf update with several configuration files
-- 11/2014 fixes for false input
-- 11/2014 general performance optizations
+== v2.3.0 October 2014
+- 10/2014 Dashboard optimazation with caching
+- 10/2014 add optional license field
+- 10/2014 isa2rdf update with several configuration files
+- 10/2014 fixes for false input
+- 10/2014 general performance optizations
 == v2.2.0 July 2014
 - 07/2014 add code for biosearch
 - 07/2014 clean code for unformated data upload
