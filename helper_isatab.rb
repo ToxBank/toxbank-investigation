@@ -159,14 +159,26 @@ module OpenTox
         biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
         # add new JSON head
         @result["head"]["vars"] << "characteristics"
-        biosamples.uniq!.each_with_index do |biosample, idx|
+        biosamples.uniq.each do |biosample|
           sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
           sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
           result = JSON.parse(sample)
           # adding single biosample characteristics to JSON array
-          @result["results"]["bindings"].find{|n| n["biosample"]["value"].to_s == biosample.to_s && n["factorname"]["value"].to_s == "compound"; n["characteristics"] = result["results"]["bindings"]}
+          @result["results"]["bindings"].find{|n| n["characteristics"] = result["results"]["bindings"] if n["biosample"]["value"].to_s == biosample.to_s }
+        end
+        # add sample characteristics
+        samples = @result["results"]["bindings"].map{|n| n["sample"]["value"]}
+        # add new JSON head
+        @result["head"]["vars"] << "sampleChar"
+        samples.uniq.each do |sample|
+          sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => sample }
+          response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+          result = JSON.parse(response)
+          # adding single sample characteristics to JSON array
+          @result["results"]["bindings"].find{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s}
         end
         @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
+        @result["results"]["bindings"].each{|n| n["sampleChar"] ||= [] }
         # result to JSON
         result = JSON.pretty_generate(@result)
         # write result to dashboard_file

@@ -289,6 +289,7 @@ module OpenTox
     # @see http://api.toxbank.net/index.php/Investigation#Get_investigation_data_for_dashboard_contents API: Get investigation data for dashboard contents
     get '/investigation/:id/dashboard' do
       bad_request_error "Mime type #{@accept} not supported here. Please request data as application/json." unless (@accept.to_s == "application/json")
+      bad_request_error "No dashboard content available." unless is_isatab?
       response['Content-Type'] = 'application/json'
       get_cache
     end
