@@ -164,7 +164,7 @@ module OpenTox
           sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
           result = JSON.parse(sample)
           # adding single biosample characteristics to JSON array
-          @result["results"]["bindings"].find{|n| n["biosample"]["value"].to_s == biosample.to_s && n["factorname"]["value"].to_s == "compound"; n["characteristics"] = result["results"]["bindings"]}
+          @result["results"]["bindings"].find{|n| n["characteristics"] = result["results"]["bindings"] if n["biosample"]["value"].to_s == biosample.to_s }
         end
         # add sample characteristics
         samples = @result["results"]["bindings"].map{|n| n["sample"]["value"]}
@@ -175,7 +175,7 @@ module OpenTox
           response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
           result = JSON.parse(response)
           # adding single sample characteristics to JSON array
-          @result["results"]["bindings"].each{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s && n["factorname"]["value"].to_s == "compound"}
+          @result["results"]["bindings"].find{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s}
         end
         @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
         @result["results"]["bindings"].each{|n| n["sampleChar"] ||= [] }
