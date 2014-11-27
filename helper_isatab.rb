@@ -129,60 +129,64 @@ module OpenTox
         factorvalues = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
         @result = JSON.parse(factorvalues)
         bindings = @result["results"]["bindings"]
-        # init arrays; a = by sample_uri; b = compare samples; c = uniq result
-        a = []; b = []; c = []
-        bindings.each{|b| a << bindings.map{|x| x if x["sample"]["value"] == b["sample"]["value"]}.compact }
-        # compare and uniq sample [compound, dose, time]
-        a.each do |sample|
-          sample.each do |s|
-            compound = sample[0]["value"]["value"]
-            dose = sample[1]["value"]["value"]
-            #TODO compare by key;hotfix for missing time
-            if sample.size == 3
-              time = sample[2]["value"]["value"]
-              @collected_values = [compound, dose, time]
-            else
-              @collected_values = [compound, dose]
+        unless bindings.blank?
+          # init arrays; a = by sample_uri; b = compare samples; c = uniq result
+          a = []; b = []; c = []
+          bindings.each{|b| a << bindings.map{|x| x if x["sample"]["value"] == b["sample"]["value"]}.compact }
+          # compare and uniq sample [compound, dose, time]
+          a.each do |sample|
+            sample.each do |s|
+              compound = sample[0]["value"]["value"]
+              dose = sample[1]["value"]["value"]
+              #TODO compare by key;hotfix for missing time
+              if sample.size == 3
+                time = sample[2]["value"]["value"]
+                @collected_values = [compound, dose, time]
+              else
+                @collected_values = [compound, dose]
+              end
+            end
+            if !b.include?(@collected_values)
+              b << @collected_values
+              c << sample
             end
           end
-          if !b.include?(@collected_values)
-            b << @collected_values
-            c << sample
+          # clear original bindings
+          @result["results"]["bindings"].clear
+          # add new bindings
+          @result["results"]["bindings"] = c.flatten!
+          
+          # add biosample characteristics
+          biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
+          # add new JSON head
+          @result["head"]["vars"] << "characteristics"
+          biosamples.uniq.each do |biosample|
+            sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
+            sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            result = JSON.parse(sample)
+            # adding single biosample characteristics to JSON array
+            @result["results"]["bindings"].find{|n| n["characteristics"] = result["results"]["bindings"] if n["biosample"]["value"].to_s == biosample.to_s }
           end
+          # add sample characteristics
+          samples = @result["results"]["bindings"].map{|n| n["sample"]["value"]}
+          # add new JSON head
+          @result["head"]["vars"] << "sampleChar"
+          samples.uniq.each do |sample|
+            sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => sample }
+            response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            result = JSON.parse(response)
+            # adding single sample characteristics to JSON array
+            @result["results"]["bindings"].find{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s}
+          end
+          @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
+          @result["results"]["bindings"].each{|n| n["sampleChar"] ||= [] }
+          # result to JSON
+          result = JSON.pretty_generate(@result)
+          # write result to dashboard_file
+          replace_cache result
+        else
+          $logger.error "Unable to create dashboard file for investigation #{params[:id]}"
         end
-        # clear original bindings
-        @result["results"]["bindings"].clear
-        # add new bindings
-        @result["results"]["bindings"] = c.flatten!
-        
-        # add biosample characteristics
-        biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
-        # add new JSON head
-        @result["head"]["vars"] << "characteristics"
-        biosamples.uniq.each do |biosample|
-          sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
-          sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-          result = JSON.parse(sample)
-          # adding single biosample characteristics to JSON array
-          @result["results"]["bindings"].find{|n| n["characteristics"] = result["results"]["bindings"] if n["biosample"]["value"].to_s == biosample.to_s }
-        end
-        # add sample characteristics
-        samples = @result["results"]["bindings"].map{|n| n["sample"]["value"]}
-        # add new JSON head
-        @result["head"]["vars"] << "sampleChar"
-        samples.uniq.each do |sample|
-          sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => sample }
-          response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-          result = JSON.parse(response)
-          # adding single sample characteristics to JSON array
-          @result["results"]["bindings"].find{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s}
-        end
-        @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
-        @result["results"]["bindings"].each{|n| n["sampleChar"] ||= [] }
-        # result to JSON
-        result = JSON.pretty_generate(@result)
-        # write result to dashboard_file
-        replace_cache result
       end
 
       # @!group Helpers to link FTP data 
