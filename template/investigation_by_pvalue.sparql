@@ -9,7 +9,7 @@ PREFIX skos:<http://www.w3.org/2004/02/skos/core#>
 PREFIX owl:<http://www.w3.org/2002/07/owl#>
 PREFIX tb:<http://onto.toxbank.net/api/>
 
-SELECT DISTINCT ?investigation ?gene WHERE {
+SELECT DISTINCT ?investigation WHERE {
    ?investigation rdf:type isa:Investigation.
    ?investigation isa:hasStudy ?study.
    ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
