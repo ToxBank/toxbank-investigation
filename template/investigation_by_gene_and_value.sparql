@@ -35,5 +35,5 @@ SELECT DISTINCT ?investigation WHERE {
    ?datanode rdf:type isa:DataNode.
    ?datanode isa:hasStudy ?study.
    ?study rdf:type isa:Study.
-   FILTER( ?value <= %{value} ).
+   FILTER( ?value %{relOperator} %{value} ).
 }
