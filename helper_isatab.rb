@@ -89,7 +89,7 @@ module OpenTox
               $logger.debug "datafiles:\t#{datafiles}"
               unless datafiles.blank?
                 # split extra datasets
-                datafiles.each{|dataset| `split -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+                datafiles.each{|dataset| `split -a 4 -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
                 chunkfiles = Dir["#{tmp}/*.nt_*"]
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
