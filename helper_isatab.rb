@@ -135,19 +135,16 @@ module OpenTox
           bindings.each{|b| a << bindings.map{|x| x if x["sample"]["value"] == b["sample"]["value"]}.compact }
           # compare and uniq sample [compound, dose, time]
           a.each do |sample|
+            @collected_values = []
             sample.each do |s|
-              compound = sample[0]["value"]["value"]
-              dose = sample[1]["value"]["value"]
-              #TODO compare by key;hotfix for missing time
-              if sample.size == 3
-                time = sample[2]["value"]["value"]
-                @collected_values = [compound, dose, time]
-              else
-                @collected_values = [compound, dose]
-              end
+              compound = s["value"]["value"] if s["factorname"]["value"] =~ /compound/i
+              dose = s["value"]["value"] if s["factorname"]["value"] =~ /dose/i
+              time = s["value"]["value"] if s["factorname"]["value"] =~ /time/i
+              @collected_values << [compound, dose, time]
             end
-            if !b.include?(@collected_values)
-              b << @collected_values
+            collected_values = @collected_values.flatten.compact
+            if !b.include?(collected_values)
+              b << collected_values
               c << sample
             end
           end
