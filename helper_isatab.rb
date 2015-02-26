@@ -50,7 +50,6 @@ module OpenTox
       # @see https://github.com/ToxBank/isa2rdf
       def isa2rdf
         # @note isa2rdf returns correct exit code but error in task
-        # @todo delete dir if task catches error, pass error to block
         `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
         if !File.exists?(File.join tmp, nt)
           out = IO.read(File.join tmp, 'log') 
@@ -61,10 +60,10 @@ module OpenTox
           `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
           investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
           `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
-          # `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
+          FileUtils.remove_entry tmp
 
           # create dashboard cache and empty JSON object
           create_cache
@@ -75,22 +74,22 @@ module OpenTox
           
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
             sleep 30 # wait until metadata imported and preview requested
-            `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
+            `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
             # get rdfs
             sleep 10 # wait until first file is generated
-            rdfs = Dir["#{tmp}/*.rdf"]
+            rdfs = Dir["#{dir}/*.rdf"]
             $logger.debug "rdfs:\t#{rdfs}\n"
             unless rdfs.blank?
               sleep 1
-              rdfs = Dir["#{tmp}/*.rdf"].reject!{|rdf| rdf.blank?}
+              rdfs = Dir["#{dir}/*.rdf"].reject!{|rdf| rdf.blank?}
             else
               # get ntriples datafiles
-              datafiles = Dir["#{tmp}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
+              datafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
               $logger.debug "datafiles:\t#{datafiles}"
               unless datafiles.blank?
                 # split extra datasets
                 datafiles.each{|dataset| `split -a 4 -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
-                chunkfiles = Dir["#{tmp}/*.nt_*"]
+                chunkfiles = Dir["#{dir}/*.nt_*"]
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
                 # append datasets to investigation graph
@@ -100,10 +99,8 @@ module OpenTox
                   set_modified
                   File.delete(dataset)
                 end
-                datafiles.each{|file| FileUtils.cp file, dir}
               end # datafiles
             end # rdfs
-            FileUtils.remove_entry tmp
 
             # update JSON object with dashboard values
             dashboard_cache
