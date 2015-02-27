@@ -1,4 +1,10 @@
 = ChangeLog
+== v2.4.0 Februar 2015
+- 02/2015 updated rescue script
+- 02/2015 optimized disk space handling for derived data processing
+- 01/2015 optimized derived data management
+- 12/2014 enable relational parameter for bio search
+- 12/2014 added FC in bio search
 == v2.3.1 November 2014
 - 11/2014 combine characteristics (source node, sample) for single investigation dashboard 
 == v2.3.0 October 2014
