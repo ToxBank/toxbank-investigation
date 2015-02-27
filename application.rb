@@ -196,12 +196,21 @@ module OpenTox
       templates = get_templates ""
       templatename = params[:templatename].underscore
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
+      bad_request_error "relational operator not expected." if params[:relOperator] and templatename !~ /_by_gene_and_value$/
       case templatename
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
+        bad_request_error "missing relational operator 'above' or 'below' ." if params[:relOperator].blank? || params[:relOperator] !~ /^above$|^below$/
         bad_request_error "missing parameter value. Request needs a value." if params[:value].blank?
         bad_request_error "missing parameter value_type. Request needs a value_type like 'FC:0.7'." if params[:value].to_s !~ /.*\:.*/
         bad_request_error "wrong parameter value_type. Request needs a value_type like 'FC,pvalue,qvalue'." if params[:value].split(":").first !~ /^FC$|^pvalue$|^qvalue$/
+
+        #if params[:relOperator].blank?
+        #  relOperator = "<="
+        #else
+        #  relOperator = params[:relOperator] =~ /above/ ? ">=" : "<="
+        #end
+        relOperator = params[:relOperator] =~ /above/ ? ">=" : "<="
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         # split params[:value] in "value_type" and "value"
         value_type = "http://onto.toxbank.net/isa/" + params[:value].split(":").first
@@ -211,11 +220,11 @@ module OpenTox
           genes.each do |gene|
             VArr << "{ ?dataentry skos:closeMatch #{gene.gsub("'","").strip}. }" unless gene.empty?
           end
-          sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION "), :value_type => value_type, :value => value }
+          sparqlstring = File.read(templates[templatename]) % { :Values => VArr.join(" UNION "), :value_type => value_type, :value => value, :relOperator => relOperator }
         else
-          sparqlstring = File.read(templates[templatename]) % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }", :value_type => value_type, :value => value }
+          sparqlstring = File.read(templates[templatename]) % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }", :value_type => value_type, :value => value, :relOperator => relOperator }
         end
-        #$logger.debug sparqlstring
+        $logger.debug sparqlstring
         result = FourStore.query sparqlstring, "application/json"
         check_get_access result
       when /_and_/

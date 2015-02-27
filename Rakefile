@@ -99,7 +99,7 @@ namespace :fourstore do
           # extra files
           extrafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
           unless extrafiles.nil?
-            extrafiles.each{|dataset| `split -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+            extrafiles.each{|dataset| `split -a 4 -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
           end
 
           extrafiles = Dir["#{dir}/*.nt_*"]

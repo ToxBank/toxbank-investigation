@@ -50,7 +50,6 @@ module OpenTox
       # @see https://github.com/ToxBank/isa2rdf
       def isa2rdf
         # @note isa2rdf returns correct exit code but error in task
-        # @todo delete dir if task catches error, pass error to block
         `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
         if !File.exists?(File.join tmp, nt)
           out = IO.read(File.join tmp, 'log') 
@@ -61,10 +60,10 @@ module OpenTox
           `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
           investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
           `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
-          # `echo '\n<#{investigation_uri}> <#{RDF::DC.modified}> "#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}" .' >> #{File.join tmp,nt}`
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           FileUtils.rm Dir[File.join(tmp,"*.zip")]
           FileUtils.cp Dir[File.join(tmp,"*")], dir
+          FileUtils.remove_entry tmp
 
           # create dashboard cache and empty JSON object
           create_cache
@@ -75,22 +74,22 @@ module OpenTox
           
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
             sleep 30 # wait until metadata imported and preview requested
-            `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{tmp} -i #{investigation_uri} -a #{File.join tmp} -o #{File.join tmp,nt} -t #{$user_service[:uri]} 2> #{File.join tmp,'log'} &`
+            `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
             # get rdfs
             sleep 10 # wait until first file is generated
-            rdfs = Dir["#{tmp}/*.rdf"]
+            rdfs = Dir["#{dir}/*.rdf"]
             $logger.debug "rdfs:\t#{rdfs}\n"
             unless rdfs.blank?
               sleep 1
-              rdfs = Dir["#{tmp}/*.rdf"].reject!{|rdf| rdf.blank?}
+              rdfs = Dir["#{dir}/*.rdf"].reject!{|rdf| rdf.blank?}
             else
               # get ntriples datafiles
-              datafiles = Dir["#{tmp}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
+              datafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
               $logger.debug "datafiles:\t#{datafiles}"
               unless datafiles.blank?
                 # split extra datasets
-                datafiles.each{|dataset| `split -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
-                chunkfiles = Dir["#{tmp}/*.nt_*"]
+                datafiles.each{|dataset| `split -a 4 -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+                chunkfiles = Dir["#{dir}/*.nt_*"]
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
                 # append datasets to investigation graph
@@ -100,10 +99,8 @@ module OpenTox
                   set_modified
                   File.delete(dataset)
                 end
-                datafiles.each{|file| FileUtils.cp file, dir}
               end # datafiles
             end # rdfs
-            FileUtils.remove_entry tmp
 
             # update JSON object with dashboard values
             dashboard_cache
@@ -129,60 +126,61 @@ module OpenTox
         factorvalues = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
         @result = JSON.parse(factorvalues)
         bindings = @result["results"]["bindings"]
-        # init arrays; a = by sample_uri; b = compare samples; c = uniq result
-        a = []; b = []; c = []
-        bindings.each{|b| a << bindings.map{|x| x if x["sample"]["value"] == b["sample"]["value"]}.compact }
-        # compare and uniq sample [compound, dose, time]
-        a.each do |sample|
-          sample.each do |s|
-            compound = sample[0]["value"]["value"]
-            dose = sample[1]["value"]["value"]
-            #TODO compare by key;hotfix for missing time
-            if sample.size == 3
-              time = sample[2]["value"]["value"]
-              @collected_values = [compound, dose, time]
-            else
-              @collected_values = [compound, dose]
+        unless bindings.blank?
+          # init arrays; a = by sample_uri; b = compare samples; c = uniq result
+          a = []; b = []; c = []
+          bindings.each{|b| a << bindings.map{|x| x if x["sample"]["value"] == b["sample"]["value"]}.compact }
+          # compare and uniq sample [compound, dose, time]
+          a.each do |sample|
+            @collected_values = []
+            sample.each do |s|
+              compound = s["value"]["value"] if s["factorname"]["value"] =~ /compound/i
+              dose = s["value"]["value"] if s["factorname"]["value"] =~ /dose/i
+              time = s["value"]["value"] if s["factorname"]["value"] =~ /time/i
+              @collected_values << [compound, dose, time]
+            end
+            collected_values = @collected_values.flatten.compact
+            if !b.include?(collected_values)
+              b << collected_values
+              c << sample
             end
           end
-          if !b.include?(@collected_values)
-            b << @collected_values
-            c << sample
+          # clear original bindings
+          @result["results"]["bindings"].clear
+          # add new bindings
+          @result["results"]["bindings"] = c.flatten!
+          
+          # add biosample characteristics
+          biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
+          # add new JSON head
+          @result["head"]["vars"] << "characteristics"
+          biosamples.uniq.each do |biosample|
+            sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
+            sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            result = JSON.parse(sample)
+            # adding single biosample characteristics to JSON array
+            @result["results"]["bindings"].find{|n| n["characteristics"] = result["results"]["bindings"] if n["biosample"]["value"].to_s == biosample.to_s }
           end
+          # add sample characteristics
+          samples = @result["results"]["bindings"].map{|n| n["sample"]["value"]}
+          # add new JSON head
+          @result["head"]["vars"] << "sampleChar"
+          samples.uniq.each do |sample|
+            sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => sample }
+            response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            result = JSON.parse(response)
+            # adding single sample characteristics to JSON array
+            @result["results"]["bindings"].find{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s}
+          end
+          @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
+          @result["results"]["bindings"].each{|n| n["sampleChar"] ||= [] }
+          # result to JSON
+          result = JSON.pretty_generate(@result)
+          # write result to dashboard_file
+          replace_cache result
+        else
+          $logger.error "Unable to create dashboard file for investigation #{params[:id]}"
         end
-        # clear original bindings
-        @result["results"]["bindings"].clear
-        # add new bindings
-        @result["results"]["bindings"] = c.flatten!
-        
-        # add biosample characteristics
-        biosamples = @result["results"]["bindings"].map{|n| n["biosample"]["value"]}
-        # add new JSON head
-        @result["head"]["vars"] << "characteristics"
-        biosamples.uniq.each do |biosample|
-          sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => biosample }
-          sample = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-          result = JSON.parse(sample)
-          # adding single biosample characteristics to JSON array
-          @result["results"]["bindings"].find{|n| n["characteristics"] = result["results"]["bindings"] if n["biosample"]["value"].to_s == biosample.to_s }
-        end
-        # add sample characteristics
-        samples = @result["results"]["bindings"].map{|n| n["sample"]["value"]}
-        # add new JSON head
-        @result["head"]["vars"] << "sampleChar"
-        samples.uniq.each do |sample|
-          sparqlstring = File.read(templates["characteristics_by_sample"]) % { :sample_uri => sample }
-          response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-          result = JSON.parse(response)
-          # adding single sample characteristics to JSON array
-          @result["results"]["bindings"].find{|n| n["sampleChar"] = result["results"]["bindings"] if n["sample"]["value"].to_s == sample.to_s}
-        end
-        @result["results"]["bindings"].each{|n| n["characteristics"] ||= [] }
-        @result["results"]["bindings"].each{|n| n["sampleChar"] ||= [] }
-        # result to JSON
-        result = JSON.pretty_generate(@result)
-        # write result to dashboard_file
-        replace_cache result
       end
 
       # @!group Helpers to link FTP data 
