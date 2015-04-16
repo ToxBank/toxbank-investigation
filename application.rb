@@ -227,6 +227,14 @@ module OpenTox
         $logger.debug sparqlstring
         result = FourStore.query sparqlstring, "application/json"
         check_get_access result
+      when /^genelist/
+        response = FourStore.query File.read(templates[templatename]) , "application/json"
+        result = (check_get_access response)
+        out = JSON.parse(result)
+        out["head"]["vars"].delete_if{|i| i == "investigation"}
+        out["results"]["bindings"].each{|node| node.delete_if{|i| i == "investigation"}}
+        out["results"]["bindings"].uniq!
+        JSON.pretty_generate(out)
       when /_and_/
         result = FourStore.query File.read(templates[templatename]) , "application/json"
         check_get_access result
