@@ -58,7 +58,7 @@ module OpenTox
           bad_request_error "Could not parse isatab file in '#{params[:file][:filename]}'. Message is:\n #{out}"
         else
           `sed -i 's;http://onto.toxbank.net/isa/tmp/;#{investigation_uri}/;g' #{File.join tmp,nt}`
-          investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
+          investigation_id = `grep "#{investigation_uri}/I[0-9]+" #{File.join tmp,nt}|cut -f1 -d ' '`.strip
           `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join tmp,nt}`
           `echo "<#{investigation_uri}> <#{RDF.type}> <#{RDF::OT.Investigation}> ." >>  #{File.join tmp,nt}`
           FileUtils.rm Dir[File.join(tmp,"*.zip")]
