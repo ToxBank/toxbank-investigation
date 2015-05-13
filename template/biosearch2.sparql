@@ -1,0 +1,43 @@
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX isa: <http://onto.toxbank.net/isa/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+
+SELECT DISTINCT ?biosample ?factorname ?value ?ontouri ?unitOnto ?unit WHERE {
+
+## pass ?data from scenario1 
+?datanode isa:hasData <%{data}>. 
+?dpn isa:hasOutputNode ?datanode .
+## study from 
+?dpn isa:hasStudy ?study .
+
+?node1 isa:hasMaterial ?material.
+?node1 isa:hasStudy ?study.
+
+ ?node1 rdf:type isa:MaterialNode.
+ ?node1 isa:hasMaterial ?biosample.
+
+ ?mp isa:hasInputNode ?node1.
+
+ ?mp isa:hasOutputNode ?node2.
+ ?node2 isa:hasMaterial ?sample.
+ ?node2 isa:hasStudy ?study.
+ ?node2 rdf:type isa:MaterialNode.
+
+ ?sample isa:hasFactorValue ?factorValue.
+ OPTIONAL {?factorValue isa:hasOntologyTerm ?ontouri. }
+ ?factorValue isa:hasValue ?value.
+ OPTIONAL {
+  ?factorValue isa:hasUnit ?unitOnto.
+  ?unitOnto rdfs:label ?unit.
+ }
+ ?factorValue isa:hasFactor ?factor.
+ ?factor dcterms:title ?factorname.
+ FILTER (!regex(?factorname, "^$")).
+ MINUS {
+   ?mp isa:hasOutputNode ?node1.
+ }
+}
+
+

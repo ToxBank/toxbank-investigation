@@ -198,6 +198,46 @@ module OpenTox
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
       bad_request_error "relational operator not expected." if params[:relOperator] and templatename !~ /_by_gene_and_value$/
       case templatename
+      when /^biosearch$/
+        genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
+        if genes.class == Array
+          VArr = []
+          genes.each do |gene|
+            VArr << "{ ?dataentry skos:closeMatch #{gene.gsub("'","").strip}. }" unless gene.empty?
+          end
+          sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch.sparql") % { :Values => VArr.join(" UNION ") }
+        else
+          sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch.sparql") % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }" }
+        end
+        response = FourStore.query sparqlstring, "application/json"
+        @a = JSON.parse(check_get_access response)
+        @a["head"]["vars"] << "factorvalues"
+        @a["head"]["vars"] << "characteristics"
+        datanodes = @a["results"]["bindings"].map{|n| n["data"]["value"] }.uniq
+        
+        # collect factorvalues with biosamples by datanode
+        sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch2.sparql") % { :data => datanodes[0]}
+        response = FourStore.query sparqlstring, "application/json"
+        @b = JSON.parse(response)
+        @biosamples = @b["results"]["bindings"].map{|n| n["biosample"]["value"]}.uniq
+        #@a["results"]["bindings"].find{|n| n["data"]["value"] == datanodes[0]}["factorvalues"] ||= @b["results"]["bindings"] 
+        datanodes.each_with_index{|d,idx| @a["results"]["bindings"].find{|n| n["data"]["value"] == d}["factorvalues"] ||= @b["results"]["bindings"][idx]}
+        
+        # collect characteristics by biosample
+        sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch3.sparql") % { :sample_uri => @biosamples[0]}
+        response = FourStore.query sparqlstring, "application/json"
+        @c = JSON.parse(response)
+        @a["results"]["bindings"].find{|n| n["factorvalues"]}["characteristics"] ||= @c["results"]["bindings"]
+        
+        # paste characteristics
+        @a["results"]["bindings"].find{|n| n["factorvalues"]}["characteristics"] ||= @characteristics
+        
+        #clean up
+        @a["head"]["vars"].delete("data")
+        @a["results"]["bindings"].each{|n| n.delete("data")}
+        
+        # parse for output
+        JSON.pretty_generate(@a)
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         bad_request_error "missing relational operator 'above' or 'below' ." if params[:relOperator].blank? || params[:relOperator] !~ /^above$|^below$/
