@@ -12,7 +12,7 @@ PREFIX unigene: <http://onto.toxbank.net/isa/Unigene/>
 PREFIX refseq:<http://onto.toxbank.net/isa/RefSeq/>
 PREFIX tb:    <http://onto.toxbank.net/api/>
 
-SELECT DISTINCT ?investigation ?data ?featureType ?value WHERE {
+SELECT DISTINCT ?investigation ?featureType ?dataTransformationName ?value WHERE {
    ?investigation rdf:type isa:Investigation.
    ?investigation isa:hasStudy ?study.
    ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
@@ -28,7 +28,8 @@ SELECT DISTINCT ?investigation ?data ?featureType ?value WHERE {
    ?feature ot:hasSource ?data.
    ?data isa:hasOntologyTerm ?datatype.
    ?datanode isa:hasData ?data.
+   ?data isa:hasAccessionID ?dataTransformationName.
    ?datanode rdf:type isa:DataNode.
    ?datanode isa:hasStudy ?study.
    ?study rdf:type isa:Study.
-}
+} ORDER BY ?dataTransformationName

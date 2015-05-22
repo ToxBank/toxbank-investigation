@@ -195,6 +195,7 @@ module OpenTox
       bad_request_error "Mime type #{@accept} not supported here. Please request data as 'application/json'." unless (@accept.to_s == "application/json")
       templates = get_templates ""
       templatename = params[:templatename].underscore
+      $logger.debug templatename
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
       bad_request_error "relational operator not expected." if params[:relOperator] and templatename !~ /_by_gene_and_value$/
       case templatename
@@ -211,31 +212,32 @@ module OpenTox
         end
         response = FourStore.query sparqlstring, "application/json"
         @a = JSON.parse(check_get_access response)
-        @a["head"]["vars"] << "factorvalues"
-        @a["head"]["vars"] << "characteristics"
-        datanodes = @a["results"]["bindings"].map{|n| n["data"]["value"] }.uniq
-        
-        # collect factorvalues with biosamples by datanode
-        sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch2.sparql") % { :data => datanodes[0]}
-        response = FourStore.query sparqlstring, "application/json"
-        @b = JSON.parse(response)
-        @biosamples = @b["results"]["bindings"].map{|n| n["biosample"]["value"]}.uniq
-        #@a["results"]["bindings"].find{|n| n["data"]["value"] == datanodes[0]}["factorvalues"] ||= @b["results"]["bindings"] 
-        datanodes.each_with_index{|d,idx| @a["results"]["bindings"].find{|n| n["data"]["value"] == d}["factorvalues"] ||= @b["results"]["bindings"][idx]}
-        
-        # collect characteristics by biosample
-        sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch3.sparql") % { :sample_uri => @biosamples[0]}
-        response = FourStore.query sparqlstring, "application/json"
-        @c = JSON.parse(response)
-        @a["results"]["bindings"].find{|n| n["factorvalues"]}["characteristics"] ||= @c["results"]["bindings"]
-        
-        # paste characteristics
-        @a["results"]["bindings"].find{|n| n["factorvalues"]}["characteristics"] ||= @characteristics
-        
-        #clean up
-        @a["head"]["vars"].delete("data")
-        @a["results"]["bindings"].each{|n| n.delete("data")}
-        
+        @a["head"]["vars"] << "sample"
+        @a["head"]["vars"] << "factorValues"
+        @a["head"]["vars"] << "cell"
+        # search in files for sample by transformation name
+        transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
+        samples = []
+        cells = []
+        transNames.each do |n|
+          id = n[0].split("/").last
+          sample = `grep "#{n[1]}" #{File.join dir+ "/" +id, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").first
+          cell = `grep "#{sample}" #{File.join dir+ "/" +id, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
+          samples << {n[1] => sample}
+          cells << cell
+        end
+        match_index = []
+        samples.uniq.each do |nr|
+          nr.each do |k, v|
+            match_index = @a["results"]["bindings"].index(@a["results"]["bindings"].find{ |n| n["dataTransformationName"]["value"] == k })
+            @a["results"]["bindings"][match_index]["sample"] = v
+            sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch_sample.sparql") % { :sampl => v}
+            response = FourStore.query sparqlstring, "application/json"
+            @a["results"]["bindings"][match_index]["factorValues"] = JSON.parse(response)["results"]["bindings"]
+            @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
+          end
+        end 
+
         # parse for output
         JSON.pretty_generate(@a)
       when /_by_gene_and_value$/
