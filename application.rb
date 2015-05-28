@@ -201,45 +201,46 @@ module OpenTox
       case templatename
       when /^biosearch$/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
-        if genes.class == Array
-          VArr = []
-          genes.each do |gene|
-            VArr << "{ ?dataentry skos:closeMatch #{gene.gsub("'","").strip}. }" unless gene.empty?
-          end
-          sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch.sparql") % { :Values => VArr.join(" UNION ") }
-        else
-          sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch.sparql") % { :Values => "{ ?dataentry skos:closeMatch #{values.gsub("'","").strip}. }" }
-        end
-        response = FourStore.query sparqlstring, "application/json"
-        @a = JSON.parse(check_get_access response)
-        @a["head"]["vars"] << "sample"
-        @a["head"]["vars"] << "factorValues"
-        @a["head"]["vars"] << "cell"
-        # search in files for sample by transformation name
-        transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
-        samples = []
-        cells = []
-        transNames.each do |n|
-          id = n[0].split("/").last
-          sample = `grep "#{n[1]}" #{File.join dir+ "/" +id, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").first
-          cell = `grep "#{sample}" #{File.join dir+ "/" +id, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
-          samples << {n[1] => sample}
-          cells << cell
-        end
-        match_index = []
-        samples.uniq.each do |nr|
-          nr.each do |k, v|
-            match_index = @a["results"]["bindings"].index(@a["results"]["bindings"].find{ |n| n["dataTransformationName"]["value"] == k })
-            @a["results"]["bindings"][match_index]["sample"] = v
-            sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch_sample.sparql") % { :sampl => v}
-            response = FourStore.query sparqlstring, "application/json"
-            @a["results"]["bindings"][match_index]["factorValues"] = JSON.parse(response)["results"]["bindings"]
-            @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
-          end
-        end 
+        out = []
+        genes.each do |gene|
+          gene = gene.gsub("'","").strip
+          sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch.sparql") % { :Values => "{ ?dataentry skos:closeMatch #{gene}. }" }
 
+          response = FourStore.query sparqlstring, "application/json"
+          @a = JSON.parse(check_get_access response)
+          @a["head"]["vars"] << "gene"
+          @a["head"]["vars"] << "sample"
+          @a["head"]["vars"] << "factorValues"
+          @a["head"]["vars"] << "cell"
+          # set headers for output
+          out << {"head" => {"vars" => @a["head"]["vars"]}}
+          # search in files for sample by transformation name
+          @a["results"]["bindings"].each{|n| n["gene"] = "#{gene}"}
+          transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
+          samples = []
+          cells = []
+          transNames.each do |n|
+            id = n[0].split("/").last
+            sample = `grep "#{n[1]}" #{File.join dir+ "/" +id, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").first
+            cell = `grep "#{sample}" #{File.join dir+ "/" +id, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
+            samples << {n[1] => sample}
+            cells << cell
+          end
+          match_index = []
+          samples.uniq.each do |nr|
+            nr.each do |k, v|
+              match_index = @a["results"]["bindings"].index(@a["results"]["bindings"].find{ |n| n["dataTransformationName"]["value"] == k })
+              @a["results"]["bindings"][match_index]["sample"] = v
+              sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch_sample.sparql") % { :sampl => v}
+              response = FourStore.query sparqlstring, "application/json"
+              @a["results"]["bindings"][match_index]["factorValues"] = JSON.parse(response)["results"]["bindings"]
+              @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
+            end
+          end
+          out << {"results" => {"bindings" => @a["results"]["bindings"]}}
+        end unless genes.empty?
         # parse for output
-        JSON.pretty_generate(@a)
+        JSON.pretty_generate(out.uniq!.flatten)
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         bad_request_error "missing relational operator 'above' or 'below' ." if params[:relOperator].blank? || params[:relOperator] !~ /^above$|^below$/
