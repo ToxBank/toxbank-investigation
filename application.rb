@@ -200,7 +200,9 @@ module OpenTox
       bad_request_error "relational operator not expected." if params[:relOperator] and templatename !~ /_by_gene_and_value$/
       case templatename
       when /^biosearch$/
+        bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
+        genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /genesymbol|unigene|uniprot|entrez|refseq/}
         out = []
         bindings = []
         genes.each do |gene|
@@ -242,7 +244,7 @@ module OpenTox
         end unless genes.empty?
         out << {"results" => {"bindings" => bindings.flatten}}
         # parse for output
-        JSON.pretty_generate(out.uniq!.flatten)
+        JSON.pretty_generate(out.uniq.compact.flatten)
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         bad_request_error "missing relational operator 'above' or 'below' ." if params[:relOperator].blank? || params[:relOperator] !~ /^above$|^below$/
