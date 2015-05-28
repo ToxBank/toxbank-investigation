@@ -202,6 +202,7 @@ module OpenTox
       when /^biosearch$/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         out = []
+        bindings = []
         genes.each do |gene|
           gene = gene.gsub("'","").strip
           sparqlstring = File.read(File.join File.dirname(File.expand_path __FILE__), "template/biosearch.sparql") % { :Values => "{ ?dataentry skos:closeMatch #{gene}. }" }
@@ -237,8 +238,9 @@ module OpenTox
               @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
             end
           end
-          out << {"results" => {"bindings" => @a["results"]["bindings"]}}
+          bindings << @a["results"]["bindings"]
         end unless genes.empty?
+        out << {"results" => {"bindings" => bindings.flatten}}
         # parse for output
         JSON.pretty_generate(out.uniq!.flatten)
       when /_by_gene_and_value$/
