@@ -243,8 +243,12 @@ module OpenTox
           bindings << @a["results"]["bindings"]
         end unless genes.empty?
         out << {"results" => {"bindings" => bindings.flatten}}
-        # parse for output
-        JSON.pretty_generate(out.uniq.compact.flatten)
+        out = out.uniq.compact.flatten
+        # assemble json hash
+        head = out[0]
+        body = out[1]
+        # generate json object
+        JSON.pretty_generate(head.merge(body))
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         bad_request_error "missing relational operator 'above' or 'below' ." if params[:relOperator].blank? || params[:relOperator] !~ /^above$|^below$/
