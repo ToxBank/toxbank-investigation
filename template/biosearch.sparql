@@ -10,11 +10,12 @@ PREFIX uniprot:<http://purl.uniprot.org/uniprot/>
 PREFIX genesymbol: <http://onto.toxbank.net/isa/Symbol/>
 PREFIX unigene: <http://onto.toxbank.net/isa/Unigene/>
 PREFIX refseq:<http://onto.toxbank.net/isa/RefSeq/>
-PREFIX tb:    <http://onto.toxbank.net/api/>
+PREFIX tb: <http://onto.toxbank.net/api/>
 
-SELECT DISTINCT ?investigation ?featureType  ?title ?dataTransformationName ?value WHERE {
+SELECT DISTINCT ?investigation ?invTitle ?featureType ?title ?dataTransformationName ?value WHERE {
    ?investigation rdf:type isa:Investigation.
    ?investigation isa:hasStudy ?study.
+   ?investigation dcterms:title ?invTitle.
    ?investigation tb:isPublished "true"^^<http://www.w3.org/2001/XMLSchema#boolean>.
    ?dataentry ot:values ?fv.
    {
