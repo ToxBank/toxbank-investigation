@@ -284,6 +284,7 @@ module OpenTox
         out = JSON.parse(result)
         out["head"]["vars"].delete_if{|i| i == "investigation"}
         out["results"]["bindings"].each{|node| node.delete_if{|i| i == "investigation"}}
+        out["results"]["bindings"].delete_if{|node| node["genes"]["value"] !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or node["genes"]["value"] =~ /\/NA$/ }.compact
         out["results"]["bindings"].uniq!
         JSON.pretty_generate(out)
       when /_and_/
