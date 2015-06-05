@@ -51,10 +51,11 @@ module OpenTox
     # @overload get "/investigation/?"
     # List URIs of all investigations or investigations of a user.
     # @param header [hash]
-    #   * Accept [String] <text/uri-list, application/rdf+xml, application/json>
+    #   * Accept [optional, String] <text/uri-list, application/rdf+xml, application/json>
     #   * subjectid [String] authorization token
     # @return [String] text/uri-list, application/rdf+xml, application/json List of investigations.
-    # @raise [BadRequestError] if wrong mime-type
+    # @raise [400, BadRequestError] if wrong mime-type
+    # @raise [200, OK] OK
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations API: Get a list of investigations
     get '/investigation/?' do
       mime_types = ['text/uri-list', 'application/rdf+xml', 'application/json']
