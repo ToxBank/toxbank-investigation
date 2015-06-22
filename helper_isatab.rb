@@ -71,7 +71,7 @@ module OpenTox
           out << {"head" => {"vars" => @a["head"]["vars"]}}
           # search in files for sample by transformation name
           #$logger.debug gene
-          @a["results"]["bindings"].each{|n| n["gene"] = "#{gene}"}
+          @a["results"]["bindings"].each{|n| n["gene"] = "#{gene.split("/").last(2).join(":")}"}
           transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
           samples = []
           cells = []
@@ -102,6 +102,7 @@ module OpenTox
           # generate json object
           js = JSON.pretty_generate(head.merge(body))
           File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
+          sleep 1
         end unless genes.empty?
       end
 
@@ -143,6 +144,8 @@ module OpenTox
               sleep 1
               rdfs = Dir["#{dir}/*.rdf"].reject!{|rdf| rdf.blank?}
             else
+              investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join dir,nt}|cut -f1 -d ' '`.strip
+              `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join dir,nt}`
               # get ntriples datafiles
               datafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
               $logger.debug "datafiles:\t#{datafiles}"

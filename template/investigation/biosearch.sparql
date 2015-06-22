@@ -12,10 +12,11 @@ PREFIX unigene: <http://onto.toxbank.net/isa/Unigene/>
 PREFIX refseq:<http://onto.toxbank.net/isa/RefSeq/>
 PREFIX tb:    <http://onto.toxbank.net/api/>
 
-SELECT DISTINCT ?investigation ?featureType  ?title ?dataTransformationName ?value WHERE { GRAPH <%{investigation_uri}> 
+SELECT DISTINCT ?investigation ?invTitle ?featureType  ?title ?dataTransformationName ?value WHERE { GRAPH <%{investigation_uri}> 
 {
    ?investigation rdf:type isa:Investigation.
    ?investigation isa:hasStudy ?study.
+   ?investigation dcterms:title ?invTitle.
    ?dataentry ot:values ?fv.
    {
      %{Values} 

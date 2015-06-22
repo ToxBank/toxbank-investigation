@@ -331,7 +331,7 @@ module OpenTox
         $logger.debug "updating gene files"
         build_gene_files
       end
-      return "updating gene files\n"
+      return "Updating gene files:\n#{task.uri}\n"
     end
 
     # @method get_dashboard
