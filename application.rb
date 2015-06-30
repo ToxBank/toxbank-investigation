@@ -205,23 +205,21 @@ module OpenTox
         genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /genesymbol\:|unigene\:|uniprot\:|entrez\:|refseq\:/}
         genefiles = []
         genes.each{|g| genefiles << Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/#{g.split(":").last.gsub("'", "")}.json"] }
-        #$logger.debug genefiles
         out = []
         heads = []
         bindings = []
-        # check if gene file exists
-        genefiles.delete_if{|f| !File.exists? File.join(f)}
+        genefiles.flatten!
+        #TODO remove unpublished investigations
         if genefiles.empty?
           hash = {"head" => {"vars" => ["investigation", "featureType", "title", "dataTransformationName", "value", "gene", "sample", "factorValues", "cell"]}, "results" => {"bindings" => []}}
           return JSON.pretty_generate(hash)
         else
           genefiles.each do |file| 
-            #@a = JSON.parse File.read File.join(file)
+            $logger.debug "checking for access: #{file}"
             @a = JSON.parse(check_get_access File.read File.join(file))
             heads << {"head" => {"vars" => @a["head"]["vars"]}}
             bindings << @a["results"]["bindings"]
           end
-          #out << {"head" => {"vars" => heads.flatten.uniq}}
           out << heads.flatten.uniq[0]
           out << {"results" => {"bindings" => bindings.flatten.uniq}}
           head = out[0]
@@ -235,11 +233,6 @@ module OpenTox
         bad_request_error "missing parameter value_type. Request needs a value_type like 'FC:0.7'." if params[:value].to_s !~ /.*\:.*/
         bad_request_error "wrong parameter value_type. Request needs a value_type like 'FC,pvalue,qvalue'." if params[:value].split(":").first !~ /^FC$|^pvalue$|^qvalue$/
 
-        #if params[:relOperator].blank?
-        #  relOperator = "<="
-        #else
-        #  relOperator = params[:relOperator] =~ /above/ ? ">=" : "<="
-        #end
         relOperator = params[:relOperator] =~ /above/ ? ">=" : "<="
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         # split params[:value] in "value_type" and "value"

@@ -58,7 +58,6 @@ module OpenTox
           out = []
           gene = gene.gsub("'","").strip
           $logger.debug "biosearch for: #{gene}"
-          $logger.debug "File exists ? :#{File.exists?(File.join(dir, "#{gene.split("/").last}.json"))}\n"
           unless File.exists?(File.join(dir, "#{gene.split("/").last}.json"))
             sparqlstring = File.read(templates["biosearch"]) % { :investigation_uri => investigation_uri, :Values => "{ ?dataentry skos:closeMatch <#{gene}>. }" }
             #$logger.debug sparqlstring
@@ -106,6 +105,12 @@ module OpenTox
             File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
             sleep 1
           end
+          # git commit fails if list is to long; do it after each gene file
+          newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
+          if newfiles != ""
+            newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+            `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  modified by #{OpenTox::Authorization.get_user}"`
+          end
         end unless genes.empty?
       end
 
@@ -135,7 +140,7 @@ module OpenTox
           # next line moved to l.74
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          
+          #TODO check isa2rdf without -d param to avoid sed after
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
             sleep 30 # wait until metadata imported and preview requested
             `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
@@ -154,17 +159,17 @@ module OpenTox
               $logger.debug "datafiles:\t#{datafiles}"
               unless datafiles.blank?
                 # split extra datasets
-                #datafiles.each{|dataset| `split -a 4 -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
-                #chunkfiles = Dir["#{dir}/*.nt_*"]
-                #$logger.debug "chunkfiles:\t#{chunkfiles}"
+                datafiles.each{|dataset| `split -a 4 -d -l 100000 '#{dataset}' '#{dataset}_'` unless File.zero?(dataset)}
+                chunkfiles = Dir["#{dir}/*.nt_*"]
+                $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
                 # append datasets to investigation graph
-                #chunkfiles.sort{|a,b| a <=> b}.each do |dataset|
+                chunkfiles.sort{|a,b| a <=> b}.each do |dataset|
                 datafiles.each do |dataset|
                   OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
                   sleep 10 # time it takes to import and reindex
                   set_modified
-                  #File.delete(dataset)
+                  File.delete(dataset)
                 end
               end # datafiles
             end # rdfs
