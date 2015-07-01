@@ -46,67 +46,101 @@ module OpenTox
       end
 
       def build_gene_files
+        $logger.debug "Start processing derived data."
         templates = get_templates "investigation"
-        sparqlstring = File.read(templates["genelist"]) % { :investigation_uri => investigation_uri }
-        response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-        genes = JSON.parse(response)["results"]["bindings"].map{|n| n["genes"]["value"]}
-        genes.delete_if{|g| g !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or g =~ /\/NA$|\/0$/}.compact
+        # locate derived data files and prepare
+        datafiles = Dir["#{dir}/*.txt"]
+        $logger.debug "datafiles: #{datafiles}"
+        datafiles.each{|file| `dos2unix #{file}` }
+        @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
+        my = @client[params[:id]]
+        datafiles.reject{|file| file =~ /i_|a_|s_/}.each do |file| 
+          # setup database and import derived data files.
+          `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --numInsertionWorkers 4 --type tsv --file #{file} --headerline`
+        end unless datafiles.blank?
+        # building genelist
+        my = @client[params[:id]]
+        symbol = my.find.distinct(:Symbol)
+        entrez = my.find.distinct(:Entrez)
+        genelist = symbol+entrez
         # write to file
-        File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genes) }
-        #$logger.debug genes
+        File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genelist.reject!{|g| g.to_s =~ /^NA$|^0$/}.sort!{|a,b| a.to_s <=> b.to_s}) }
+        #$logger.debug genelist
+        # TODO could be more than one assay or study
+        file = datafiles.find{|f| f =~ /\/a_/ }
+        assay = CSV.read(file, { :col_sep => "\t", :row_sep => "\n", :headers => true, :header_converters => :symbol })
+        #$logger.debug assay[:data_transformation_name].inspect
+        file = datafiles.find{|f| f =~ /\/s_/ }
+        study = CSV.read(file, { :col_sep => "\t", :row_sep => "\n", :headers => true, :header_converters => :symbol })
+        genes = genelist
+        # working with genes
         genes.each do |gene|
           out = []
-          gene = gene.gsub("'","").strip
-          $logger.debug "biosearch for: #{gene}"
-          $logger.debug "File exists ? :#{File.exists?(File.join(dir, "#{gene.split("/").last}.json"))}\n"
-          unless File.exists?(File.join(dir, "#{gene.split("/").last}.json"))
-            sparqlstring = File.read(templates["biosearch"]) % { :investigation_uri => investigation_uri, :Values => "{ ?dataentry skos:closeMatch <#{gene}>. }" }
+          #$logger.debug "biosearch for: #{gene}"
+          #$logger.debug "File exists ? :#{File.exists?(File.join(dir, "#{gene}.json"))}\n"
+          unless File.exists?(File.join(dir, "#{gene}.json"))
+            a = (gene.class == String ? my.find(Symbol: "#{gene}").each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}} : my.find(Entrez: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}} )
+            #$logger.debug a.to_a
+            unless a.blank?
+              b = {}
+              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [a, assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/}}
+              #$logger.debug "b: #{b}"
+              c = {}
+              assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = ["#{x[2]}", "#{x[13]}", "#{x[18]}", "#{x[23]}", "#{x[24]}", "#{x[28]}", "#{x[29]}"] if x[-1] =~ /\b(#{sample})\b/}}
+              #$logger.debug "c: #{c}"
+              b.each{|k, v|  v << c[v.last] }
+              b.each{|k, v|  v.flatten!}
+              #$logger.debug out if gene =~ /TSPAN6/
+              File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(b) }
+            end
+            #sparqlstring = File.read(templates["factors_with_samplnr"]) % { :investigation_uri => investigation_uri }
             #$logger.debug sparqlstring
-            response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            #response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
             #$logger.debug response
-            @a = JSON.parse(response)
-            @a["head"]["vars"] << "gene"
-            @a["head"]["vars"] << "sample"
-            @a["head"]["vars"] << "factorValues"
-            @a["head"]["vars"] << "cell"
+            #@a = JSON.parse(response)
+            #@a["head"]["vars"] << "gene"
+            #@a["head"]["vars"] << "sample"
+            #@a["head"]["vars"] << "factorValues"
+            #@a["head"]["vars"] << "cell"
             # set headers for output
-            out << {"head" => {"vars" => @a["head"]["vars"]}}
+            #out << {"head" => {"vars" => @a["head"]["vars"]}}
             # search in files for sample by transformation name
             #$logger.debug gene
-            @a["results"]["bindings"].each{|n| n["gene"] = "#{gene.split("/").last(2).join(":")}"}
-            transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
-            samples = []
-            cells = []
-            transNames.each do |n|
-              sample = `grep "#{n[1]}" #{File.join dir, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").delete_if{|s| s =~ /control/i}.first
-              #$logger.debug sample
-              cell = `grep "#{sample}" #{File.join dir, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
-              #$logger.debug cell
-              samples << {n[1] => sample}
-              cells << cell
-            end
-            match_index = []
-            samples.uniq.each do |nr|
-              nr.each do |k, v|
-                match_index = @a["results"]["bindings"].index(@a["results"]["bindings"].find{ |n| n["dataTransformationName"]["value"] == k })
-                @a["results"]["bindings"][match_index]["sample"] = v
-                sparqlstring = File.read(templates["biosearch_sample"]) % { :investigation_uri => investigation_uri, :sampl => v}
-                response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-                @a["results"]["bindings"][match_index]["factorValues"] = JSON.parse(response)["results"]["bindings"]
-                @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
-              end
-            end
-            out << {"results" => {"bindings" => @a["results"]["bindings"].flatten}}
-            out = out.uniq.compact.flatten
+            #@a["results"]["bindings"].each{|n| n["gene"] = "#{gene.split("/").last(2).join(":")}"}
+            #transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
+            #samples = []
+            #cells = []
+            #transNames.each do |n|
+            #  sample = `grep "#{n[1]}" #{File.join dir, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").delete_if{|s| s =~ /control/i}.first
+            #  #$logger.debug sample
+            #  cell = `grep "#{sample}" #{File.join dir, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
+            #  #$logger.debug cell
+            #  samples << {n[1] => sample}
+            #  cells << cell
+            #end
+            #match_index = []
+            #samples.uniq.each do |nr|
+            #  nr.each do |k, v|
+            #    match_index = @a["results"]["bindings"].index(@a["results"]["bindings"].find{ |n| n["dataTransformationName"]["value"] == k })
+            #    @a["results"]["bindings"][match_index]["sample"] = v
+            #    sparqlstring = File.read(templates["biosearch_sample"]) % { :investigation_uri => investigation_uri, :sampl => v}
+            #    response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            #    @a["results"]["bindings"][match_index]["factorValues"] = JSON.parse(response)["results"]["bindings"]
+            #    @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
+            #  end
+            #end
+            #out << {"results" => {"bindings" => @a["results"]["bindings"].flatten}}
+            #out = out.uniq.compact.flatten
             # assemble json hash
-            head = out[0]
-            body = out[1]
+            #head = out[0]
+            #body = out[1]
             # generate json object
-            js = JSON.pretty_generate(head.merge(body))
-            File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
-            sleep 1
+            #js = JSON.pretty_generate(head.merge(body))
+            #File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
+            #sleep 1
           end
         end unless genes.empty?
+        $logger.debug "End processing derived data."
       end
 
       # ISA-TAB to RDF conversion.
@@ -138,6 +172,7 @@ module OpenTox
           
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
             sleep 30 # wait until metadata imported and preview requested
+=begin
             `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
             # get rdfs
             sleep 10 # wait until first file is generated
@@ -168,9 +203,9 @@ module OpenTox
                 end
               end # datafiles
             end # rdfs
-
+=end
             build_gene_files
-        
+=begin        
             # update JSON object with dashboard values
             dashboard_cache
             link_ftpfiles
@@ -179,6 +214,7 @@ module OpenTox
             DELETE { <#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}
             WHERE {<#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}"
             set_modified
+=end
             investigation_uri # result uri for subtask
           end # task
           # update metadata with subtask uri
