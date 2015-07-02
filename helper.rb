@@ -20,7 +20,7 @@ module OpenTox
         # ID.nt file is never a isatab file;
         # never use of ID.nt, deny view ?
         #uris.delete_if{|u| u.match(/tmp$|cache$|log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
-        uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$/)}
+        uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$|\.json$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
         uris.map!{ |u| File.symlink?("#{dir}/#{File.basename(u)}") ? u.gsub("/isatab/", "/files/") : u}
         uris.compact.sort.join("\n") + "\n"
