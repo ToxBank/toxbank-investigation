@@ -44,7 +44,76 @@ module OpenTox
         end
         replace_pi
       end
-      
+
+      def build_gene_files
+        templates = get_templates "investigation"
+        sparqlstring = File.read(templates["genelist"]) % { :investigation_uri => investigation_uri }
+        response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+        genes = JSON.parse(response)["results"]["bindings"].map{|n| n["genes"]["value"]}
+        genes.delete_if{|g| g !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or g =~ /\/NA$|\/0$/}.compact
+        # write to file
+        File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genes) }
+        #$logger.debug genes
+        genes.each do |gene|
+          out = []
+          gene = gene.gsub("'","").strip
+          $logger.debug "biosearch for: #{gene}"
+          unless File.exists?(File.join(dir, "#{gene.split("/").last}.json"))
+            sparqlstring = File.read(templates["biosearch"]) % { :investigation_uri => investigation_uri, :Values => "{ ?dataentry skos:closeMatch <#{gene}>. }" }
+            #$logger.debug sparqlstring
+            response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+            #$logger.debug response
+            @a = JSON.parse(response)
+            @a["head"]["vars"] << "gene"
+            @a["head"]["vars"] << "sample"
+            @a["head"]["vars"] << "factorValues"
+            @a["head"]["vars"] << "cell"
+            # set headers for output
+            out << {"head" => {"vars" => @a["head"]["vars"]}}
+            # search in files for sample by transformation name
+            #$logger.debug gene
+            @a["results"]["bindings"].each{|n| n["gene"] = "#{gene.split("/").last(2).join(":")}"}
+            transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
+            samples = []
+            cells = []
+            transNames.each do |n|
+              sample = `grep "#{n[1]}" #{File.join dir, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").delete_if{|s| s =~ /control/i}.first
+              #$logger.debug sample
+              cell = `grep "#{sample}" #{File.join dir, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
+              #$logger.debug cell
+              samples << {n[1] => sample}
+              cells << cell
+            end
+            match_index = []
+            samples.uniq.each do |nr|
+              nr.each do |k, v|
+                match_index = @a["results"]["bindings"].index(@a["results"]["bindings"].find{ |n| n["dataTransformationName"]["value"] == k })
+                @a["results"]["bindings"][match_index]["sample"] = v
+                sparqlstring = File.read(templates["biosearch_sample"]) % { :investigation_uri => investigation_uri, :sampl => v}
+                response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+                @a["results"]["bindings"][match_index]["factorValues"] = JSON.parse(response)["results"]["bindings"]
+                @a["results"]["bindings"][match_index]["cell"] = cells[match_index]
+              end
+            end
+            out << {"results" => {"bindings" => @a["results"]["bindings"].flatten}}
+            out = out.uniq.compact.flatten
+            # assemble json hash
+            head = out[0]
+            body = out[1]
+            # generate json object
+            js = JSON.pretty_generate(head.merge(body))
+            File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
+            sleep 1
+          end
+          # git commit fails if list is to long; do it after each gene file
+          newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
+          if newfiles != ""
+            newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+            `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  modified by #{OpenTox::Authorization.get_user}"`
+          end
+        end unless genes.empty?
+      end
+
       # ISA-TAB to RDF conversion.
       # Preprocess and parse isa-tab files with java isa2rdf
       # @see https://github.com/ToxBank/isa2rdf
@@ -71,7 +140,6 @@ module OpenTox
           # next line moved to l.74
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
             sleep 30 # wait until metadata imported and preview requested
             `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
@@ -83,6 +151,8 @@ module OpenTox
               sleep 1
               rdfs = Dir["#{dir}/*.rdf"].reject!{|rdf| rdf.blank?}
             else
+              investigation_id = `grep "#{investigation_uri}/I[0-9]" #{File.join dir,nt}|cut -f1 -d ' '`.strip
+              `sed -i 's;#{investigation_id.split.last};<#{investigation_uri}>;g' #{File.join dir,nt}`
               # get ntriples datafiles
               datafiles = Dir["#{dir}/*.nt"].reject!{|file| file =~ /#{nt}$|ftpfiles\.nt$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt/}
               $logger.debug "datafiles:\t#{datafiles}"
@@ -93,7 +163,7 @@ module OpenTox
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
                 # append datasets to investigation graph
-                chunkfiles.sort{|a,b| a <=> b}.each do |dataset|
+                datafiles.each do |dataset|
                   OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
                   sleep 10 # time it takes to import and reindex
                   set_modified
@@ -102,6 +172,8 @@ module OpenTox
               end # datafiles
             end # rdfs
 
+            build_gene_files
+        
             # update JSON object with dashboard values
             dashboard_cache
             link_ftpfiles
