@@ -203,14 +203,16 @@ module OpenTox
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /genesymbol\:|unigene\:|uniprot\:|entrez\:|refseq\:/}
+        unpublished = Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/isPublished.nt"]
+        unpublished.reject!{|file| File.foreach(file).grep(/\"true\"/).any?} unless unpublished.blank?
         genefiles = []
         genes.each{|g| genefiles << Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/#{g.split(":").last.gsub("'", "")}.json"] }
+        genefiles.flatten!
+        unpublished.each{|u| genefiles.each{|g| genefiles.delete(g) if u.split("/")[1..-2].join("/") == g.split("/")[1..-2].join("/")} } unless genefiles.blank?||unpublished.blank?
         out = []
         heads = []
         bindings = []
-        genefiles.flatten!
-        #TODO remove unpublished investigations
-        if genefiles.empty?
+        if genefiles.blank?
           hash = {"head" => {"vars" => ["investigation", "featureType", "title", "dataTransformationName", "value", "gene", "sample", "factorValues", "cell"]}, "results" => {"bindings" => []}}
           return JSON.pretty_generate(hash)
         else

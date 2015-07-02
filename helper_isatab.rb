@@ -140,7 +140,6 @@ module OpenTox
           # next line moved to l.74
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          #TODO check isa2rdf without -d param to avoid sed after
           task = OpenTox::Task.run("Processing raw data",investigation_uri) do
             sleep 30 # wait until metadata imported and preview requested
             `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
