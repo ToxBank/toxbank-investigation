@@ -51,12 +51,12 @@ module OpenTox
         # locate derived data files and prepare
         datafiles = Dir["#{dir}/*.txt"]
         $logger.debug "datafiles: #{datafiles}"
-        datafiles.each{|file| `dos2unix #{file}` }
+        #datafiles.each{|file| `dos2unix #{file}` }
         @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
         my = @client[params[:id]]
         datafiles.reject{|file| file =~ /i_|a_|s_/}.each do |file| 
-          # setup database and import derived data files.
-          `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --numInsertionWorkers 4 --type tsv --file #{file} --headerline`
+        #  # setup database and import derived data files.
+        #  `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --numInsertionWorkers 4 --type tsv --file #{file} --headerline`
         end unless datafiles.blank?
         # building genelist
         my = @client[params[:id]]
@@ -82,16 +82,14 @@ module OpenTox
             a = (gene.class == String ? my.find(Symbol: "#{gene}").each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}} : my.find(Entrez: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}} )
             #$logger.debug a.to_a
             unless a.blank?
+              $logger.debug a.to_a[0]
               b = {}
-              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [a, assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/}}
-              #$logger.debug "b: #{b}"
+              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [a, assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/ } }
               c = {}
               assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = ["#{x[2]}", "#{x[13]}", "#{x[18]}", "#{x[23]}", "#{x[24]}", "#{x[28]}", "#{x[29]}"] if x[-1] =~ /\b(#{sample})\b/}}
-              #$logger.debug "c: #{c}"
               b.each{|k, v|  v << c[v.last] }
               b.each{|k, v|  v.flatten!}
-              #$logger.debug out if gene =~ /TSPAN6/
-              File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(b) }
+              File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(b)) }
             end
             #sparqlstring = File.read(templates["factors_with_samplnr"]) % { :investigation_uri => investigation_uri }
             #$logger.debug sparqlstring
