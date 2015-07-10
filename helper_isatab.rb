@@ -49,29 +49,44 @@ module OpenTox
         $logger.debug "Start processing derived data."
         templates = get_templates "investigation"
         # locate derived data files and prepare
-        datafiles = Dir["#{dir}/*.txt"]
+        # get information about files from assay files by sparql
+        datafiles = Dir["#{dir}/*.txt"].each{|file| `dos2unix -k '#{file}'`}
+        sparqlstring = File.read(templates["files_by_assays"]) % { :investigation_uri => investigation_uri }
+        $logger.debug sparqlstring
+        response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+        $logger.debug response
+        datafiles = JSON.parse(response)["results"]["bindings"].map{|f| f["file"]["value"]}.uniq
         $logger.debug "datafiles: #{datafiles}"
-        #datafiles.each{|file| `dos2unix #{file}` }
+        #datafiles.reject{|f| f =~ /ftp\:/}
         @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
         my = @client[params[:id]]
-        datafiles.reject{|file| file =~ /i_|a_|s_/}.each do |file| 
-        #  # setup database and import derived data files.
-        #  `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --numInsertionWorkers 4 --type tsv --file #{file} --headerline`
+        datafiles.reject!{|file| file =~ /^i_|^a_|^s_|ftp\:/}.each do |file| 
+          #`sed '1;.;\u002e;g' #{File.join(dir, file)}`
+          #`dos2unix -k '#{File.join(dir, file)}'`
+          #`sed '1 s;\.;U+FF0E;g' #{File.join(dir, file)}`
+          # setup database and import derived data files.
+          $logger.debug "import file: #{file}"
+          `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --type tsv --file '#{File.join(dir, file)}' --headerline`
         end unless datafiles.blank?
         # building genelist
         my = @client[params[:id]]
         symbol = my.find.distinct(:Symbol)
         entrez = my.find.distinct(:Entrez)
         genelist = symbol+entrez
+        $logger.debug genelist
         # write to file
-        File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genelist.reject!{|g| g.to_s =~ /^NA$|^0$/}.sort!{|a,b| a.to_s <=> b.to_s}) }
+        File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genelist.reject!{|g| g.to_s =~ /^NA$|^0$/}) }
         #$logger.debug genelist
         # TODO could be more than one assay or study
-        file = datafiles.find{|f| f =~ /\/a_/ }
-        assay = CSV.read(file, { :col_sep => "\t", :row_sep => "\n", :headers => true, :header_converters => :symbol })
-        #$logger.debug assay[:data_transformation_name].inspect
-        file = datafiles.find{|f| f =~ /\/s_/ }
-        study = CSV.read(file, { :col_sep => "\t", :row_sep => "\n", :headers => true, :header_converters => :symbol })
+        assayfiles = Dir["#{dir}/a_*.txt"][0]
+        #file = datafiles.find{|f| f =~ /\/a_/ }
+        $logger.debug assayfiles
+        assay = CSV.read(assayfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+        $logger.debug assay.headers
+        #file = datafiles.find{|f| f =~ /\/s_/ }
+        studyfiles = Dir["#{dir}/s_*.txt"][0]
+        $logger.debug studyfiles
+        study = CSV.read(studyfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
         genes = genelist
         # working with genes
         genes.each do |gene|
@@ -82,12 +97,16 @@ module OpenTox
             a = (gene.class == String ? my.find(Symbol: "#{gene}").each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}} : my.find(Entrez: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}} )
             #$logger.debug a.to_a
             unless a.blank?
-              $logger.debug a.to_a[0]
+              #$logger.debug "database: #{a.to_a}"
+              #$logger.debug "assay: #{assay.headers}"
               b = {}
-              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [a, assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/ } }
+              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [:title => a[0], :value => a[1], :sampleNr => assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/ } }
               c = {}
+              #$logger.debug "assay sample names: #{assay[:sample_name]}"
               assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = ["#{x[2]}", "#{x[13]}", "#{x[18]}", "#{x[23]}", "#{x[24]}", "#{x[28]}", "#{x[29]}"] if x[-1] =~ /\b(#{sample})\b/}}
-              b.each{|k, v|  v << c[v.last] }
+              #b.each{|k, v|  v << c[v.last] }
+              $logger.debug c
+              b.each{|k, v| v << [:factorValues => c[v[0][:sampleNr]]] }
               b.each{|k, v|  v.flatten!}
               File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(b)) }
             end
