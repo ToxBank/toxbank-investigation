@@ -66,7 +66,7 @@ module OpenTox
           #`sed '1 s;\.;U+FF0E;g' #{File.join(dir, file)}`
           # setup database and import derived data files.
           $logger.debug "import file: #{file}"
-          `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --type tsv --file '#{File.join(dir, file)}' --headerline`
+          #`mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --type tsv --file '#{File.join(dir, file)}' --headerline`
         end unless datafiles.blank?
         # building genelist
         my = @client[params[:id]]
@@ -87,6 +87,9 @@ module OpenTox
         studyfiles = Dir["#{dir}/s_*.txt"][0]
         $logger.debug studyfiles
         study = CSV.read(studyfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+        investigationfile = Dir["#{dir}/i_*.txt"][0]
+        inv = CSV.read(investigationfile, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+        inv.find{|r| @title = r[1] if r[0] == "Investigation Title"}
         genes = genelist
         # working with genes
         genes.each do |gene|
@@ -100,13 +103,13 @@ module OpenTox
               #$logger.debug "database: #{a.to_a}"
               #$logger.debug "assay: #{assay.headers}"
               b = {}
-              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [:title => a[0], :value => a[1], :sampleNr => assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/ } }
+              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :value => {:type => "literal", :value => a[1], :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => gene, :sample => assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/ } }
               c = {}
               #$logger.debug "assay sample names: #{assay[:sample_name]}"
-              assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = ["#{x[2]}", "#{x[13]}", "#{x[18]}", "#{x[23]}", "#{x[24]}", "#{x[28]}", "#{x[29]}"] if x[-1] =~ /\b(#{sample})\b/}}
+              assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => x[28], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => x[29]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => x[23], :datatype => "http://www.w3.org/2001/XMLSchema#int"}}, :unit => {:type => "literal", :value => x[24]}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => x[18]}], :cell => "#{x[2]},#{x[13]}"} if x[-1] =~ /\b(#{sample})\b/}}
               #b.each{|k, v|  v << c[v.last] }
-              $logger.debug c
-              b.each{|k, v| v << [:factorValues => c[v[0][:sampleNr]]] }
+              #$logger.debug c
+              b.each{|k, v| v << c[v[0][:sample]] }
               b.each{|k, v|  v.flatten!}
               File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(b)) }
             end
