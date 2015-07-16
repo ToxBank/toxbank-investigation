@@ -106,12 +106,17 @@ module OpenTox
               assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :value => {:type => "literal", :value => a[1], :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => gene, :sample => assay[:sample_name][idx]] if a[0] =~ /\b(#{name})\b/ } }
               c = {}
               #$logger.debug "assay sample names: #{assay[:sample_name]}"
-              assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => x[28], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => x[29]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => x[23], :datatype => "http://www.w3.org/2001/XMLSchema#int"}}, :unit => {:type => "literal", :value => x[24]}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => x[18]}], :cell => "#{x[2]},#{x[13]}"} if x[-1] =~ /\b(#{sample})\b/}}
+              assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => x[28], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => x[29]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => x[23], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => x[24]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => x[18]}], :cell => "#{x[2]},#{x[13]}"} if x[-1] =~ /\b(#{sample})\b/}}
               #b.each{|k, v|  v << c[v.last] }
               #$logger.debug c
               b.each{|k, v| v << c[v[0][:sample]] }
               b.each{|k, v|  v.flatten!}
-              File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(b)) }
+              #b = b.map{|k,v|v.each{|a| a}}
+              head = {:head => {:vars => ["investigation", "invTitle", "featureType", "title", "value", "gene", "sample", "factorValues", "cell"]}}
+              x = []
+              b.each{|k,v| v.each{|a| x << a}}
+              body = {"results" => {"bindings" => x}}
+              File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(head.merge(body))) }
             end
             #sparqlstring = File.read(templates["factors_with_samplnr"]) % { :investigation_uri => investigation_uri }
             #$logger.debug sparqlstring
