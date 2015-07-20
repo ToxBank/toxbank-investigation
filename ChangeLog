@@ -1,4 +1,9 @@
 = ChangeLog
+== v2.4.1 July 2015
+- 07/2015 store bio-search results to json file
+- 06/2015 optimized code
+- 05/2015 changed method to get bio search results
+- 04/2015 introduced genelist for bio-search auto-suggestion
 == v2.4.0 Februar 2015
 - 02/2015 updated rescue script
 - 02/2015 optimized disk space handling for derived data processing
