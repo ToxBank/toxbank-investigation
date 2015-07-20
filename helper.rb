@@ -140,7 +140,7 @@ module OpenTox
         # save last modified to file in case of restore or transport backend
         modsave = "<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\" ." 
         File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --exclude=*.nt_* --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
           newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
