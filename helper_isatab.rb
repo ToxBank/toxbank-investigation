@@ -105,12 +105,6 @@ module OpenTox
             File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
             sleep 1
           end
-          # git commit fails if list is to long; do it after each gene file
-          newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
-          if newfiles != ""
-            newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
-            `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  modified by #{OpenTox::Authorization.get_user}"`
-          end
         end unless genes.empty?
       end
 
