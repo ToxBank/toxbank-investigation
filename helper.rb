@@ -143,7 +143,7 @@ module OpenTox
         newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --exclude=*.nt_* --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
-          newfiles.split("\0").reject{|f| f =~ /\.nt_\d{4}$/}.each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
+          newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
           `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{newfiles.gsub("\0"," ::: ")}  #{action} by #{OpenTox::Authorization.get_user}"`
         else
           `cd #{File.dirname(__FILE__)}/investigation && git commit --allow-empty -am "#{params[:id]}/modified.nt  #{action} by #{OpenTox::Authorization.get_user}"` if `cd #{File.dirname(__FILE__)}/investigation && git status -s| cut -c 4-` != ""
