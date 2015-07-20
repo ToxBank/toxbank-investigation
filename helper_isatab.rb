@@ -102,7 +102,7 @@ module OpenTox
             body = out[1]
             # generate json object
             js = JSON.pretty_generate(head.merge(body))
-            File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) }
+            File.open(File.join(dir, "#{gene.split("/").last}.json"), 'w') {|f| f.write(js) } if Dir.exists?(dir)
             sleep 1
           end
         end unless genes.empty?
