@@ -66,7 +66,7 @@ module OpenTox
           #`sed '1 s;\.;U+FF0E;g' #{File.join(dir, file)}`
           # setup database and import derived data files.
           $logger.debug "import file: #{file}"
-          #`mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --type tsv --file '#{File.join(dir, file)}' --headerline`
+          `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --upsert --type tsv --file '#{File.join(dir, file)}' --headerline`
         end unless datafiles.blank?
         # building genelist
         my = @client[params[:id]]
@@ -195,8 +195,8 @@ module OpenTox
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
           
-          task = OpenTox::Task.run("Processing raw data",investigation_uri) do
-            sleep 30 # wait until metadata imported and preview requested
+          task = OpenTox::Task.run("Processing derived data",investigation_uri) do
+            #sleep 30 # wait until metadata imported and preview requested
 =begin
             `cd #{File.dirname(__FILE__)}/java && java -jar -Xmx2048m isa2rdf-cli-1.0.2.jar -d #{dir} -i #{investigation_uri} -a #{File.join dir} -o #{File.join dir,nt} -t #{$user_service[:uri]} 2> #{File.join dir,'log'} &`
             # get rdfs
@@ -230,7 +230,6 @@ module OpenTox
             end # rdfs
 =end
             build_gene_files
-=begin        
             # update JSON object with dashboard values
             dashboard_cache
             link_ftpfiles
@@ -239,7 +238,6 @@ module OpenTox
             DELETE { <#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}
             WHERE {<#{investigation_uri}> <#{RDF::TB.hasSubTaskURI}> ?o}"
             set_modified
-=end
             investigation_uri # result uri for subtask
           end # task
           # update metadata with subtask uri
