@@ -51,10 +51,11 @@ module OpenTox
     # @overload get "/investigation/?"
     # List URIs of all investigations or investigations of a user.
     # @param header [hash]
-    #   * Accept [String] <text/uri-list, application/rdf+xml, application/json>
+    #   * Accept [optional, String] <text/uri-list, application/rdf+xml, application/json>
     #   * subjectid [String] authorization token
     # @return [String] text/uri-list, application/rdf+xml, application/json List of investigations.
-    # @raise [BadRequestError] if wrong mime-type
+    # @raise [400, BadRequestError] if wrong mime-type
+    # @raise [200, OK] OK
     # @see http://api.toxbank.net/index.php/Investigation#Get_a_list_of_investigations API: Get a list of investigations
     get '/investigation/?' do
       mime_types = ['text/uri-list', 'application/rdf+xml', 'application/json']
@@ -195,9 +196,39 @@ module OpenTox
       bad_request_error "Mime type #{@accept} not supported here. Please request data as 'application/json'." unless (@accept.to_s == "application/json")
       templates = get_templates ""
       templatename = params[:templatename].underscore
+      $logger.debug templatename
       resource_not_found_error "Template: #{params[:templatename]} does not exist."  unless templates.has_key? templatename
       bad_request_error "relational operator not expected." if params[:relOperator] and templatename !~ /_by_gene_and_value$/
       case templatename
+      when /^biosearch$/
+        bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
+        genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
+        genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /genesymbol\:|unigene\:|uniprot\:|entrez\:|refseq\:/}
+        unpublished = Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/isPublished.nt"]
+        unpublished.reject!{|file| File.foreach(file).grep(/\"true\"/).any?} unless unpublished.blank?
+        genefiles = []
+        genes.each{|g| genefiles << Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/#{g.split(":").last.gsub("'", "")}.json"] }
+        genefiles.flatten!
+        unpublished.each{|u| genefiles.each{|g| genefiles.delete(g) if u.split("/")[1..-2].join("/") == g.split("/")[1..-2].join("/")} } unless genefiles.blank?||unpublished.blank?
+        out = []
+        heads = []
+        bindings = []
+        if genefiles.blank?
+          hash = {"head" => {"vars" => ["investigation", "featureType", "title", "dataTransformationName", "value", "gene", "sample", "factorValues", "cell"]}, "results" => {"bindings" => []}}
+          return JSON.pretty_generate(hash)
+        else
+          genefiles.each do |file| 
+            $logger.debug "checking for access: #{file}"
+            @a = JSON.parse(check_get_access File.read File.join(file))
+            heads << {"head" => {"vars" => @a["head"]["vars"]}}
+            bindings << @a["results"]["bindings"]
+          end
+          out << heads.flatten.uniq[0]
+          out << {"results" => {"bindings" => bindings.flatten.uniq}}
+          head = out[0]
+          body = out[1]
+          return JSON.pretty_generate(head.merge(body))
+        end
       when /_by_gene_and_value$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         bad_request_error "missing relational operator 'above' or 'below' ." if params[:relOperator].blank? || params[:relOperator] !~ /^above$|^below$/
@@ -205,11 +236,6 @@ module OpenTox
         bad_request_error "missing parameter value_type. Request needs a value_type like 'FC:0.7'." if params[:value].to_s !~ /.*\:.*/
         bad_request_error "wrong parameter value_type. Request needs a value_type like 'FC,pvalue,qvalue'." if params[:value].split(":").first !~ /^FC$|^pvalue$|^qvalue$/
 
-        #if params[:relOperator].blank?
-        #  relOperator = "<="
-        #else
-        #  relOperator = params[:relOperator] =~ /above/ ? ">=" : "<="
-        #end
         relOperator = params[:relOperator] =~ /above/ ? ">=" : "<="
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
         # split params[:value] in "value_type" and "value"
@@ -227,6 +253,15 @@ module OpenTox
         $logger.debug sparqlstring
         result = FourStore.query sparqlstring, "application/json"
         check_get_access result
+      when /^genelist/
+        response = FourStore.query File.read(templates[templatename]) , "application/json"
+        result = (check_get_access response)
+        out = JSON.parse(result)
+        out["head"]["vars"].delete_if{|i| i == "investigation"}
+        out["results"]["bindings"].each{|node| node.delete_if{|i| i == "investigation"}}
+        out["results"]["bindings"].delete_if{|node| node["genes"]["value"] !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or node["genes"]["value"] =~ /\/NA$/ }.compact
+        out["results"]["bindings"].uniq!
+        JSON.pretty_generate(out)
       when /_and_/
         result = FourStore.query File.read(templates[templatename]) , "application/json"
         check_get_access result
@@ -286,6 +321,14 @@ module OpenTox
         # application/rdf+xml
         FourStore.query "CONSTRUCT { ?s ?p ?o } FROM <#{investigation_uri}> WHERE {?s ?p ?o}", @accept
       end
+    end
+    
+    get '/investigation/:id/genefiles' do
+      task = OpenTox::Task.run("#{investigation_uri}: building gene files.",@uri) do
+        $logger.debug "updating gene files"
+        build_gene_files
+      end
+      return "Updating gene files:\n#{task.uri}\n"
     end
 
     # @method get_dashboard

@@ -20,7 +20,7 @@ module OpenTox
         # ID.nt file is never a isatab file;
         # never use of ID.nt, deny view ?
         #uris.delete_if{|u| u.match(/tmp$|cache$|log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
-        uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$/)}
+        uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$|\.json$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
         uris.map!{ |u| File.symlink?("#{dir}/#{File.basename(u)}") ? u.gsub("/isatab/", "/files/") : u}
         uris.compact.sort.join("\n") + "\n"
@@ -140,7 +140,7 @@ module OpenTox
         # save last modified to file in case of restore or transport backend
         modsave = "<#{investigation_uri}> <#{RDF::DC.modified}> \"#{Time.new.strftime("%d %b %Y %H:%M:%S %Z")}\" ." 
         File.open(File.join(dir, "modified.nt"), 'w') {|f| f.write(modsave) }
-        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --directory #{params[:id]}`
+        newfiles = `cd #{File.dirname(__FILE__)}/investigation; git ls-files -z --others --exclude-standard --exclude=*.nt_* --directory #{params[:id]}`
         request.env['REQUEST_METHOD'] == "POST" ? action = "created" : action = "modified"
         if newfiles != ""
           newfiles.split("\0").each{|newfile| `cd #{File.dirname(__FILE__)}/investigation && git add "#{newfile}"`}
