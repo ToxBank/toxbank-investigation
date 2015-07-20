@@ -53,16 +53,13 @@ module OpenTox
         genes.delete_if{|g| g !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or g =~ /\/NA$|\/0$/}.compact
         # write to file
         File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genes) }
-        #$logger.debug genes
         genes.each do |gene|
           out = []
           gene = gene.gsub("'","").strip
           $logger.debug "biosearch for: #{gene}"
           unless File.exists?(File.join(dir, "#{gene.split("/").last}.json"))
             sparqlstring = File.read(templates["biosearch"]) % { :investigation_uri => investigation_uri, :Values => "{ ?dataentry skos:closeMatch <#{gene}>. }" }
-            #$logger.debug sparqlstring
             response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
-            #$logger.debug response
             @a = JSON.parse(response)
             @a["head"]["vars"] << "gene"
             @a["head"]["vars"] << "sample"
@@ -71,16 +68,13 @@ module OpenTox
             # set headers for output
             out << {"head" => {"vars" => @a["head"]["vars"]}}
             # search in files for sample by transformation name
-            #$logger.debug gene
             @a["results"]["bindings"].each{|n| n["gene"] = "#{gene.split("/").last(2).join(":")}"}
             transNames = @a["results"]["bindings"].map{|n| [n["investigation"]["value"], n["dataTransformationName"]["value"]] }
             samples = []
             cells = []
             transNames.each do |n|
               sample = `grep "#{n[1]}" #{File.join dir, "a_*" }|cut -f1`.chomp.gsub("\"", "").split("\n").delete_if{|s| s =~ /control/i}.first
-              #$logger.debug sample
               cell = `grep "#{sample}" #{File.join dir, "s_*" }|cut --fields=3,14`.chomp.gsub("\"", "").gsub("\t", ",")
-              #$logger.debug cell
               samples << {n[1] => sample}
               cells << cell
             end

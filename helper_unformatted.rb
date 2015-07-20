@@ -37,7 +37,6 @@ module OpenTox
       
       # Parameters to RDF conversion.
       def params2rdf
-        #$logger.debug params.inspect
         FileUtils.cp(File.join(File.dirname(File.expand_path __FILE__), "template", "metadata.nt"), File.join(tmp,nt))
         metadata = File.read(File.join(tmp,nt)) % {:investigation_uri => investigation_uri,
           :type => params[:type],

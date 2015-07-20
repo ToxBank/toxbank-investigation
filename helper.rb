@@ -17,9 +17,6 @@ module OpenTox
         uris.collect!{|u| u.sub(/(\/#{params[:id]}\/)/,'\1isatab/')} if params[:id]
         uris.collect!{|u| u.sub(/(\/isatab\/)/,'/files/')} if params[:id] && File.read(File.join(dir,nt)).match("hasInvType")
         uris.delete_if{|u| u.match(/_policies$/)}
-        # ID.nt file is never a isatab file;
-        # never use of ID.nt, deny view ?
-        #uris.delete_if{|u| u.match(/tmp$|cache$|log$|modified\.nt$|isPublished\.nt$|isSummarySearchable\.nt$|ftpfiles\.nt$/)}
         uris.delete_if{|u| u.match(/tmp$|cache$|log$|\.nt$|\.json$/)}
         uris.map!{ |u| u.gsub(" ", "%20") }
         uris.map!{ |u| File.symlink?("#{dir}/#{File.basename(u)}") ? u.gsub("/isatab/", "/files/") : u}
@@ -200,15 +197,11 @@ module OpenTox
       def replace_pi
         begin
           user = OpenTox::Authorization.get_user
-          #accounturi = OpenTox::RestClientWrapper.get("#{$user_service[:uri]}/user?username=#{user}", nil, {:Accept => "text/uri-list", :subjectid => subjectid}).sub("\n","")
           accounturi = `curl -Lk -X GET -H "Accept:text/uri-list" -H "subjectid:#{RestClientWrapper.subjectid}" #{$user_service[:uri]}/user?username=#{user}`.chomp.sub("\n","")
           account = OpenTox::TBAccount.new(accounturi)
           investigation_file = Dir["#{tmp}/i_*.txt"]
           investigation_file.each do |inv_file|
             text = File.read(inv_file, :encoding => "BINARY")
-            #replace = text.gsub!(/TBU:U\d+/, account.ns_uri)
-            #replace = text.gsub!(/Comment \[Principal Investigator URI\]\t"TBU:U\d+"/ , "Comment \[Owner URI\]\t\"#{account.ns_uri}\"")
-            #replace = text.gsub!(/Comment \[Owner URI\]\t"TBU:U\d+"/ , "Comment \[Owner URI\]\t\"#{account.ns_uri}\"")
             replace = text.gsub!(/Comment \[Principal Investigator URI\]\t.*/ , "Comment \[Owner URI\]\t\"#{account.ns_uri}\"")
             replace = text.gsub!(/Comment \[Owner URI\]\t.*/ , "Comment \[Owner URI\]\t\"#{account.ns_uri}\"")
             File.open(inv_file, "wb") { |file| file.puts replace } if replace

@@ -32,7 +32,6 @@ module OpenTox
     before do
       $logger.debug "WHO: #{OpenTox::Authorization.get_user}, request method: #{request.env['REQUEST_METHOD']}, type: #{request.env['CONTENT_TYPE']}\n\nhole request env: #{request.env}\n\nparams inspect: #{params.inspect}\n\n"
       resource_not_found_error "Directory #{dir} does not exist."  unless File.exist? dir
-      #parse_input if request.request_method =~ /POST|PUT/
       @accept = request.env['HTTP_ACCEPT']
       response['Content-Type'] = @accept
     end
@@ -116,7 +115,6 @@ module OpenTox
       # CH: Task.create is now Task.run(description,creator_uri,subjectid) to avoid method clashes
       params[:id] = SecureRandom.uuid
       task = OpenTox::Task.run("#{params[:file] ? params[:file][:filename] : "no file attached"}: Uploading, validating and converting to RDF",to("/investigation")) do
-        #params[:id] = SecureRandom.uuid
         mime_types = ['application/zip','text/tab-separated-values']
         inv_types = ['noData', 'unformattedData', 'ftpData']
         # no data or ftp data
