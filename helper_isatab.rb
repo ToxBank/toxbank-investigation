@@ -151,7 +151,7 @@ module OpenTox
                 $logger.debug "chunkfiles:\t#{chunkfiles}"
                 
                 # append datasets to investigation graph
-                datafiles.each do |dataset|
+                chunkfiles.sort{|a,b| a <=> b }.each do |dataset|
                   OpenTox::Backend::FourStore.post investigation_uri, File.read(dataset), "application/x-turtle"
                   sleep 10 # time it takes to import and reindex
                   set_modified
