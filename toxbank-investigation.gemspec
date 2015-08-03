@@ -22,6 +22,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'mongo', '~> 2.0'
 
   # external requirements
-  ["git", "zip", "java", "curl", "wget", "dos2unix"].each{|r| s.requirements << r}
+  ["git", "zip", "java", "curl", "wget", "dos2unix", "mongodb"].each{|r| s.requirements << r}
   s.post_install_message = "Run toxbank-investigation-install to set up your service."
 end
