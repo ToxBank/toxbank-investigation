@@ -53,12 +53,16 @@ module OpenTox
       end
 
       def build_gene_files
-        # delete existing json files and cancel subtask if still running
-        $logger.debug "Delete existing bio search result files."
-        subtaskuri = subtask_uri[0]
-        $logger.debug "cancel running subtask: #{subtaskuri}"
-        `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'` unless subtaskuri.blank?
-        jsonfiles = Dir["#{dir}/*.json"].each{|file| `rm '#{file}'`} unless jsonfiles.blank?
+        if request.request_method =~ /PUT/ && params[:file] 
+          # delete existing json files and cancel subtask if still running
+          subtaskuri = subtask_uri[0]
+          unless subtaskuri.blank?
+            $logger.debug "cancel running subtask: #{subtaskuri}"
+            `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'`
+          end
+          $logger.debug "Delete existing bio search result files."
+          jsonfiles = Dir["#{dir}/*.json"].each{|file| `rm '#{file}'`} unless jsonfiles.blank?
+        end
         $logger.debug "Start processing derived data."
         templates = get_templates "investigation"
         # locate derived data files and prepare
@@ -94,10 +98,11 @@ module OpenTox
         assayfiles = Dir["#{dir}/a_*.txt"][0]
         $logger.debug assayfiles
         assay = CSV.read(assayfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
-        $logger.debug assay.headers
+        #$logger.debug assay.headers
         studyfiles = Dir["#{dir}/s_*.txt"][0]
         $logger.debug studyfiles
         study = CSV.read(studyfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+        #$logger.debug study.headers
         investigationfile = Dir["#{dir}/i_*.txt"][0]
         inv = CSV.read(investigationfile, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
         inv.find{|r| @title = r[1] if r[0] == "Investigation Title"}
@@ -117,15 +122,16 @@ module OpenTox
             when "RefSeq"
               a = my.find(RefSeq: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
             when "Entrez"
+              # integer value
               a = my.find(Entrez: gene.to_i).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
             else
               bad_request_error "Unknown gene class '#{geneclass}'"
             end
             unless a.to_a[0].blank?
               b = {}
-              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| (b.has_key?(name) ? b[name] << [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => a[1], :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]] : b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => a[1], :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]]) if a[0] =~ /\b(#{name})\b/ } }
+              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| (b.has_key?(name) ? b[name] << [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]] : b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]]) if a[0] =~ /\b(#{name})\b/ } }
               c = {}
-              assay[:sample_name].each{|sample| study.each{|x| c[x[-1]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => x[28], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => x[29]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => x[23], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => x[24]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => x[18]}], :cell => "#{x[2]},#{x[13]}"} if x[-1] =~ /\b(#{sample})\b/}}
+              assay[:sample_name].each{|sample| study.each{|s| factorvalues = {}; s.each_with_index{|e,i| e.each{|y| factorvalues["timeunit"] = s[i+1] and factorvalues["time"] = s[i] if y.to_s =~ /time/i; factorvalues["doseunit"] = s[i+1] and factorvalues["dose"] = s[i] if y.to_s =~ /dose/i; factorvalues["organism"] = s[i] if y.to_s =~ /organism/i; factorvalues["cell"] = s[i] if y.to_s =~ /cell/i; factorvalues["compound"] = s[i] if y.to_s =~ /compound/i}}; c[s[:sample_name]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => factorvalues["time"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["timeunit"]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => factorvalues["dose"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["doseunit"]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => factorvalues["compound"]}], :cell => "#{factorvalues["organism"]}, #{factorvalues["cell"]}"} if s[:sample_name] =~ /\b(#{sample})\b/}}
               b.each{|k, v| v[0]["factorValues"] = c[v[0][:sample]][:factorValues]; v[0]["cell"] = c[v[0][:sample]][:cell]}
               b.each{|k, v| v.flatten!}
               head = {:head => {:vars => ["investigation", "invTitle", "featureType", "title", "value", "gene", "sample", "factorValues", "cell"]}}

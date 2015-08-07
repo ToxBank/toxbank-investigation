@@ -572,7 +572,7 @@ module OpenTox
       $logger.debug "call for subtask"
       subtaskuri = subtask_uri[0]
       $logger.debug "cancel: #{subtaskuri}"
-      `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'`
+      `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'` unless subtaskuri.blank?
       kill_isa2rdf
       set_index false
       FileUtils.remove_entry dir
