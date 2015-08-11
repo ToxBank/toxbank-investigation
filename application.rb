@@ -170,7 +170,7 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
-      # remove unformatted investigation if import error
+      # remove investigation if import error
       begin
         t = OpenTox::Task.new task.uri
         t.wait

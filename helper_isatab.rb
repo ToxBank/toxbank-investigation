@@ -74,77 +74,86 @@ module OpenTox
         $logger.debug "datafiles: #{datafiles}"
         @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
         my = @client[params[:id]]
-        datafiles.reject{|file| file =~ /^i_|^a_|^s_|ftp\:/}.each do |file| 
-          $logger.debug "import file: #{file}"
-          `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --type tsv --file '#{File.join(dir, file)}' --headerline`
-        end unless datafiles.blank?
-        # building genelist
-        my = @client[params[:id]]
-        genelist = []
-        symbol = my.find.distinct(:Symbol)
-        symbol.each{|x| genelist << "http://onto.toxbank.net/isa/Symbol/#{x}"} unless symbol.blank?
-        entrez = my.find.distinct(:Entrez)
-        entrez.each{|x| genelist << "http://onto.toxbank.net/isa/Entrez/#{x}"} unless entrez.blank?
-        unigene = my.find.distinct(:Unigene)
-        unigene.each{|x| genelist << "http://onto.toxbank.net/isa/Unigene/#{x}"} unless unigene.blank?
-        refseq = my.find.distinct(:RefSeq)
-        refseq.each{|x| genelist << "http://onto.toxbank.net/isa/RefSeq/#{x}"} unless refseq.blank?
-        uniprod = my.find.distinct(:Uniprod)
-        uniprod.each{|x| genelist << "http://purl.uniprod.org/uniprod/#{x}"} unless uniprod.blank?
-        # write to file
-        File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}) }
-        #TODO could be more than one assay or study
-        #TODO check files for utf-8 error
-        assayfiles = Dir["#{dir}/a_*.txt"][0]
-        $logger.debug assayfiles
-        assay = CSV.read(assayfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
-        #$logger.debug assay.headers
-        studyfiles = Dir["#{dir}/s_*.txt"][0]
-        $logger.debug studyfiles
-        study = CSV.read(studyfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
-        #$logger.debug study.headers
-        investigationfile = Dir["#{dir}/i_*.txt"][0]
-        inv = CSV.read(investigationfile, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
-        inv.find{|r| @title = r[1] if r[0] == "Investigation Title"}
-        genes = genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}
-        # working with genes
-        genes.each do |gene|
-          geneclass = (gene =~ /uniprod/ ? gene.split("/")[3] : gene.split("/")[4])
-          gene = gene.split("/").last
-          unless File.exists?(File.join(dir, "#{gene}.json"))
-            case geneclass
-            when "Symbol"
-              a = my.find(Symbol: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
-            when "Uniprod"
-              a = my.find(Uniprod: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
-            when "Unigene"
-              a = my.find(Unigene: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
-            when "RefSeq"
-              a = my.find(RefSeq: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
-            when "Entrez"
-              # integer value
-              a = my.find(Entrez: gene.to_i).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
-            else
-              bad_request_error "Unknown gene class '#{geneclass}'"
+        datafiles.delete_if{|file| !File.exists?(File.join(dir,file))}.reject!{|file| file =~ /^i_|^a_|^s_|ftp\:/}
+        #datafiles.delete_if{|file| !File.exists?(file)} unless datafiles.blank?
+        $logger.debug datafiles
+        if datafiles.blank?
+          $logger.debug "No datafiles to process."
+        else
+          datafiles.each do |file| 
+            $logger.debug "import file: #{file}"
+            # substitude dots in headerline
+            `sed -i '1s/vs\./vs/g' #{File.join(dir,file)}`
+            `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --type tsv --file '#{File.join(dir, file)}' --headerline`
+          end 
+          # building genelist
+          my = @client[params[:id]]
+          genelist = []
+          symbol = my.find.distinct(:Symbol)
+          symbol.each{|x| genelist << "http://onto.toxbank.net/isa/Symbol/#{x}"} unless symbol.blank?
+          entrez = my.find.distinct(:Entrez)
+          entrez.each{|x| genelist << "http://onto.toxbank.net/isa/Entrez/#{x}"} unless entrez.blank?
+          unigene = my.find.distinct(:Unigene)
+          unigene.each{|x| genelist << "http://onto.toxbank.net/isa/Unigene/#{x}"} unless unigene.blank?
+          refseq = my.find.distinct(:RefSeq)
+          refseq.each{|x| genelist << "http://onto.toxbank.net/isa/RefSeq/#{x}"} unless refseq.blank?
+          uniprod = my.find.distinct(:Uniprod)
+          uniprod.each{|x| genelist << "http://purl.uniprod.org/uniprod/#{x}"} unless uniprod.blank?
+          # write to file
+          File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}) }
+          #TODO could be more than one assay or study
+          #TODO check files for utf-8 error
+          assayfiles = Dir["#{dir}/a_*.txt"][0]
+          $logger.debug assayfiles
+          assay = CSV.read(assayfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+          #$logger.debug assay.headers
+          studyfiles = Dir["#{dir}/s_*.txt"][0]
+          $logger.debug studyfiles
+          study = CSV.read(studyfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+          #$logger.debug study.headers
+          investigationfile = Dir["#{dir}/i_*.txt"][0]
+          inv = CSV.read(investigationfile, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+          inv.find{|r| @title = r[1] if r[0] == "Investigation Title"}
+          genes = genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}
+          # working with genes
+          genes.each do |gene|
+            geneclass = (gene =~ /uniprod/ ? gene.split("/")[3] : gene.split("/")[4])
+            gene = gene.split("/").last
+            unless File.exists?(File.join(dir, "#{gene}.json"))
+              case geneclass
+              when "Symbol"
+                a = my.find(Symbol: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
+              when "Uniprod"
+                a = my.find(Uniprod: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
+              when "Unigene"
+                a = my.find(Unigene: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
+              when "RefSeq"
+                a = my.find(RefSeq: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
+              when "Entrez"
+                # integer value
+                a = my.find(Entrez: gene.to_i).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
+              else
+                bad_request_error "Unknown gene class '#{geneclass}'"
+              end
+              unless a.to_a[0].blank?
+                b = {}
+                assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| (b.has_key?(name) ? b[name] << [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]] : b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]]) if a[0] =~ /\b(#{name})\b/ } }
+                c = {}
+                assay[:sample_name].each{|sample| study.each{|s| factorvalues = {}; s.each_with_index{|e,i| e.each{|y| factorvalues["timeunit"] = s[i+1] and factorvalues["time"] = s[i] if y.to_s =~ /time/i; factorvalues["doseunit"] = s[i+1] and factorvalues["dose"] = s[i] if y.to_s =~ /dose/i; factorvalues["organism"] = s[i] if y.to_s =~ /organism/i; factorvalues["cell"] = s[i] if y.to_s =~ /cell/i; factorvalues["compound"] = s[i] if y.to_s =~ /compound/i}}; c[s[:sample_name]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => factorvalues["time"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["timeunit"]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => factorvalues["dose"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["doseunit"]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => factorvalues["compound"]}], :cell => "#{factorvalues["organism"]}, #{factorvalues["cell"]}"} if s[:sample_name] =~ /\b(#{sample})\b/}}
+                b.each{|k, v| v[0]["factorValues"] = c[v[0][:sample]][:factorValues]; v[0]["cell"] = c[v[0][:sample]][:cell]}
+                b.each{|k, v| v.flatten!}
+                head = {:head => {:vars => ["investigation", "invTitle", "featureType", "title", "value", "gene", "sample", "factorValues", "cell"]}}
+                x = []
+                b.each{|k,v| v.each{|a| x << a}}
+                body = {"results" => {"bindings" => x}}
+                File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(head.merge(body))) } if Dir.exists?(dir)
+              end
             end
-            unless a.to_a[0].blank?
-              b = {}
-              assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| (b.has_key?(name) ? b[name] << [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]] : b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]]) if a[0] =~ /\b(#{name})\b/ } }
-              c = {}
-              assay[:sample_name].each{|sample| study.each{|s| factorvalues = {}; s.each_with_index{|e,i| e.each{|y| factorvalues["timeunit"] = s[i+1] and factorvalues["time"] = s[i] if y.to_s =~ /time/i; factorvalues["doseunit"] = s[i+1] and factorvalues["dose"] = s[i] if y.to_s =~ /dose/i; factorvalues["organism"] = s[i] if y.to_s =~ /organism/i; factorvalues["cell"] = s[i] if y.to_s =~ /cell/i; factorvalues["compound"] = s[i] if y.to_s =~ /compound/i}}; c[s[:sample_name]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => factorvalues["time"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["timeunit"]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => factorvalues["dose"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["doseunit"]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => factorvalues["compound"]}], :cell => "#{factorvalues["organism"]}, #{factorvalues["cell"]}"} if s[:sample_name] =~ /\b(#{sample})\b/}}
-              b.each{|k, v| v[0]["factorValues"] = c[v[0][:sample]][:factorValues]; v[0]["cell"] = c[v[0][:sample]][:cell]}
-              b.each{|k, v| v.flatten!}
-              head = {:head => {:vars => ["investigation", "invTitle", "featureType", "title", "value", "gene", "sample", "factorValues", "cell"]}}
-              x = []
-              b.each{|k,v| v.each{|a| x << a}}
-              body = {"results" => {"bindings" => x}}
-              File.open(File.join(dir, "#{gene}.json"), 'w') {|f| f.write(JSON.pretty_generate(head.merge(body))) } if Dir.exists?(dir)
-            end
-          end
-        end unless genes.empty?
-        $logger.debug "Delete collection #{params[:id]}."
-        my.drop
-        $logger.debug "End processing derived data."
+          end unless genes.empty?
+          $logger.debug "Delete collection #{params[:id]}."
+          my.drop
+          $logger.debug "End processing derived data."
+        end #datafile.blank?
       end
 
       # ISA-TAB to RDF conversion.
