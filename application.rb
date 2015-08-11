@@ -254,14 +254,23 @@ module OpenTox
         result = FourStore.query sparqlstring, "application/json"
         check_get_access result
       when /^genelist/
-        response = FourStore.query File.read(templates[templatename]) , "application/json"
-        result = (check_get_access response)
-        out = JSON.parse(result)
-        out["head"]["vars"].delete_if{|i| i == "investigation"}
-        out["results"]["bindings"].each{|node| node.delete_if{|i| i == "investigation"}}
-        out["results"]["bindings"].delete_if{|node| node["genes"]["value"] !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or node["genes"]["value"] =~ /\/NA$/ }.compact
-        out["results"]["bindings"].uniq!
-        JSON.pretty_generate(out)
+        genelistspath = Dir.glob("investigation/**/genelist").map{|path| File.expand_path(path)}
+        hash = {}
+        genelistspath.each{|gp| a = gp.split("/"); hash[to("/investigation/#{a[6]}")] = gp}
+        access_uris = getaccess_uris
+        hash.delete_if{|k, v| !access_uris.include?(k) }
+        genes = []
+        genelistspath.each{|gp| genes << File.read(gp)}
+        genes = genes.uniq.reduce(:concat)
+        genes = genes.gsub(/\[|\]/, ",").split(",").reject(&:blank?)
+        out = []
+        out << {"head" => {"vars" => ["genes"]}}
+        body = []
+        genes.each{|g| body << {"genes" => {"type" => "uri", "value" => g.strip.gsub("\"", "")}} }
+        out << {"results" => {"bindings" => body.flatten.uniq}}
+        head = out[0]
+        body = out[1]
+        JSON.pretty_generate(head.merge(body))
       when /_and_/
         result = FourStore.query File.read(templates[templatename]) , "application/json"
         check_get_access result
