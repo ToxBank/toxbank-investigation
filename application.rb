@@ -208,6 +208,7 @@ module OpenTox
         genefiles = []
         genes.each{|g| genefiles << Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/#{g.split(":").last.gsub("'", "")}.json"] }
         #$logger.debug genefiles
+        genefiles.flatten! if genefiles.dimension > 1
         out = []
         heads = []
         bindings = []
@@ -217,7 +218,7 @@ module OpenTox
           hash = {"head" => {"vars" => ["investigation", "featureType", "title", "dataTransformationName", "value", "gene", "sample", "factorValues", "cell"]}, "results" => {"bindings" => []}}
           return JSON.pretty_generate(hash)
         else
-          genefiles.each do |file| 
+          genefiles.each do |file|
             #@a = JSON.parse File.read File.join(file)
             @a = JSON.parse(check_get_access File.read File.join(file))
             heads << {"head" => {"vars" => @a["head"]["vars"]}}
