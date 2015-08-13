@@ -53,16 +53,6 @@ module OpenTox
       end
 
       def build_gene_files
-        if request.request_method =~ /PUT/ && params[:file] 
-          # delete existing json files and cancel subtask if still running
-          subtaskuri = subtask_uri[0]
-          unless subtaskuri.blank?
-            $logger.debug "cancel running subtask: #{subtaskuri}"
-            `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'`
-          end
-          $logger.debug "Delete existing bio search result files."
-          jsonfiles = Dir["#{dir}/*.json"].each{|file| `rm '#{file}'`} unless jsonfiles.blank?
-        end
         $logger.debug "Start processing derived data."
         templates = get_templates "investigation"
         # locate derived data files and prepare
@@ -75,7 +65,7 @@ module OpenTox
         @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
         my = @client[params[:id]]
         datafiles.delete_if{|file| !File.exists?(File.join(dir,file))}.reject!{|file| file =~ /^i_|^a_|^s_|ftp\:/}
-        #datafiles.delete_if{|file| !File.exists?(file)} unless datafiles.blank?
+        datafiles.delete_if{|file| `head -n1 #{File.join(dir,file)}` !~ /(FC|p-value|q-value)/}
         $logger.debug datafiles
         if datafiles.blank?
           $logger.debug "No datafiles to process."
@@ -83,8 +73,11 @@ module OpenTox
           datafiles.each do |file| 
             $logger.debug "import file: #{file}"
             # substitude dots in headerline
-            `sed -i '1s/vs\./vs/g' #{File.join(dir,file)}`
-            `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --type tsv --file '#{File.join(dir, file)}' --headerline`
+            #`sed -i '1s/\\./ /g' #{File.join(dir,file)}`
+            #firstline = `head -n1 #{File.join(dir,file)}`
+            #key = (firstline =~ /(FC|p-value|q-value)/)
+            #$logger.debug "key: #{key}"
+            `mongoimport -d ToxBank -c #{params[:id]} --ignoreBlanks --type tsv --file '#{File.join(dir, file)}' --headerline` #unless key.blank?
           end 
           # building genelist
           my = @client[params[:id]]
@@ -97,12 +90,11 @@ module OpenTox
           unigene.each{|x| genelist << "http://onto.toxbank.net/isa/Unigene/#{x}"} unless unigene.blank?
           refseq = my.find.distinct(:RefSeq)
           refseq.each{|x| genelist << "http://onto.toxbank.net/isa/RefSeq/#{x}"} unless refseq.blank?
-          uniprod = my.find.distinct(:Uniprod)
-          uniprod.each{|x| genelist << "http://purl.uniprod.org/uniprod/#{x}"} unless uniprod.blank?
+          uniprot = my.find.distinct(:Uniprot)
+          uniprot.each{|x| genelist << "http://purl.uniprot.org/uniprot/#{x}"} unless uniprot.blank?
           # write to file
           File.open(File.join(dir, "genelist"), 'w') {|f| f.write(genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}) }
           #TODO could be more than one assay or study
-          #TODO check files for utf-8 error
           assayfiles = Dir["#{dir}/a_*.txt"][0]
           $logger.debug assayfiles
           assay = CSV.read(assayfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
@@ -111,20 +103,23 @@ module OpenTox
           $logger.debug studyfiles
           study = CSV.read(studyfiles, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
           #$logger.debug study.headers
-          investigationfile = Dir["#{dir}/i_*.txt"][0]
-          inv = CSV.read(investigationfile, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
-          inv.find{|r| @title = r[1] if r[0] == "Investigation Title"}
-          genes = genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}
+          #investigationfile = Dir["#{dir}/i_*.txt"][0]
+          #inv = CSV.read(investigationfile, { :col_sep => "\t", :row_sep => :auto, :headers => true, :header_converters => :symbol })
+          #inv.find{|r| @title = r[1] if r[0] == "Investigation Title"}
+	        sparqlstring = "SELECT ?title FROM <#{investigation_uri}> WHERE {<#{investigation_uri}> <http://purl.org/dc/terms/title> ?title.} LIMIT 1"
+	        response = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
+	        @title = JSON.parse(response)["results"]["bindings"].map{|f| f["title"]["value"]}[0]
+	        genes = genelist.flatten.compact.reject{|g| g.to_s =~ /\/NA$|\/0$/}
           # working with genes
           genes.each do |gene|
-            geneclass = (gene =~ /uniprod/ ? gene.split("/")[3] : gene.split("/")[4])
+            geneclass = (gene =~ /uniprot/i ? gene.split("/")[3].capitalize : gene.split("/")[4])
             gene = gene.split("/").last
             unless File.exists?(File.join(dir, "#{gene}.json"))
               case geneclass
               when "Symbol"
                 a = my.find(Symbol: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
-              when "Uniprod"
-                a = my.find(Uniprod: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
+              when "Uniprot"
+                a = my.find(Uniprot: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
               when "Unigene"
                 a = my.find(Unigene: gene).each{|hash| hash.delete_if{|k, v| k !~ /^p-value|^q-value|^FC/}}
               when "RefSeq"
@@ -139,7 +134,7 @@ module OpenTox
                 b = {}
                 assay[:data_transformation_name].each_with_index{|name, idx| a.to_a[0].each{|a| (b.has_key?(name) ? b[name] << [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]] : b[name] = [:investigation => {:type => "uri", :value => investigation_uri}, :invTitle => {:type => "literal", :value => @title}, :featureType => {:type => "uri", :value=> (("http://onto.toxbank.net/isa/pvalue" if a[0] =~ /p-value/) or ("http://onto.toxbank.net/isa/qvalue" if a[0] =~ /q-value/) or ("http://onto.toxbank.net/isa/FC" if a[0] =~ /FC/)) }, :title => {:type => "literal", :value => a[0]}, :dataTransformationName => {:type => "literal", :value => name}, :value => {:type => "literal", :value => "#{a[1]}", :datatype => "http://www.w3.org/2001/XMLSchema#double"}, :gene => "#{geneclass}:#{gene}", :sample => assay[:sample_name][idx]]) if a[0] =~ /\b(#{name})\b/ } }
                 c = {}
-                assay[:sample_name].each{|sample| study.each{|s| factorvalues = {}; s.each_with_index{|e,i| e.each{|y| factorvalues["timeunit"] = s[i+1] and factorvalues["time"] = s[i] if y.to_s =~ /time/i; factorvalues["doseunit"] = s[i+1] and factorvalues["dose"] = s[i] if y.to_s =~ /dose/i; factorvalues["organism"] = s[i] if y.to_s =~ /organism/i; factorvalues["cell"] = s[i] if y.to_s =~ /cell/i; factorvalues["compound"] = s[i] if y.to_s =~ /compound/i}}; c[s[:sample_name]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => factorvalues["time"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["timeunit"]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => factorvalues["dose"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["doseunit"]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => factorvalues["compound"]}], :cell => "#{factorvalues["organism"]}, #{factorvalues["cell"]}"} if s[:sample_name] =~ /\b(#{sample})\b/}}
+                assay[:sample_name].each{|sample| study.each{|s| factorvalues = {}; s.each_with_index{|e,i| e.each{|y| factorvalues["timeunit"] = s[i+1] and factorvalues["time"] = s[i] if (y.to_s =~ /time/i && y.to_s !~ /unit/i); factorvalues["doseunit"] = s[i+1] and factorvalues["dose"] = s[i] if y.to_s =~ /dose/i; factorvalues["organism"] = s[i] if y.to_s =~ /organism/i; factorvalues["cell"] = s[i] if y.to_s =~ /cell/i; factorvalues["compound"] = s[i] if y.to_s =~ /compound/i}}; c[s[:sample_name]] = {:factorValues => [{:factorname => {:type => "literal", :value => "sample TimePoint"}, :value => {:type => "literal", :value => factorvalues["time"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["timeunit"]}}, {:factorname => {:type => "literal", :value => "dose"}, :value => {:type => "literal", :value => factorvalues["dose"], :datatype => "http://www.w3.org/2001/XMLSchema#int"}, :unit => {:type => "literal", :value => factorvalues["doseunit"]}}, :factorname => {:type => "literal", :value => "compound"}, :value => {:type => "literal", :value => factorvalues["compound"]}], :cell => "#{factorvalues["organism"]}, #{factorvalues["cell"]}"} if s[:sample_name] =~ /\b(#{sample})\b/}}
                 b.each{|k, v| v[0]["factorValues"] = c[v[0][:sample]][:factorValues]; v[0]["cell"] = c[v[0][:sample]][:cell]}
                 b.each{|k, v| v.flatten!}
                 head = {:head => {:vars => ["investigation", "invTitle", "featureType", "title", "value", "gene", "sample", "factorValues", "cell"]}}
@@ -182,7 +177,20 @@ module OpenTox
           # next line moved to l.74
           `zip -j #{File.join(dir, "investigation_#{params[:id]}.zip")} #{dir}/*.txt`
           OpenTox::Backend::FourStore.put investigation_uri, File.read(File.join(dir,nt)), "application/x-turtle"
-          
+
+          if request.request_method =~ /PUT/
+            # delete existing json files and cancel subtask if still running
+            subtaskuri = subtask_uri[0]
+            unless subtaskuri.blank?
+              $logger.debug "cancel running subtask: #{subtaskuri}"
+              `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'`
+            end
+            $logger.debug "Delete existing bio search result files."
+            jsonfiles = Dir["#{dir}/*.json"]
+            $logger.debug jsonfiles
+            jsonfiles.each{|file| FileUtils.rm(file)} unless jsonfiles.blank?
+          end
+
           task = OpenTox::Task.run("Processing derived data",investigation_uri) do
             $logger.debug "build_gene_files"
             build_gene_files
@@ -205,6 +213,7 @@ module OpenTox
       
       # create dashboard cache
       def dashboard_cache
+        $logger.debug "build dashboard"
         templates = get_templates "investigation"
         sparqlstring = File.read(templates["factorvalues_by_investigation"]) % { :investigation_uri => investigation_uri }
         factorvalues = OpenTox::Backend::FourStore.query sparqlstring, "application/json"
@@ -270,6 +279,7 @@ module OpenTox
       # @!group Helpers to link FTP data 
       # link data files from FTP to investigation dir
       def link_ftpfiles
+        $logger.debug "build FTP links"
         ftpfiles = get_ftpfiles
         datafiles = get_datafiles
         return "" if ftpfiles.empty? || datafiles.empty?
