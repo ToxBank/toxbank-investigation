@@ -194,7 +194,7 @@ namespace :bioresults do
       @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
       my = @client[inv]
       datafiles.delete_if{|file| !File.exists?(File.join(dir,file))}.reject!{|file| file =~ /^i_|^a_|^s_|ftp\:/}
-      datafiles.delete_if{|file| `head -n1 #{File.join(dir,file)}` !~ /(FC|p-value|q-value)/}
+      datafiles.delete_if{|file| `head -n1 '#{File.join(dir,file)}'` !~ /(FC|p-value|q-value)/}
       puts datafiles
       if datafiles.blank?
         puts "No datafiles to process."
