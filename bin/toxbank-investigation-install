@@ -33,6 +33,7 @@ then
   echo "Initializing git for investigations"
   git init
   echo "*/*.zip" > .gitignore
+  echo "*/*.json" >> .gitignore
   echo "*/tmp" >> .gitignore
   echo "user_policies" >> .gitignore
   echo "group_policies" >> .gitignore
