@@ -254,22 +254,31 @@ module OpenTox
         check_get_access result
       when /^genelist/
         genelistspath = Dir.glob("investigation/**/genelist").map{|path| File.expand_path(path)}
-        hash = {}
-        genelistspath.each{|gp| a = gp.split("/"); hash[to("/investigation/#{a[6]}")] = gp}
-        access_uris = getaccess_uris
-        hash.delete_if{|k, v| !access_uris.include?(k) }
-        genes = []
-        genelistspath.each{|gp| genes << File.read(gp)}
-        genes = genes.uniq.reduce(:concat)
-        genes = genes.gsub(/\[|\]/, ",").split(",").reject(&:blank?)
-        out = []
-        out << {"head" => {"vars" => ["genes"]}}
-        body = []
-        genes.each{|g| body << {"genes" => {"type" => "uri", "value" => g.strip.gsub("\"", "")}} }
-        out << {"results" => {"bindings" => body.flatten.uniq}}
-        head = out[0]
-        body = out[1]
-        JSON.pretty_generate(head.merge(body))
+        unless genelistspath.blank?
+          hash = {}
+          genelistspath.each{|gp| a = gp.split("/"); hash[to("/investigation/#{a[6]}")] = gp}
+          access_uris = getaccess_uris
+          hash.delete_if{|k, v| !access_uris.include?(k) }
+          genes = []
+          genelistspath.each{|gp| genes << File.read(gp)}
+          genes = genes.uniq.reduce(:concat)
+          genes = genes.gsub(/\[|\]/, ",").split(",").reject(&:blank?)
+          out = []
+          out << {"head" => {"vars" => ["genes"]}}
+          body = []
+          genes.each{|g| body << {"genes" => {"type" => "uri", "value" => g.strip.gsub("\"", "")}} }
+          out << {"results" => {"bindings" => body.flatten.uniq}}
+          head = out[0]
+          body = out[1]
+          JSON.pretty_generate(head.merge(body))
+        else
+          out = []
+          out << {"head" => {"vars" => ["genes"]}}
+          out << {"results" => {"bindings" => []}}
+          head = out[0]
+          body = out[1]
+          JSON.pretty_generate(head.merge(body))
+        end
       when /_and_/
         result = FourStore.query File.read(templates[templatename]) , "application/json"
         check_get_access result
