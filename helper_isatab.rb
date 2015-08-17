@@ -65,7 +65,7 @@ module OpenTox
         @client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'ToxBank', :connect => :direct)
         my = @client[params[:id]]
         datafiles.delete_if{|file| !File.exists?(File.join(dir,file))}.reject!{|file| file =~ /^i_|^a_|^s_|ftp\:/}
-        datafiles.delete_if{|file| `head -n1 #{File.join(dir,file)}` !~ /(FC|p-value|q-value)/}
+        datafiles.delete_if{|file| `head -n1 '#{File.join(dir,file)}'` !~ /(FC|p-value|q-value)/}
         $logger.debug datafiles
         if datafiles.blank?
           $logger.debug "No datafiles to process."
