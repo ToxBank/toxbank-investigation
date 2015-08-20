@@ -1,10 +1,12 @@
 require 'opentox-server'
+require "mongo"
 require_relative "tbaccount.rb"
 require_relative "util.rb"
 require_relative "helper.rb"
 require_relative "helper_isatab.rb"
 require_relative "helper_unformatted.rb"
 # ToxBank implementation based on OpenTox API and OpenTox ruby gems
+
 
 module OpenTox
   # For full API description of the ToxBank investigation service see:
@@ -167,7 +169,7 @@ module OpenTox
         create_policy "group", params[:allowReadByGroup] if params[:allowReadByGroup]
         investigation_uri
       end
-      # remove unformatted investigation if import error
+      # remove investigation if import error
       begin
         t = OpenTox::Task.new task.uri
         t.wait
@@ -201,13 +203,11 @@ module OpenTox
       when /^biosearch$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
         genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
-        genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /genesymbol\:|unigene\:|uniprot\:|entrez\:|refseq\:/}
-        unpublished = Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/isPublished.nt"]
-        unpublished.reject!{|file| File.foreach(file).grep(/\"true\"/).any?} unless unpublished.blank?
+        genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /^genesymbol\:|^unigene\:|^uniprot\:|^entrez\:|^refseq\:/}
         genefiles = []
         genes.each{|g| genefiles << Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/#{g.split(":").last.gsub("'", "")}.json"] }
-        genefiles.flatten!
-        unpublished.each{|u| genefiles.each{|g| genefiles.delete(g) if u.split("/")[1..-2].join("/") == g.split("/")[1..-2].join("/")} } unless genefiles.blank?||unpublished.blank?
+        #$logger.debug genefiles
+        genefiles.flatten! if genefiles.dimension > 1
         out = []
         heads = []
         bindings = []
@@ -215,8 +215,7 @@ module OpenTox
           hash = {"head" => {"vars" => ["investigation", "featureType", "title", "dataTransformationName", "value", "gene", "sample", "factorValues", "cell"]}, "results" => {"bindings" => []}}
           return JSON.pretty_generate(hash)
         else
-          genefiles.each do |file| 
-            $logger.debug "checking for access: #{file}"
+          genefiles.each do |file|
             @a = JSON.parse(check_get_access File.read File.join(file))
             heads << {"head" => {"vars" => @a["head"]["vars"]}}
             bindings << @a["results"]["bindings"]
@@ -252,14 +251,32 @@ module OpenTox
         result = FourStore.query sparqlstring, "application/json"
         check_get_access result
       when /^genelist/
-        response = FourStore.query File.read(templates[templatename]) , "application/json"
-        result = (check_get_access response)
-        out = JSON.parse(result)
-        out["head"]["vars"].delete_if{|i| i == "investigation"}
-        out["results"]["bindings"].each{|node| node.delete_if{|i| i == "investigation"}}
-        out["results"]["bindings"].delete_if{|node| node["genes"]["value"] !~ /Entrez|uniprot|Symbol|Unigene|RefSeq/ or node["genes"]["value"] =~ /\/NA$/ }.compact
-        out["results"]["bindings"].uniq!
-        JSON.pretty_generate(out)
+        genelistspath = Dir.glob("investigation/**/genelist").map{|path| File.expand_path(path)}
+        unless genelistspath.blank?
+          hash = {}
+          genelistspath.each{|gp| a = gp.split("/"); hash[to("/investigation/#{a[6]}")] = gp}
+          access_uris = getaccess_uris
+          hash.delete_if{|k, v| !access_uris.include?(k) }
+          genes = []
+          genelistspath.each{|gp| genes << File.read(gp)}
+          genes = genes.uniq.reduce(:concat)
+          genes = genes.gsub(/\[|\]/, ",").split(",").reject(&:blank?)
+          out = []
+          out << {"head" => {"vars" => ["genes"]}}
+          body = []
+          genes.each{|g| body << {"genes" => {"type" => "uri", "value" => g.strip.gsub("\"", "")}} }
+          out << {"results" => {"bindings" => body.flatten.uniq}}
+          head = out[0]
+          body = out[1]
+          JSON.pretty_generate(head.merge(body))
+        else
+          out = []
+          out << {"head" => {"vars" => ["genes"]}}
+          out << {"results" => {"bindings" => []}}
+          head = out[0]
+          body = out[1]
+          JSON.pretty_generate(head.merge(body))
+        end
       when /_and_/
         result = FourStore.query File.read(templates[templatename]) , "application/json"
         check_get_access result
@@ -551,6 +568,11 @@ module OpenTox
     # @return [String] status message and HTTP code
     # @see http://api.toxbank.net/index.php/Investigation#Delete_an_investigation API: Delete an investigation
     delete '/investigation/:id' do
+      # check for running task
+      $logger.debug "call for subtask"
+      subtaskuri = subtask_uri[0]
+      $logger.debug "cancel: #{subtaskuri}"
+      `curl -Lk -X PUT -d '' '#{subtaskuri}/Cancelled'` unless subtaskuri.blank?
       kill_isa2rdf
       set_index false
       FileUtils.remove_entry dir
