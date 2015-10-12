@@ -203,7 +203,7 @@ module OpenTox
       case templatename
       when /^biosearch$/
         bad_request_error "missing parameter geneIdentifiers. '#{params[:geneIdentifiers]} is not a valid gene identifier." if params[:geneIdentifiers].blank? || params[:geneIdentifiers] !~ /.*\:.*/
-        genes = params[:geneIdentifiers].gsub(/[\[\]\"]/ , "").split(",")
+        genes = params[:geneIdentifiers].gsub(/[\[\]\"\']/ , "").split(",")
         genes.each{|g| bad_request_error "#{g} is not a valid gene identifier." if g !~ /^genesymbol\:|^unigene\:|^uniprot\:|^entrez\:|^refseq\:/}
         genefiles = []
         genes.each{|g| genefiles << Dir[File.join File.dirname(File.expand_path __FILE__), "investigation/**/#{g.split(":").last.gsub("'", "")}.json"] }
